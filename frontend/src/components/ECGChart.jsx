@@ -6,7 +6,6 @@ const ECGChart = () => {
   const [yData, setYData] = useState(Array(100).fill(0));
 
   useEffect(() => {
-    // Vẫn đang dùng dữ liệu giả để test UI, sau này thay bằng WebSocket
     const interval = setInterval(() => {
       setXData((prevX) => [...prevX.slice(1), prevX[prevX.length - 1] + 1]);
       setYData((prevY) => {
@@ -15,35 +14,25 @@ const ECGChart = () => {
         return [...prevY.slice(1), newValue];
       });
     }, 100);
-
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+    // Bọc trong thẻ div có chiều cao 100%
+    <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
       <Plot
-        data={[
-          {
-            x: xData,
-            y: yData,
-            type: 'scatter',
-            mode: 'lines',
-            line: { color: '#3f6ad8', width: 2.5 }, // Màu xanh biển hiện đại
-            name: 'ECG Signal',
-          },
-        ]}
+        data={[{ x: xData, y: yData, type: 'scatter', mode: 'lines', line: { color: '#3f6ad8', width: 2.5 } }]}
         layout={{
-          plot_bgcolor: '#ffffff', // Nền biểu đồ trắng
-          paper_bgcolor: '#ffffff', // Nền khung trắng
-          font: { color: '#495057' }, // Chữ xám đậm
+          autosize: true, // Cho phép tự động co giãn
+          plot_bgcolor: 'transparent', 
+          paper_bgcolor: 'transparent',
+          font: { color: '#495057' },
           xaxis: { showgrid: false, zeroline: false, showticklabels: false },
-          yaxis: { showgrid: true, gridcolor: '#e9ecef', range: [-1, 3] }, // Lưới xám nhạt
-          width: '100%',
-          height: 350,
+          yaxis: { showgrid: true, gridcolor: '#e9ecef', range: [-1, 3] },
           margin: { l: 40, r: 20, t: 10, b: 20 },
         }}
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
+        useResizeHandler={true} // Kích hoạt resize
+        style={{ width: '100%', height: '100%' }} // Ép full thẻ cha
         config={{ displayModeBar: false, responsive: true }}
       />
     </div>
