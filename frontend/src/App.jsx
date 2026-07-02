@@ -1,122 +1,102 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from 'react';
+import ECGChart from './components/ECGChart';
 
 function App() {
-  const [count, setCount] = useState(0)
+  // Định nghĩa style tái sử dụng cho các thẻ (Cards)
+  const cardStyle = {
+    backgroundColor: '#ffffff',
+    padding: '20px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)', // Đổ bóng nhẹ
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    border: '1px solid #e9ecef',
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', backgroundColor: '#f1f4f6', color: '#495057', minHeight: '100vh', padding: '30px' }}>
+      
+      {/* Header */}
+      <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ margin: 0, color: '#3f6ad8', fontSize: '24px' }}>Hệ Thống Theo Dõi Điện Tâm Đồ</h1>
+          <p style={{ margin: '5px 0 0 0', color: '#888', fontSize: '14px' }}>Real-time Dashboard Monitoring</p>
         </div>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          {/* Nút giả lập Action như trong ảnh */}
+          <button style={{ backgroundColor: '#3f6ad8', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+            Xuất Báo Cáo
+          </button>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+      </header>
+
+      {/* Khu vực Top Metrics (Các hộp nhỏ ở trên) */}
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+        
+        {/* Box 1: Viền Đỏ */}
+        <div style={{ ...cardStyle, borderTop: '4px solid #d92550' }}>
+          <span style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', fontWeight: 'bold' }}>Trạng Thái AI</span>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#d92550', marginTop: '10px' }}>CẢNH BÁO PVC</div>
+        </div>
+
+        {/* Box 2: Viền Xanh biển */}
+        <div style={{ ...cardStyle, borderTop: '4px solid #3f6ad8' }}>
+          <span style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', fontWeight: 'bold' }}>Nhịp Tim (BPM)</span>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '10px' }}>
+            85 <span style={{ fontSize: '14px', color: '#888' }}>bpm</span>
+          </div>
+        </div>
+
+        {/* Box 3: Viền Vàng */}
+        <div style={{ ...cardStyle, borderTop: '4px solid #f7b924' }}>
+          <span style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', fontWeight: 'bold' }}>Độ Trễ Phản Hồi</span>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', marginTop: '10px' }}>
+            12 <span style={{ fontSize: '14px', color: '#888' }}>ms</span>
+          </div>
+        </div>
+
+        {/* Box 4: Viền Xanh lá */}
+        <div style={{ ...cardStyle, borderTop: '4px solid #3ac47d' }}>
+          <span style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', fontWeight: 'bold' }}>Kết Nối Dữ Liệu</span>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3ac47d', marginTop: '10px' }}>TRỰC TUYẾN</div>
+        </div>
+
       </section>
 
-      <div className="ticks"></div>
+      {/* Khu vực Biểu đồ Chính */}
+      <section style={{ display: 'flex', gap: '20px' }}>
+        
+        {/* Biểu đồ ECG */}
+        <div style={{ ...cardStyle, flex: 3, borderTop: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, color: '#333' }}>Tín Hiệu ECG Thời Gian Thực</h3>
+            <span style={{ backgroundColor: '#f7b924', color: 'white', padding: '2px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>LIVE</span>
+          </div>
+          <ECGChart />
+        </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        {/* Cột thông tin phụ bên phải */}
+        <div style={{ ...cardStyle, flex: 1, borderTop: 'none', justifyContent: 'flex-start' }}>
+          <h3 style={{ margin: '0 0 20px 0', color: '#333' }}>Cấu Hình Hệ Thống</h3>
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ fontSize: '12px', color: '#888' }}>Model Đang Chạy</div>
+            <div style={{ fontWeight: 'bold', color: '#333' }}>CNN 1D (Baseline)</div>
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ fontSize: '12px', color: '#888' }}>Nguồn Dữ Liệu</div>
+            <div style={{ fontWeight: 'bold', color: '#333' }}>MIT-BIH Database</div>
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ fontSize: '12px', color: '#888' }}>Bộ lọc Nhiễu</div>
+            <div style={{ fontWeight: 'bold', color: '#333' }}>Butterworth Bandpass</div>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
