@@ -5,23 +5,28 @@ import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
 import PatientInfo from '../components/dashboard/PatientInfo';
 import EventLog from '../components/dashboard/EventLog';
+import LoadingSpinner from '../components/dashboard/LoadingSpinner';
 
 const DashboardPage = () => {
   const [connectionStatus, setConnectionStatus] = useState('Đang kết nối...');
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [xData, setXData] = useState([]);
   const [yData, setYData] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [logs, setLogs] = useState([]);
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
   const [latency, setLatency] = useState(0);
 
   useEffect(() => {
-    let ws;
+    let ws = null;
     let fallbackInterval = null;
+    let reconnectTimeout = null;
     let pointIndex = 0;
+    let hasConnectedOnce = false;
 
     const startFallback = () => {
       if (fallbackInterval) return;
-      console.log("Khởi động dữ liệu mô phỏng do không kết nối được WebSocket.");
+      console.log("Khởi động dữ liệu mô phỏng do mất kết nối WebSocket.");
       fallbackInterval = setInterval(() => {
         // Tạo nhịp tim giả lập
         const isHeartbeat = pointIndex % 40 === 10 || pointIndex % 40 === 11 || pointIndex % 40 === 12;
@@ -56,6 +61,10 @@ const DashboardPage = () => {
           return [...prevY, value].slice(-150);
         });
 
+        setPredictions(prevPred => {
+          return [...prevPred, prediction].slice(-150);
+        });
+
         if (prediction === "CẢNH BÁO PVC") {
           setLogs(prevLogs => {
             const newLog = {
@@ -73,10 +82,18 @@ const DashboardPage = () => {
     };
 
     const connect = () => {
+      if (ws) {
+        try {
+          ws.close();
+        } catch (e) {}
+      }
+
       ws = new WebSocket('ws://localhost:8000/ws/ecg');
 
       ws.onopen = () => {
         setConnectionStatus('Đã kết nối');
+        setIsInitialLoading(false);
+        hasConnectedOnce = true;
         if (fallbackInterval) {
           clearInterval(fallbackInterval);
           fallbackInterval = null;
@@ -102,6 +119,10 @@ const DashboardPage = () => {
             return [...prevY, val].slice(-150);
           });
 
+          setPredictions(prevPred => {
+            return [...prevPred, pred].slice(-150);
+          });
+
           if (pred && pred.includes('CẢNH BÁO')) {
             setLogs(prevLogs => {
               const newLog = {
@@ -119,14 +140,16 @@ const DashboardPage = () => {
       };
 
       ws.onclose = () => {
-        setConnectionStatus('Mất kết nối (Mô phỏng)');
-        startFallback();
-        // Thử kết nối lại sau 5 giây
-        setTimeout(connect, 5000);
+        setConnectionStatus('Đang kết nối lại...');
+        // Nếu đã từng kết nối thành công, dùng dữ liệu mô phỏng để tránh màn hình trống hoặc các chỉ số bị reset về 0
+        if (hasConnectedOnce) {
+          startFallback();
+        }
+        reconnectTimeout = setTimeout(connect, 3000);
       };
 
       ws.onerror = (err) => {
-        console.error('Lỗi kết nối WebSocket, đang chuyển sang mô phỏng:', err);
+        console.error('Lỗi WebSocket, đóng để thực hiện tự động kết nối lại:', err);
         ws.close();
       };
     };
@@ -136,6 +159,7 @@ const DashboardPage = () => {
     return () => {
       if (ws) ws.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
@@ -145,16 +169,24 @@ const DashboardPage = () => {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Header connectionStatus={connectionStatus} latency={latency} />
         <main style={{ flex: 1, padding: '25px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '25px' }}>
-          <StatCards latestPrediction={latestPrediction} connectionStatus={connectionStatus} latency={latency} />
-          <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: '0' }}>
-            <div style={{ flex: 7, display: 'flex' }}>
-              <ECGChart xData={xData} yData={yData} />
+          {isInitialLoading ? (
+            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
+              <LoadingSpinner />
             </div>
-            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <PatientInfo />
-              <EventLog logs={logs} />
-            </div>
-          </div>
+          ) : (
+            <>
+              <StatCards latestPrediction={latestPrediction} connectionStatus={connectionStatus} latency={latency} />
+              <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: '0' }}>
+                <div style={{ flex: 7, display: 'flex' }}>
+                  <ECGChart xData={xData} yData={yData} predictions={predictions} />
+                </div>
+                <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <PatientInfo />
+                  <EventLog logs={logs} />
+                </div>
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>

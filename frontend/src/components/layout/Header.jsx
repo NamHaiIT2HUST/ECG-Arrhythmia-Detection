@@ -1,8 +1,25 @@
 import React from 'react';
 
 const Header = ({ connectionStatus, latency }) => {
-  const isConnected = connectionStatus && connectionStatus.includes('Đã kết nối');
+  // Xác định text và style cho badge trạng thái
+  let badgeText = '⏳ Đang kết nối...';
+  let badgeBg = '#fef9c3'; // yellow-50
+  let badgeColor = '#854d0e'; // yellow-800
   
+  if (connectionStatus === 'Đã kết nối') {
+    badgeText = '● Trực tuyến';
+    badgeBg = '#dcfce7'; // green-100
+    badgeColor = '#15803d'; // green-700
+  } else if (connectionStatus === 'Đang kết nối lại...') {
+    badgeText = '⚠️ Đang kết nối lại...';
+    badgeBg = '#fef9c3'; // yellow-100
+    badgeColor = '#a16207'; // yellow-700
+  } else if (connectionStatus.includes('Mô phỏng')) {
+    badgeText = '▲ Mô phỏng';
+    badgeBg = '#dbeafe'; // blue-100
+    badgeColor = '#1e40af'; // blue-800
+  }
+
   return (
     <header style={{ 
       height: '70px', 
@@ -20,14 +37,14 @@ const Header = ({ connectionStatus, latency }) => {
         <h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-main)', fontWeight: 'bold' }}>Hệ Thống Theo Dõi ECG Thời Gian Thực</h1>
         <span style={{ 
           padding: '4px 12px', 
-          backgroundColor: isConnected ? '#dcfce7' : '#fef9c3', 
-          color: isConnected ? '#15803d' : '#a16207', 
+          backgroundColor: badgeBg, 
+          color: badgeColor, 
           borderRadius: '20px', 
           fontSize: '12px', 
           fontWeight: 'bold',
           transition: 'all 0.3s ease'
         }}>
-          {isConnected ? '● Trực tuyến' : '▲ Mô phỏng'}
+          {badgeText}
         </span>
       </div>
       

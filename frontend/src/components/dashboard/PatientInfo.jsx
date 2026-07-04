@@ -2,16 +2,36 @@ import React, { useState } from 'react';
 
 const PatientInfo = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [patient, setPatient] = useState({
-    name: 'Nguyễn Văn A',
-    patientId: 'BN-2026-89',
-    age: '45',
-    gender: 'Nam',
-    room: 'Phòng ICU - Giường 04'
+  
+  // Khởi tạo state trực tiếp từ localStorage để tránh hiện tượng nhấp nháy UI
+  const [patient, setPatient] = useState(() => {
+    const saved = localStorage.getItem('patientInfo');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Lỗi phân tích dữ liệu localStorage bệnh nhân:', e);
+      }
+    }
+    return {
+      name: 'Nguyễn Văn A',
+      patientId: 'BN-2026-89',
+      age: '45',
+      gender: 'Nam',
+      room: 'Phòng ICU - Giường 04'
+    };
   });
 
   const handleChange = (e) => {
     setPatient({ ...patient, [e.target.name]: e.target.value });
+  };
+
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      // Khi nhấn Lưu (thoát chế độ chỉnh sửa), lưu trữ vào localStorage
+      localStorage.setItem('patientInfo', JSON.stringify(patient));
+    }
+    setIsEditing(!isEditing);
   };
 
   return (
@@ -19,7 +39,7 @@ const PatientInfo = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-main)', fontWeight: 'bold' }}>👤 Hồ Sơ Bệnh Nhân</h3>
         <button 
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={handleToggleEdit}
           style={{ 
             backgroundColor: isEditing ? 'var(--success)' : 'var(--bg-color)', 
             color: isEditing ? 'white' : 'var(--text-main)', 

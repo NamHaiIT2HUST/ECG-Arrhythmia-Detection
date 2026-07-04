@@ -15,7 +15,7 @@ const Sidebar = () => {
     }}>
       <div style={{ padding: '0 25px 20px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: 'var(--accent)', fontSize: '22px', textShadow: '0 0 10px rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🫀</span> CardioAI
+          <span>🫀</span> ECG-Arrhythmia-Detection
         </h2>
         <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#94a3b8' }}>Real-time Edge Monitor</p>
       </div>
