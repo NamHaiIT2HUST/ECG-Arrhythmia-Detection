@@ -13,3 +13,5 @@ h5py==3.16.0
 protobuf==5.29.6
 typing-extensions==4.15.0
 joblib==1.5.3
+imbalanced-learn
+torch
