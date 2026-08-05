@@ -1,5 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from service.data_streamer import ecg_file_reader
+from backend.service.data_streamer import ecg_file_reader
 import random
 
 router = APIRouter()
