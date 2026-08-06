@@ -1,6 +1,9 @@
 import os
+import sys
 import time
 import json
+import argparse
+import glob
 import pandas as pd
 import numpy as np
 import torch
@@ -61,7 +64,7 @@ def train_and_eval_model(model_name, model, train_loader, test_loader, num_class
     start_train_time = time.time()
     for epoch in range(EPOCHS):
         total_loss = 0.0
-        for batch_x, batch_y in train_loader:
+        for i, (batch_x, batch_y) in enumerate(train_loader):
             batch_x, batch_y = batch_x.to(DEVICE), batch_y.to(DEVICE)
             optimizer.zero_grad()
             outputs = model(batch_x)
@@ -70,7 +73,11 @@ def train_and_eval_model(model_name, model, train_loader, test_loader, num_class
             optimizer.step()
             total_loss += loss.item()
             
-        print(f"Epoch [{epoch+1}/{EPOCHS}] - Loss: {total_loss/len(train_loader):.4f}")
+            # In tiến trình mỗi 100 batch (dùng \r để ghi đè trên cùng 1 dòng)
+            if (i + 1) % 100 == 0 or (i + 1) == len(train_loader):
+                print(f"   [Epoch {epoch+1}/{EPOCHS}] Batch {i+1}/{len(train_loader)} - Loss: {loss.item():.4f}", end='\r')
+                
+        print(f"\n[✓] Epoch [{epoch+1}/{EPOCHS}] Hoàn thành - Avg Loss: {total_loss/len(train_loader):.4f}")
         
     train_duration = time.time() - start_train_time
     print(f"[✓] Hoàn thành huấn luyện trong: {train_duration:.2f}s")
@@ -160,11 +167,36 @@ def save_benchmark_reports(results):
     print("==================================================")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Benchmark ECG Models")
+    parser.add_argument("--model", type=str, help="Tên model cần train (VD: CNN1D_LSTM, TCN, ResNet1D, Transformer1D, Mamba1D)", default=None)
+    parser.add_argument("--aggregate", action="store_true", help="Tổng hợp kết quả từ các file temp_*.json")
+    args = parser.parse_args()
+
+    if args.aggregate:
+        print("[+] Đang tổng hợp kết quả...")
+        temp_files = glob.glob(os.path.join(DOCS_DIR, "temp_result_*.json"))
+        if not temp_files:
+            print("[!] Không tìm thấy kết quả nào để tổng hợp.")
+            sys.exit(0)
+            
+        results = []
+        for f in temp_files:
+            with open(f, 'r', encoding='utf-8') as file:
+                results.append(json.load(file))
+                
+        save_benchmark_reports(results)
+        
+        # Xóa các file tạm sau khi tổng hợp xong
+        for f in temp_files:
+            os.remove(f)
+        sys.exit(0)
+
+    # Nếu không phải aggregate thì load data để train
     try:
         X_tr, y_tr, X_te, y_te = load_data("kaggle")
     except Exception as e:
         print(f"[!] {e}")
-        exit(1)
+        sys.exit(1)
         
     train_dataset = TensorDataset(torch.tensor(X_tr, dtype=torch.float32), torch.tensor(y_tr, dtype=torch.long))
     test_dataset = TensorDataset(torch.tensor(X_te, dtype=torch.float32), torch.tensor(y_te, dtype=torch.long))
@@ -172,17 +204,37 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
-    candidate_models = [
-        ("CNN1D_LSTM", CNN1D_LSTM()),
-        ("TCN", TemporalConvNet()),
-        ("ResNet1D", ResNet1D()),
-        ("Transformer1D", Transformer1D()),
-        ("Mamba1D", Mamba1D())
-    ]
+    candidate_models = {
+        "CNN1D_LSTM": CNN1D_LSTM,
+        "TCN": TemporalConvNet,
+        "ResNet1D": ResNet1D,
+        "Transformer1D": Transformer1D,
+        "Mamba1D": Mamba1D
+    }
     
-    results = []
-    for name, model in candidate_models:
-        res = train_and_eval_model(name, model, train_loader, test_loader)
-        results.append(res)
+    if args.model:
+        if args.model not in candidate_models:
+            print(f"[!] Tên model '{args.model}' không hợp lệ. Chọn 1 trong: {list(candidate_models.keys())}")
+            sys.exit(1)
+            
+        print(f"[+] Bắt đầu train duy nhất model: {args.model}")
+        model_instance = candidate_models[args.model]()
+        res = train_and_eval_model(args.model, model_instance, train_loader, test_loader)
         
-    save_benchmark_reports(results)
+        # Lưu kết quả tạm thời
+        os.makedirs(DOCS_DIR, exist_ok=True)
+        temp_path = os.path.join(DOCS_DIR, f"temp_result_{args.model}.json")
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            json.dump(res, f, ensure_ascii=False, indent=4)
+        print(f"[✓] Đã lưu kết quả tạm vào {temp_path}")
+        print(f"    (Chạy các model khác, sau đó dùng cờ --aggregate để tổng hợp)")
+        
+    else:
+        print("[+] Không chỉ định --model. Sẽ train toàn bộ 5 model liên tục...")
+        results = []
+        for name, ModelClass in candidate_models.items():
+            model_instance = ModelClass()
+            res = train_and_eval_model(name, model_instance, train_loader, test_loader)
+            results.append(res)
+            
+        save_benchmark_reports(results)
