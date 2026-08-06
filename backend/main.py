@@ -37,6 +37,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Trái tim hệ thống ECG đang đập bình thường! 💓",
+        "websocket_endpoint": "ws://localhost:8000/ws/ecg",
+        "status": "online"
+    }
+
 # Gắn Router
 app.include_router(ws_router)
 
