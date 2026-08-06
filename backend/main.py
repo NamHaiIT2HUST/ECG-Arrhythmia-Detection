@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.ws_routes import router as ws_router
-from core.config import settings
+from backend.api.ws_routes import router as ws_router
+from backend.core.config import settings
 
 # Khởi tạo app dùng thông số từ thư mục core
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION)

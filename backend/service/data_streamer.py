@@ -1,7 +1,7 @@
 import csv
 import asyncio
 import os
-from core.config import settings # Gọi setting từ core
+from backend.core.config import settings # Gọi setting từ core
 
 async def ecg_file_reader(filepath=settings.MOCK_DATA_PATH, delay_ms=100):
     if not os.path.exists(filepath):
