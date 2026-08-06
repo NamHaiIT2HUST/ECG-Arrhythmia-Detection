@@ -1,0 +1,57 @@
+[
+    {
+        "Model": "CNN1D_LSTM",
+        "Accuracy (%)": 97.27,
+        "Precision (%)": 81.26,
+        "Recall (%)": 93.58,
+        "F1-Score (%)": 85.79,
+        "Inference Latency (ms)": 0.18,
+        "Throughput (samples/s)": 5556.0,
+        "Parameters": 242885,
+        "Train Duration (s)": 5820.28
+    },
+    {
+        "Model": "Mamba1D",
+        "Accuracy (%)": 94.45,
+        "Precision (%)": 74.27,
+        "Recall (%)": 87.92,
+        "F1-Score (%)": 79.28,
+        "Inference Latency (ms)": 0.4696,
+        "Throughput (samples/s)": 2130.0,
+        "Parameters": 59877,
+        "Train Duration (s)": 5727.42
+    },
+    {
+        "Model": "ResNet1D",
+        "Accuracy (%)": 98.57,
+        "Precision (%)": 92.49,
+        "Recall (%)": 92.0,
+        "F1-Score (%)": 92.16,
+        "Inference Latency (ms)": 0.1342,
+        "Throughput (samples/s)": 7452.0,
+        "Parameters": 692389,
+        "Train Duration (s)": 2780.83
+    },
+    {
+        "Model": "TCN",
+        "Accuracy (%)": 96.17,
+        "Precision (%)": 76.94,
+        "Recall (%)": 94.69,
+        "F1-Score (%)": 82.81,
+        "Inference Latency (ms)": 0.793,
+        "Throughput (samples/s)": 1261.0,
+        "Parameters": 171365,
+        "Train Duration (s)": 16475.88
+    },
+    {
+        "Model": "Transformer1D",
+        "Accuracy (%)": 95.36,
+        "Precision (%)": 77.69,
+        "Recall (%)": 91.98,
+        "F1-Score (%)": 83.11,
+        "Inference Latency (ms)": 0.4294,
+        "Throughput (samples/s)": 2329.0,
+        "Parameters": 69317,
+        "Train Duration (s)": 34835.13
+    }
+]
