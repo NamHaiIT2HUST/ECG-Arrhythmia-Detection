@@ -65,3 +65,44 @@ class GradCAM1D:
             cam = np.zeros_like(cam)
             
         return cam, target_class
+
+
+class Saliency1D:
+    """
+    1D Saliency Maps (Gradient x Input) cho tín hiệu ECG 1 chiều:
+    - Tính đạo hàm trực tiếp của output so với input đầu vào.
+    - Cực kỳ nhanh do không cần hook vào các lớp ẩn.
+    """
+    def __init__(self, model):
+        self.model = model
+
+    def generate_heatmap(self, input_tensor, target_class=None):
+        self.model.eval()
+        self.model.zero_grad()
+        
+        if input_tensor.dim() == 2:
+            input_tensor = input_tensor.unsqueeze(1)
+            
+        input_tensor.requires_grad = True
+        output = self.model(input_tensor)
+        
+        if target_class is None:
+            target_class = torch.argmax(output, dim=1).item()
+            
+        score = output[0, target_class]
+        score.backward()
+        
+        # Lấy gradient tại input
+        gradients = input_tensor.grad.data.abs().squeeze().cpu().numpy()
+        input_data = input_tensor.data.abs().squeeze().cpu().numpy()
+        
+        # Gradient x Input
+        saliency = gradients * input_data
+        
+        # Chuẩn hóa về dải [0, 1]
+        if np.max(saliency) - np.min(saliency) != 0:
+            saliency = (saliency - np.min(saliency)) / (np.max(saliency) - np.min(saliency))
+        else:
+            saliency = np.zeros_like(saliency)
+            
+        return saliency, target_class
