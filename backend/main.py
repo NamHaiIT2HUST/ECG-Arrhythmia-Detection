@@ -1,11 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from backend.api.ws_routes import router as ws_router
 from backend.core.config import settings
+from backend.service.inference_service import ai_service
+import os
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Khởi động (Startup)
+    print("===========================================")
+    print("🚀 BẮT ĐẦU KHỞI ĐỘNG HỆ THỐNG ECG BACKEND 🚀")
+    print("===========================================")
+    
+    # Nạp model ResNet1D vào RAM
+    model_path = os.path.join("saved_models", "resnet1d.pth")
+    ai_service.load_model(model_path)
+    
+    yield
+    
+    # Tắt máy (Shutdown)
+    print("===========================================")
+    print("🛑 HỆ THỐNG ĐÃ TẮT 🛑")
+    print("===========================================")
 
 # Khởi tạo app dùng thông số từ thư mục core
-app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION)
+app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION, lifespan=lifespan)
 
 # Cấu hình CORS lấy từ settings
 app.add_middleware(
