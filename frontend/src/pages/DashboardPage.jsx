@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
 import LoadingSpinner from '../components/dashboard/LoadingSpinner';
+import { useAnomaly } from '../context/AnomalyContext';
 
 const MAX_POINTS = 1000;
 
@@ -16,6 +17,8 @@ const DashboardPage = () => {
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
   const [latency, setLatency] = useState(0);
 
+  const { addAnomaly } = useAnomaly();
+
   useEffect(() => {
     let ws = null;
     let reconnectTimeout = null;
@@ -25,13 +28,34 @@ const DashboardPage = () => {
       
       setLatency(latency_ms);
       setLatestPrediction(prediction);
-      if(heatmap) setCurrentHeatmap(heatmap);
       
-      setYData(prevY => {
-        const newY = [...prevY, ...chunk];
-        if (newY.length > MAX_POINTS) return newY.slice(newY.length - MAX_POINTS);
-        return newY;
-      });
+      if (heatmap) {
+        setCurrentHeatmap(heatmap);
+        if (prediction && prediction.includes('CẢNH BÁO')) {
+          // Lưu lại chính xác 187 điểm cuối cùng của yData (và thêm chunk) để XAI phân tích
+          setYData(prevY => {
+            const tempY = [...prevY, ...chunk];
+            const recent187 = tempY.slice(-187);
+            
+            // Đẩy vào context
+            addAnomaly({
+              prediction,
+              latency: latency_ms,
+              heatmap: heatmap,
+              signal: recent187.length === 187 ? recent187 : null // Chỉ lấy khi đủ 187
+            });
+            
+            return tempY.length > MAX_POINTS ? tempY.slice(tempY.length - MAX_POINTS) : tempY;
+          });
+        }
+      } else {
+        setCurrentHeatmap(null);
+        setYData(prevY => {
+          const newY = [...prevY, ...chunk];
+          if (newY.length > MAX_POINTS) return newY.slice(newY.length - MAX_POINTS);
+          return newY;
+        });
+      }
       
       setXData(prevX => {
         const lastX = prevX.length > 0 ? prevX[prevX.length - 1] : 0;

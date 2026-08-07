@@ -8,7 +8,7 @@ from backend.core.config import settings
 # Bộ đệm để chứa 187 điểm liên tiếp cho AI dự đoán
 ecg_buffer = deque(maxlen=187)
 
-async def ecg_file_reader(filepath="data/raw/physionet_mitdb/100", chunk_size=10, fps=36):
+async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10, fps=36):
     """
     Giả lập máy điện tim đọc liên tục từ file tín hiệu PhysioNet.
     - chunk_size: Gửi bao nhiêu điểm trong 1 gói tin (mặc định 10 điểm).
