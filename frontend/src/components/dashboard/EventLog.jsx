@@ -29,7 +29,7 @@ const EventLog = ({ logs }) => {
                 <span style={{ fontWeight: '500' }}>⏱️ {log.time}</span>
                 <span style={{ color: 'var(--danger)', fontWeight: 'bold' }}>Biên độ: {log.value}</span>
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#ff4444', textShadow: '0 0 5px rgba(255,0,0,0.5)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#b91c1c' }}>
                 🚨 {log.prediction}
               </div>
             </div>
