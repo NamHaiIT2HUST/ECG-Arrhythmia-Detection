@@ -28,31 +28,8 @@ const DashboardPage = () => {
 
   useEffect(() => {
     let ws = null;
-    let fallbackInterval = null;
     let reconnectTimeout = null;
-    let hasConnectedOnce = false;
 
-    const startFallback = () => {
-      if (fallbackInterval) return;
-      console.log("Khởi động dữ liệu mô phỏng Fallback.");
-      fallbackInterval = setInterval(() => {
-        const chunk = [];
-        for(let i=0; i<10; i++) {
-          const isHeartbeat = (pointCounterRef.current % 40) === 10;
-          let val = Math.random() * 0.1 - 0.05;
-          if(isHeartbeat) val = 1.5;
-          chunk.push(val);
-          pointCounterRef.current++;
-        }
-        
-        const isPVC = Math.random() > 0.95;
-        const pred = isPVC ? "CẢNH BÁO: NHỊP THẤT (V)" : "BÌNH THƯỜNG";
-        const lat = Math.floor(Math.random() * 5) + 1;
-        
-        handleNewData({ chunk, prediction: pred, latency_ms: lat, heatmap: isPVC ? Array(187).fill(0.8) : null });
-      }, 1000/36); // ~27ms
-    };
-    
     const handleNewData = (data) => {
       const { chunk, prediction, latency_ms, heatmap } = data;
       
@@ -103,11 +80,6 @@ const DashboardPage = () => {
       ws.onopen = () => {
         setConnectionStatus('Đã kết nối');
         setIsInitialLoading(false);
-        hasConnectedOnce = true;
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
       };
 
       ws.onmessage = (event) => {
@@ -121,13 +93,7 @@ const DashboardPage = () => {
 
       ws.onclose = () => {
         setConnectionStatus('Đang kết nối lại...');
-        if (hasConnectedOnce) {
-          startFallback();
-        } else {
-          // Lần đầu vào mà sập thì chạy fallback luôn
-          setIsInitialLoading(false);
-          startFallback();
-        }
+        setIsInitialLoading(false);
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
@@ -141,7 +107,6 @@ const DashboardPage = () => {
 
     return () => {
       if (ws) ws.close();
-      if (fallbackInterval) clearInterval(fallbackInterval);
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);

@@ -24,7 +24,8 @@ const Header = ({ connectionStatus, latency }) => {
     <header style={{ 
       height: '70px', 
       minHeight: '70px', 
-      backgroundColor: '#ffffff', 
+      backgroundColor: 'rgba(8, 12, 20, 0.6)', 
+      backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-color)', 
       display: 'flex', 
       alignItems: 'center', 
@@ -34,7 +35,7 @@ const Header = ({ connectionStatus, latency }) => {
       boxShadow: '0 2px 10px rgba(0,0,0,0.02)' 
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-main)', fontWeight: 'bold' }}>Hệ Thống Theo Dõi ECG Thời Gian Thực</h1>
+        <h1 style={{ margin: 0, fontSize: '22px', color: 'var(--primary)', textShadow: '0 0 10px rgba(0, 243, 255, 0.3)' }}>HỆ THỐNG THEO DÕI ECG THỜI GIAN THỰC</h1>
         <span style={{ 
           padding: '4px 12px', 
           backgroundColor: badgeBg, 
