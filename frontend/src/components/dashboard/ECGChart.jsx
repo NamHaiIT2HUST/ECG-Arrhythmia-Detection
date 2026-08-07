@@ -2,8 +2,6 @@ import React from 'react';
 import Plot from 'react-plotly.js';
 
 const ECGChart = ({ xData, yData, heatmap = null }) => {
-  // Tính toán vùng bất thường (XAI) để vẽ đè lên biểu đồ
-  // Nếu có heatmap, vùng đó sẽ nằm ở 187 điểm cuối cùng của biểu đồ
   const shapes = [];
   
   if (heatmap && xData.length >= 187) {
@@ -18,35 +16,28 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
       x1: endX,
       y0: 0,
       y1: 1,
-      fillcolor: 'rgba(255, 0, 85, 0.15)', // Màu đỏ nhạt làm nổi bật vùng bệnh
+      fillcolor: 'rgba(239, 68, 68, 0.1)', // Đỏ siêu nhạt
       line: { 
-        color: 'rgba(255, 0, 85, 0.5)', 
+        color: 'rgba(239, 68, 68, 0.4)', 
         width: 1 
       }
     });
   }
 
-  // Neon style properties
-  const neonLine = {
-    color: '#00ff9d',
-    width: 2,
-    shape: 'spline' // Làm mượt đường
-  };
-
   return (
     <div className="card" style={{ width: '100%', height: '100%', minHeight: '350px', display: 'flex', flexDirection: 'column', padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-main)', fontWeight: 'bold' }}>📡 TÍN HIỆU ECG THỜI GIAN THỰC</h3>
+          <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>Tín Hiệu ECG Thời Gian Thực</h3>
           {heatmap && (
-            <span style={{ padding: '4px 10px', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', border: '1px solid var(--danger)' }} className="pulse-log-danger">
-              🚨 PHÁT HIỆN BẤT THƯỜNG (XAI GRAD-CAM)
+            <span style={{ padding: '2px 8px', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: '4px', fontSize: '11px', fontWeight: '600', border: '1px solid #fca5a5' }} className="pulse-log-danger">
+              Phát hiện bất thường (XAI)
             </span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success)' }}></span>
-          <span style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 'bold' }}>360 Hz</span>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>1000 điểm (360 Hz)</span>
         </div>
       </div>
       
@@ -57,30 +48,30 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
             y: yData,
             type: 'scatter',
             mode: 'lines',
-            line: neonLine,
-            // Thêm hiệu ứng phát sáng mờ phía sau line
-            fill: 'tozeroy',
-            fillcolor: 'rgba(0, 255, 157, 0.05)'
+            line: {
+              color: '#2563eb', // Xanh dương classic
+              width: 1.5,
+            }
           }]}
           layout={{
             autosize: true,
             plot_bgcolor: 'transparent', 
             paper_bgcolor: 'transparent',
-            font: { color: '#64748b', family: 'Rajdhani, sans-serif' },
-            shapes: shapes, // Tích hợp các khối màu XAI đỏ nhạt
+            font: { color: '#64748b', family: 'Inter, sans-serif' },
+            shapes: shapes,
             xaxis: {
               showgrid: true,
-              gridcolor: 'rgba(0, 243, 255, 0.05)',
+              gridcolor: '#f1f5f9',
               zeroline: false,
               showticklabels: false,
-              title: { text: 'Thời gian trôi (1000 điểm ~ 2.7s)', font: { size: 12, color: '#38bdf8' } }
+              title: { text: 'Thời gian trôi (2.7s)', font: { size: 11, color: '#94a3b8' } }
             },
             yaxis: {
               showgrid: true,
-              gridcolor: 'rgba(0, 243, 255, 0.05)',
+              gridcolor: '#f1f5f9',
               zeroline: true,
-              zerolinecolor: 'rgba(0, 243, 255, 0.2)',
-              range: [-2.0, 4.0] // Dải giá trị phù hợp với MIT-BIH
+              zerolinecolor: '#e2e8f0',
+              range: [-2.0, 4.0]
             },
             margin: { l: 30, r: 10, t: 10, b: 30 },
           }}

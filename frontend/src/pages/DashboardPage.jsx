@@ -1,10 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import Sidebar from '../components/layout/Sidebar';
-import Header from '../components/layout/Header';
+import React, { useState, useEffect } from 'react';
 import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
-import PatientInfo from '../components/dashboard/PatientInfo';
-import EventLog from '../components/dashboard/EventLog';
 import LoadingSpinner from '../components/dashboard/LoadingSpinner';
 
 const MAX_POINTS = 1000;
@@ -13,18 +9,12 @@ const DashboardPage = () => {
   const [connectionStatus, setConnectionStatus] = useState('Đang kết nối...');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
-  // Dùng state mảng cho luồng dữ liệu
   const [xData, setXData] = useState([]);
   const [yData, setYData] = useState([]);
-  
-  // Dữ liệu cho XAI
   const [currentHeatmap, setCurrentHeatmap] = useState(null);
   
-  const [logs, setLogs] = useState([]);
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
   const [latency, setLatency] = useState(0);
-  
-  const pointCounterRef = useRef(0);
 
   useEffect(() => {
     let ws = null;
@@ -50,24 +40,6 @@ const DashboardPage = () => {
         if (newX.length > MAX_POINTS) return newX.slice(newX.length - MAX_POINTS);
         return newX;
       });
-
-      if (prediction && prediction.includes('CẢNH BÁO')) {
-        setLogs(prevLogs => {
-          // Tránh bị spam log quá nhiều lần cho cùng 1 cụm sóng
-          const lastLog = prevLogs[0];
-          if (lastLog && (Date.now() - lastLog.timestamp < 1000) && lastLog.prediction === prediction) {
-            return prevLogs;
-          }
-          const newLog = {
-            id: Date.now() + Math.random(),
-            timestamp: Date.now(),
-            time: new Date().toLocaleTimeString(),
-            prediction: prediction,
-            value: "Bất thường detected"
-          };
-          return [newLog, ...prevLogs].slice(0, 50);
-        });
-      }
     };
 
     const connect = () => {
@@ -112,31 +84,19 @@ const DashboardPage = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header connectionStatus={connectionStatus} latency={latency} />
-        <main style={{ flex: 1, padding: '25px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '25px' }}>
-          {isInitialLoading ? (
-            <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <>
-              <StatCards latestPrediction={latestPrediction} connectionStatus={connectionStatus} latency={latency} />
-              <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: '0' }}>
-                <div style={{ flex: 7, display: 'flex' }}>
-                  <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />
-                </div>
-                <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <PatientInfo />
-                  <EventLog logs={logs} />
-                </div>
-              </div>
-            </>
-          )}
-        </main>
-      </div>
+    <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+      {isInitialLoading ? (
+        <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <>
+          <StatCards latestPrediction={latestPrediction} latency={latency} />
+          <div style={{ display: 'flex', flex: 1, minHeight: '0' }}>
+            <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />
+          </div>
+        </>
+      )}
     </div>
   );
 };
