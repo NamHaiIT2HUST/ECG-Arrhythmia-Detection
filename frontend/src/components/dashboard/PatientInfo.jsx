@@ -64,10 +64,10 @@ const PatientInfo = () => {
               name="name" 
               value={patient.name} 
               onChange={handleChange} 
-              style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
+              style={{ padding: '6px 10px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
             />
           ) : (
-            <span style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{patient.name}</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{patient.name}</span>
           )}
         </div>
 
@@ -78,7 +78,7 @@ const PatientInfo = () => {
               name="patientId" 
               value={patient.patientId} 
               onChange={handleChange} 
-              style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
+              style={{ padding: '6px 10px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
             />
           ) : (
             <span style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{patient.patientId}</span>
@@ -93,13 +93,13 @@ const PatientInfo = () => {
                 name="age" 
                 value={patient.age} 
                 onChange={handleChange} 
-                style={{ width: '45px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'center', outline: 'none' }} 
+                style={{ width: '45px', padding: '6px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'center', outline: 'none' }} 
               />
               <input 
                 name="gender" 
                 value={patient.gender} 
                 onChange={handleChange} 
-                style={{ width: '70px', padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'center', outline: 'none' }} 
+                style={{ width: '70px', padding: '6px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'center', outline: 'none' }} 
               />
             </div>
           ) : (
@@ -114,7 +114,7 @@ const PatientInfo = () => {
               name="room" 
               value={patient.room} 
               onChange={handleChange} 
-              style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
+              style={{ padding: '6px 10px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '14px', color: 'var(--text-main)', textAlign: 'right', outline: 'none', width: '60%' }} 
             />
           ) : (
             <span style={{ fontWeight: 'bold', color: 'var(--text-main)' }}>{patient.room}</span>

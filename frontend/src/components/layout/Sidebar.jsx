@@ -13,11 +13,11 @@ const Sidebar = () => {
       zIndex: 10, 
       boxShadow: '4px 0 10px rgba(0,0,0,0.05)' 
     }}>
-      <div style={{ padding: '0 25px 20px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, color: 'var(--accent)', fontSize: '22px', textShadow: '0 0 10px rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🫀</span> ECG-Arrhythmia-Detection
+      <div style={{ padding: '0 25px 20px', borderBottom: '1px solid rgba(0, 243, 255, 0.2)', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: 'var(--primary)', fontSize: '20px', textShadow: '0 0 15px rgba(0, 243, 255, 0.5)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span>🫀</span> NEURO-ECG
         </h2>
-        <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#94a3b8' }}>Real-time Edge Monitor</p>
+        <p style={{ margin: '5px 0 0', fontSize: '11px', color: 'var(--primary)', opacity: 0.7, letterSpacing: '2px' }}>AI-POWERED EDGE MONITOR</p>
       </div>
       
       <div style={{ 
@@ -57,6 +57,32 @@ const Sidebar = () => {
         }}
       >
         <span>🗂️</span> Hồ Sơ Bệnh Nhân
+      </div>
+
+      <div 
+        style={{ 
+          padding: '15px 25px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          cursor: 'pointer', 
+          transition: 'all 0.3s ease', 
+          borderLeft: '4px solid transparent', 
+          fontSize: '15px',
+          color: '#cbd5e1'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'var(--sidebar-active)';
+          e.currentTarget.style.color = 'var(--primary)';
+          e.currentTarget.style.textShadow = '0 0 8px var(--primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = '#cbd5e1';
+          e.currentTarget.style.textShadow = 'none';
+        }}
+      >
+        <span>🧠</span> Phân Tích XAI Chuyên Sâu
       </div>
 
       <div 
