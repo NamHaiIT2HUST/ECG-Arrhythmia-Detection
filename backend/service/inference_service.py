@@ -29,20 +29,23 @@ class ECGInferenceService:
             
         print(f"[+] Đang tải mô hình ResNet1D từ {model_path} lên {self.device}...")
         self.model = ResNet1D(in_channels=1, num_classes=5)
-        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
         self.model.to(self.device)
         self.model.eval()
         
         # Khởi tạo Grad-CAM, nối vào block cuối của ResNet
         self.gradcam = GradCAM1D(self.model, self.model.layer3)
         self.is_ready = True
-        print("[✓] AI Model & Grad-CAM đã sẵn sàng.")
+        print(f"[✓] AI Model & Grad-CAM đã sẵn sàng trên {self.device}.")
 
     def predict(self, window_187):
         """
         Dự đoán trên 1 cửa sổ 187 điểm.
         - Trả về: (nhãn_chữ, heatmap_list, latency_ms)
         - Nếu là Bình thường (0), heatmap = None để tiết kiệm băng thông.
+        
+        BUG FIX: Grad-CAM cần gradient nên KHÔNG dùng torch.no_grad().
+        Thay vào đó, tách 2 bước: predict nhanh với no_grad, chỉ bật grad khi cần XAI.
         """
         if not self.is_ready or len(window_187) != 187:
             return "CHỜ DỮ LIỆU", None, 0.0
@@ -54,7 +57,7 @@ class ECGInferenceService:
         # Reshape thành (batch_size=1, channels=1, seq_len=187)
         input_tensor = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
         
-        # Chạy model
+        # Bước 1: Predict NHANH với no_grad để lấy class
         with torch.no_grad():
             output = self.model(input_tensor)
             pred_class = torch.argmax(output, dim=1).item()
@@ -63,10 +66,13 @@ class ECGInferenceService:
         
         heatmap_list = None
         
-        # XAI (Grad-CAM) CHỈ chạy nếu phát hiện bất thường (class > 0)
+        # Bước 2: XAI (Grad-CAM) CHỈ chạy nếu phát hiện bất thường (class > 0)
+        # Lần này KHÔNG dùng no_grad vì Grad-CAM cần backprop
         if pred_class > 0:
             t1 = time.time()
-            cam, _ = self.gradcam.generate_heatmap(input_tensor.cpu())
+            # Tạo tensor mới (không dùng lại tensor cũ đã qua no_grad)
+            input_tensor_xai = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
+            cam, _ = self.gradcam.generate_heatmap(input_tensor_xai, target_class=pred_class)
             # Chuyển numpy array thành list chuẩn float để serialize sang JSON
             heatmap_list = [round(float(val), 4) for val in cam]
             latency_ms += (time.time() - t1) * 1000
