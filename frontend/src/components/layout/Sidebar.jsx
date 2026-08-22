@@ -1,84 +1,86 @@
 import React from 'react';
 
-const Sidebar = () => {
+const Sidebar = ({ activeTab, setActiveTab }) => {
+  const menuItems = [
+    { id: 'dashboard', icon: '📊', label: 'Theo Dõi Trực Tuyến' },
+    { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
+    { id: 'xai', icon: '🧠', label: 'Phân Tích XAI Chuyên Sâu' },
+  ];
+
   return (
     <nav style={{ 
       width: '260px', 
       minWidth: '260px', 
       backgroundColor: 'var(--sidebar-bg)', 
-      color: '#ffffff', 
       display: 'flex', 
       flexDirection: 'column', 
       padding: '20px 0', 
-      zIndex: 10, 
-      boxShadow: '4px 0 10px rgba(0,0,0,0.05)' 
+      zIndex: 10
     }}>
-      <div style={{ padding: '0 25px 20px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, color: 'var(--accent)', fontSize: '22px', textShadow: '0 0 10px rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🫀</span> ECG-Arrhythmia-Detection
+      <div style={{ padding: '0 25px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '15px' }}>
+        <h2 style={{ margin: 0, color: '#ffffff', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700' }}>
+          <span style={{ fontSize: '22px' }}>🫀</span> NEURO-ECG
         </h2>
-        <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#94a3b8' }}>Real-time Edge Monitor</p>
+        <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#94a3b8' }}>Cloud Medical Platform</p>
       </div>
       
-      <div style={{ 
-        padding: '15px 25px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '12px',
-        cursor: 'pointer', 
-        transition: 'all 0.2s ease', 
-        backgroundColor: 'var(--sidebar-active)', 
-        borderLeft: '4px solid var(--accent)', 
-        fontWeight: 'bold',
-        fontSize: '14px'
-      }}>
-        <span>📊</span> Theo Dõi Trực Tuyến
-      </div>
-      
-      <div 
-        style={{ 
-          padding: '15px 25px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          cursor: 'pointer', 
-          transition: 'all 0.2s ease', 
-          borderLeft: '4px solid transparent', 
-          fontSize: '14px',
-          color: '#cbd5e1'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--sidebar-active)';
-          e.currentTarget.style.color = '#ffffff';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = '#cbd5e1';
-        }}
-      >
-        <span>🗂️</span> Hồ Sơ Bệnh Nhân
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '0 15px' }}>
+        {menuItems.map(item => (
+          <div 
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            style={{ 
+              padding: '12px 15px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              cursor: 'pointer', 
+              borderRadius: '6px',
+              backgroundColor: activeTab === item.id ? 'var(--sidebar-active)' : 'transparent',
+              color: activeTab === item.id ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+              fontWeight: activeTab === item.id ? '600' : '500',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== item.id) {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== item.id) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            <span>{item.icon}</span> {item.label}
+          </div>
+        ))}
       </div>
 
       <div 
+        onClick={() => setActiveTab('settings')}
         style={{ 
-          padding: '15px 25px', 
+          margin: 'auto 15px 0',
+          padding: '12px 15px', 
           display: 'flex', 
           alignItems: 'center', 
           gap: '12px',
           cursor: 'pointer', 
-          transition: 'all 0.2s ease', 
-          borderLeft: '4px solid transparent', 
-          fontSize: '14px',
-          color: '#cbd5e1',
-          marginTop: 'auto'
+          borderRadius: '6px',
+          backgroundColor: activeTab === 'settings' ? 'var(--sidebar-active)' : 'transparent',
+          color: activeTab === 'settings' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+          fontWeight: activeTab === 'settings' ? '600' : '500',
+          transition: 'all 0.15s ease'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--sidebar-active)';
-          e.currentTarget.style.color = '#ffffff';
+          if (activeTab !== 'settings') {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+          }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = '#cbd5e1';
+          if (activeTab !== 'settings') {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
         }}
       >
         <span>⚙️</span> Cài Đặt Hệ Thống
