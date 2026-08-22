@@ -15,10 +15,9 @@ async def ecg_stream_endpoint(websocket: WebSocket):
     active_connections += 1
     print(f"[WebSocket] Client mới đã kết nối. Tổng số: {active_connections}")
     
-    # Khởi tạo luồng đọc file (10 điểm/chunk, 36 frames/s)
-    # Lấy file 100 từ physionet_mitdb
-    filepath = os.path.join("data", "raw", "physionet_mitdb", "100")
-    ecg_stream = ecg_file_reader(filepath=filepath, chunk_size=10, fps=36)
+    # Dùng data_streamer với default filepath (208 - bệnh nhân có PVC)
+    # Không hardcode ở đây để data_streamer.py là nơi duy nhất kiểm soát
+    ecg_stream = ecg_file_reader(chunk_size=10, fps=36)
     
     try:
         async for chunk_values, window_187 in ecg_stream:
