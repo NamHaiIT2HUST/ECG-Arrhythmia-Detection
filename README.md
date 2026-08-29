@@ -63,6 +63,20 @@ npm run dev
 
 Backend mặc định stream bản ghi PhysioNet record 208 (nhiều PVC) qua `ws://localhost:8000/ws/ecg`. Frontend chạy tại `http://localhost:5173`.
 
+### API chính
+
+- `WS /ws/ecg?record=<id>` — stream real-time (mặc định `record=208`). Mỗi gói tin gồm `chunk` (10 điểm vẽ biểu đồ), `prediction`/`heatmap`/`latency_ms` (giữ nguyên giữa 2 nhịp, chỉ cập nhật khi `is_new_beat=true`), `bpm`, `hrv_sdnn`, `hrv_rmssd`.
+- `GET /api/records` — danh sách bản ghi PhysioNet khả dụng kèm mô tả lâm sàng, dùng để đổ vào dropdown chọn bản ghi.
+- `POST /api/diagnosis/upload-ecg?fs=360` — upload file CSV 1 cột tín hiệu ECG, trả về báo cáo chẩn đoán offline (phân bố lớp AAMI, BPM, HRV, danh sách nhịp bất thường).
+
+### Kiểm thử pipeline AI
+
+```bash
+python -m backend.scripts.validate_qrs             # độ chính xác phát hiện đỉnh R so với nhãn bác sĩ (F1)
+python -m backend.scripts.validate_classification   # độ chính xác chẩn đoán end-to-end (raw signal -> AAMI)
+python -m backend.scripts.test_ws [record_id]        # xem thử payload WebSocket thực tế
+```
+
 ## Trạng thái & hướng phát triển
 
 Xem [plan.md](plan.md) để biết checkpoint nào đã hoàn thành, checkpoint nào đang làm tiếp theo (DSP nâng cao, R-peak detection động, quản lý bệnh nhân, database/auth, Docker/CI-CD...).
