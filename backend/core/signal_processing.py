@@ -30,11 +30,3 @@ def normalize_window(window):
     if span < 1e-8:
         return np.zeros_like(window, dtype=np.float32)
     return ((window - w_min) / span).astype(np.float32)
-
-
-def preprocess_window(window, fs=360):
-    """Pipeline day du: loc bandpass + notch + chuan hoa bien do, dung truoc khi dua vao model.
-    Ap dung tren tung cua so 187 diem de dam bao nhat quan giua moi nguon du lieu goi vao (stream, batch, test)."""
-    filtered = bandpass_filter(window, fs=fs)
-    filtered = notch_filter(filtered, fs=fs)
-    return normalize_window(filtered)
