@@ -1,22 +1,19 @@
 # KẾ HOẠCH PHÁT TRIỂN HỆ THỐNG ECG ARRHYTHMIA DETECTION & EXPLAINABLE AI (XAI)
-> **Tài liệu Kế hoạch Chi tiết & Phân bổ Checkpoint Toàn diện**  
-> **Dự án**: Giám sát điện tâm đồ (ECG) thời gian thực & Phát hiện rối loạn nhịp tim ứng dụng Học sâu & XAI  
-> **Trạng thái Codebase hiện tại**: Đã hoàn tất MVP Core (Data, 5 Models Benchmark, 1D Grad-CAM, FastAPI WebSocket, React Plotly UI V3).
+> **Tài liệu Kế hoạch Chi tiết & Phân bổ Checkpoint Toàn diện**
+> **Dự án**: Giám sát điện tâm đồ (ECG) thời gian thực & Phát hiện rối loạn nhịp tim ứng dụng Học sâu & XAI
+> **Cập nhật lần cuối**: 2026-08-30
+> **Trạng thái Codebase hiện tại**: Checkpoint 1-3 hoàn thành (Data, 5 Models Benchmark, 1D Grad-CAM, FastAPI WebSocket + DSP/R-peak/HRV backend, React Plotly UI V3). Checkpoint 4-6 chưa bắt đầu.
+> **Phân công công việc cho 2 người từ đây trở đi**: xem [pccv.md](pccv.md).
 
 ---
 
 ## I. TỔNG QUAN HIỆN TRẠNG TOÀN BỘ CÁC NHÁNH (GIT AUDIT)
 
-Dưới đây là tổng hợp rà soát toàn bộ các nhánh trong kho mã nguồn:
-
 | Tên nhánh (Branch) | Trạng thái | Nội dung đã hoàn thành | Đánh giá & Vấn đề tồn đọng |
 |:---|:---:|:---|:---|
-| `main` | ✅ Cập nhật (2026-08-29) | Đã fast-forward merge toàn bộ `feat/frontend-integration` (bao gồm mọi nhánh con: data, AI models, XAI, backend, websocket, frontend) + vá lỗi tiền xử lý real-time. `main` hiện là nhánh chuẩn, mọi nhánh `feat/*` khác đều đã là ancestor của nó. | Sẵn sàng làm nền cho Checkpoint 3 trở đi. |
-| `feat/data` | Hoàn thành | Pipeline nạp MIT-BIH, SMOTE cân bằng dữ liệu 5 lớp AAMI (N, S, V, F, Q), xuất `.npy`. | Cần bổ sung thêm pipeline lọc nhiễu số (DSP) chuyên sâu và dynamic R-peak detection. |
-| `feat/ai-model-development` | Hoàn thành | Xây dựng & benchmark 5 mô hình: ResNet1D, CNN-LSTM, TCN, Transformer1D, Mamba1D. ResNet1D đạt Acc 98.57%, Latency 0.13ms. | Model đang nhận đầu vào cố định 187 điểm; cần chuẩn hóa pipeline inference động. |
-| `feat/explainable-ai` | Hoàn thành | Tích hợp 1D Grad-CAM vào layer3 của ResNet1D, xuất heatmap trọng số vùng sóng bất thường. | Mới áp dụng cho ResNet1D; cần thêm cơ chế trích xuất đa phương pháp (Integrated Gradients / SHAP). |
-| `feat/websocket` / `feat/backend-integration` | Hoàn thành | FastAPI WebSocket server, stream gói tin theo tần số 360Hz (36 FPS x 10 điểm), tích hợp `ai_service`. | Cần tách biệt việc đọc file mô phỏng với luồng tiếp nhận tín hiệu ngoại vi/đa bệnh nhân. |
-| `feat/frontend-integration` *(HEAD)* | Đang phát triển | React 19 + Vite, Plotly chart real-time, AnomalyContext, XAIPage tương tác, Dark/Minimalist UI. | Tab Bệnh nhân & Cài đặt đang là placeholder; chưa có Database lưu trữ lịch sử dài hạn. |
+| `main` | ✅ Chuẩn | Đã fast-forward merge toàn bộ `feat/frontend-integration` (data, AI models, XAI, backend, websocket, frontend) + vá lỗi tiền xử lý real-time (2026-08-29). | Là nhánh nền cho mọi nhánh mới từ giờ. |
+| `feat/dsp-and-beat-segmentation` | ✅ Hoàn thành, đã merge vào `main` | Toàn bộ Checkpoint 3 (backend): DSP filter, Pan-Tompkins R-peak, BPM/HRV, record switcher API, upload diagnosis API. | Frontend CHƯA nối với các API này — xem CP 3.6 và [pccv.md](pccv.md). |
+| `feat/data`, `feat/ai-model-development`, `feat/explainable-ai`, `feat/websocket`, `feat/backend-integration`, `frontend`, `backend` | Hoàn thành, đã merge vào `main` | Đã là ancestor của `main`, không còn công việc riêng. | Có thể xoá các nhánh remote đã merge nếu muốn dọn repo (không bắt buộc). |
 
 ---
 
@@ -26,17 +23,21 @@ Dưới đây là tổng hợp rà soát toàn bộ các nhánh trong kho mã ng
 flowchart TD
     CP1["<b>Checkpoint 1 (HOÀN THÀNH)</b><br/>Dữ liệu & Mô hình AI Cốt lõi & XAI"]
     CP2["<b>Checkpoint 2 (HOÀN THÀNH)</b><br/>Hạ tầng Real-time WebSocket & Dashboard MVP"]
-    CP3["<b>Checkpoint 3 (TIẾP THEO)</b><br/>Xử lý Tín hiệu Số (DSP) & Phân đoạn Nhịp Động"]
-    CP4["<b>Checkpoint 4</b><br/>Nghiệp vụ Y tế Lâm sàng & Báo cáo Thông minh (AI Report)"]
+    CP3["<b>Checkpoint 3 (HOÀN THÀNH — backend)</b><br/>Xử lý Tín hiệu Số (DSP) & Phân đoạn Nhịp Động"]
+    CP4["<b>Checkpoint 4 (TIẾP THEO)</b><br/>Nghiệp vụ Y tế Lâm sàng & Báo cáo Thông minh (AI Report)"]
     CP5["<b>Checkpoint 5</b><br/>Cơ sở Dữ liệu, Xác thực & Phân quyền (Auth & Database)"]
     CP6["<b>Checkpoint 6</b><br/>Tối ưu Edge AI, Đóng gói Docker & Kiểm thử Toàn diện"]
 
     CP1 --> CP2
     CP2 --> CP3
     CP3 --> CP4
+    CP3 -.CP3.6 nối FE, có thể làm song song CP4/CP5.-> CP4
     CP4 --> CP5
+    CP4 -.có thể làm song song với CP5.-> CP5
     CP5 --> CP6
 ```
+
+> Từ Checkpoint 4 trở đi, công việc **được chia cho 2 người làm song song** theo 2 track gần như độc lập (Frontend/Lâm sàng vs Backend/Hạ tầng). Chi tiết phân công, thứ tự làm, và các điểm cần đồng bộ giữa 2 người: xem [pccv.md](pccv.md). Tài liệu này (`plan.md`) là nguồn kỹ thuật chi tiết (specs) cho từng checkpoint; `pccv.md` là bảng phân công + giao tiếp.
 
 ---
 
@@ -46,278 +47,453 @@ flowchart TD
 
 ### 🟢 CHECKPOINT 1: DỮ LIỆU, MÔ HÌNH HỌC SÂU (AI CORE) & EXPLAINABLE AI
 > **Trọng tâm**: Xây dựng nền tảng học máy vững chắc, giải quyết triệt để vấn đề mất cân bằng dữ liệu và tính minh bạch của mô hình AI.
+> **Trạng thái**: ✅ 100% hoàn thành. **Không cần làm gì thêm ở checkpoint này** (xem mục 3.0 ở Checkpoint 3 — đã xác nhận model đủ tốt, không cần train lại).
 
-#### 1.1. Hiện trạng (Đã có gì)
-- Tập dữ liệu MIT-BIH Arrhythmia Database (cả dạng Kaggle CSV và dạng PhysioNet `.dat`/`.hea`/`.atr`).
-- Phân loại chuẩn 5 lớp theo hiệp hội AAMI:
-  - `0 - N`: Normal beat
-  - `1 - S`: Supraventricular ectopic beat
-  - `2 - V`: Ventricular ectopic beat (PVC)
-  - `3 - F`: Fusion beat
-  - `4 - Q`: Unknown beat
-- Kỹ thuật SMOTE cân bằng dữ liệu tập train lên 72,471 mẫu/lớp.
-- Triển khai 5 kiến trúc mô hình học sâu 1D: `ResNet1D`, `CNN1D_LSTM`, `TCN`, `Transformer1D`, `Mamba1D`.
-- Benchmark toàn diện, chọn `ResNet1D` làm mô hình production (F1-score 92.16%, Latency 0.13ms).
-- Module `GradCAM1D` giải thích quyết định của ResNet1D tại khối `layer3`.
+#### 1.1. Nguồn dữ liệu (`data/`)
+- **Kaggle CSV** (`data/raw/kaggle_csv/mitbih_train.csv`, `mitbih_test.csv`): bộ "ECG Heartbeat Categorization Dataset" — tín hiệu MIT-BIH đã được cộng đồng tiền xử lý sẵn: **resample về 125Hz**, mỗi nhịp cắt bắt đầu từ đỉnh R, độ dài động theo RR (~1.2× RR), **đệm số 0 (zero-pad)** cho đủ 187 điểm, **chuẩn hoá biên độ min-max về [0, 1]**. Đây chính là bộ dữ liệu dùng để **train 5 model** (xem `src/benchmark.py::load_data("kaggle")`).
+  - `mitbih_train.csv`: 87.554 mẫu nhịp tim. `mitbih_test.csv`: 21.892 mẫu.
+- **PhysioNet WFDB gốc** (`data/raw/physionet_mitdb/*.dat/.hea/.atr`): 48 bản ghi tín hiệu ECG thô liên tục ở **360Hz**, biên độ mV thực (vd record 208: khoảng -3.5 đến 3.65mV), kèm nhãn đỉnh R + loại nhịp do bác sĩ đánh (`.atr`, đọc bằng `wfdb.rdann`). Dùng để: (a) mô phỏng luồng real-time trong `backend/service/data_streamer.py`, (b) làm ground-truth kiểm chứng toàn bộ pipeline CP3 (`backend/scripts/validate_qrs.py`, `validate_classification.py`).
+- **Phân loại chuẩn 5 lớp AAMI** (dùng xuyên suốt toàn bộ hệ thống, xem `data/preprocess.py::AAMI_CLASSES`):
+  | Lớp | Tên | Ký hiệu MIT-BIH gộp vào |
+  |:---:|:---|:---|
+  | 0 - N | Normal beat (Bình thường) | N, L, R, e, j |
+  | 1 - S | Supraventricular ectopic (Trên thất) | A, a, J, S |
+  | 2 - V | Ventricular ectopic / PVC (Thất) | V, E |
+  | 3 - F | Fusion beat (Hợp nhất) | F |
+  | 4 - Q | Unknown/Unclassifiable (Chưa rõ) | /, f, Q |
 
-#### 1.2. Các Checkpoint nhỏ (Sub-checkpoints)
-- [x] **CP 1.1 - Data Ingestion & Formatting**: Nạp MIT-BIH dataset, chuẩn hóa định dạng ma trận NumPy 187 mẫu.
-- [x] **CP 1.2 - Imbalanced Data Handling**: Áp dụng SMOTE trên tập train, giữ nguyên phân phối tập test thực tế.
-- [x] **CP 1.3 - Deep Learning Suite Construction**: Cài đặt 5 kiến trúc mạng nơ-ron (ResNet1D, CNN-LSTM, TCN, Transformer, Mamba).
-- [x] **CP 1.4 - Model Benchmarking & Selection**: Đánh giá Accuracy, F1-Score, Inference Latency, Model Size.
-- [x] **CP 1.5 - Explainable AI (1D Grad-CAM)**: Trích xuất gradient và activation map, tạo vector heatmap 187 điểm chỉ ra vùng sóng dị dạng.
+#### 1.2. Tiền xử lý & cân bằng dữ liệu (`data/preprocess.py`)
+- Đọc CSV/WFDB → tách X (tín hiệu 187 điểm) / y (nhãn).
+- Với nhánh PhysioNet: lọc Butterworth bandpass 0.5-40Hz (`butter_bandpass_filter`), cắt cửa sổ ±93 mẫu quanh mỗi đỉnh R đã gán nhãn, chia train/test 80/20 stratified (`random_state=42`) **trước khi** áp SMOTE (tránh rò rỉ dữ liệu test).
+- **SMOTE** (Synthetic Minority Over-sampling): áp trên tập train của cả 2 nguồn, cân bằng về **72.471 mẫu/lớp** (Kaggle). Tập test giữ nguyên phân phối thật (không SMOTE) để đánh giá trung thực.
+- Output: `data/processed/X_train_kaggle.npy`, `y_train_kaggle.npy`, `X_test_kaggle.npy`, `y_test_kaggle.npy` (và tương tự `_physio` nếu chạy nhánh PhysioNet). Các file `.npy` này **không commit vào git** (`.gitignore`), phải tự chạy `python data/preprocess.py` để tái tạo.
+
+#### 1.3. Kiến trúc & benchmark 5 model (`src/models/`, `src/benchmark.py`)
+Huấn luyện với `BATCH_SIZE=128`, `EPOCHS=10`, `Adam lr=1e-3`, `CrossEntropyLoss`, trên `data/processed/*_kaggle.npy`. Kết quả đầy đủ tại [docs/benchmark_results.md](docs/benchmark_results.md):
+
+| Model | File | Accuracy | Precision | Recall | F1 (macro) | Latency | Params |
+|:---|:---|---:|---:|---:|---:|---:|---:|
+| **ResNet1D** ⭐ production | `src/models/resnet1d.py` | **98.57%** | 92.49% | 92.00% | **92.16%** | **0.13ms** | 692.389 |
+| CNN1D_LSTM | `src/models/cnn_lstm.py` | 97.27% | 81.26% | 93.58% | 85.79% | 0.18ms | 242.885 |
+| TCN | `src/models/tcn.py` | 96.17% | 76.94% | 94.69% | 82.81% | 0.79ms | 171.365 |
+| Transformer1D | `src/models/transformer1d.py` | 95.36% | 77.69% | 91.98% | 83.11% | 0.43ms | 69.317 |
+| Mamba1D | `src/models/mamba1d.py` | 94.45% | 74.27% | 87.92% | 79.28% | 0.47ms | 59.877 |
+
+- **Vì sao chọn ResNet1D**: accuracy/F1 cao nhất VÀ latency thấp nhất trong 5 model (0.13ms/nhịp, quan trọng cho real-time). Kiến trúc: `prep` (Conv1d k=7,s=2 → BN → ReLU → MaxPool) → 3× `ResNetBlock1D` (Conv1d k=5 + BN + residual shortcut, kênh 32→64→128→256) → `AdaptiveAvgPool1d` → `Linear(256, 5)`.
+- Trọng số đã train lưu tại `saved_models/*.pth` (**không commit git**, ~2.7MB mỗi file — xem README mục "Dữ liệu & trọng số model" để tái tạo bằng `python src/benchmark.py`).
+- **Kiểm chứng lại 2026-08-30** (CP3.3, `backend/scripts/validate_classification.py`): chạy nguyên trọng số ResNet1D này (không train lại) qua pipeline serving đã sửa đúng (lọc + Pan-Tompkins + resample 125Hz + pad/truncate) trên tín hiệu THẬT (raw PhysioNet, không phải test set đã tiền xử lý sẵn) → **Accuracy 94.33%** trên 20.546 nhịp / 8 bản ghi, khớp hợp lý với benchmark offline. Kết luận: **model KHÔNG cần train lại**, chênh lệch ~4% so với benchmark offline đến từ (a) R-peak detector không hoàn hảo 100% (F1 97.14%) và (b) tái tạo phương pháp windowing của Kaggle chỉ là gần đúng tốt nhất có thể (không có tài liệu chính thức mô tả chính xác thuật toán gốc).
+
+#### 1.4. Explainable AI — 1D Grad-CAM (`src/xai/gradcam1d.py`)
+- `GradCAM1D`: hook vào `model.layer3` (block cuối ResNet1D) để lấy activation + gradient, tính trọng số `alpha = mean(gradient)`, `cam = ReLU(sum(alpha * activation))`, nội suy tuyến tính (`F.interpolate`) về đúng 187 điểm, chuẩn hoá [0,1].
+- `Saliency1D`: phương án phụ (gradient × input), nhanh hơn nhưng ít trực quan hơn — hiện chưa được dùng trong luồng chính, để sẵn cho ai muốn so sánh phương pháp XAI khác.
+- Chỉ chạy khi model dự đoán bất thường (`pred_class > 0`) để tiết kiệm tài nguyên (backward pass tốn hơn forward pass).
+- Test độc lập: `src/xai/test_xai.py`.
+
+#### 1.5. Sub-checkpoints
+- [x] **CP 1.1** Data Ingestion & Formatting
+- [x] **CP 1.2** Imbalanced Data Handling (SMOTE)
+- [x] **CP 1.3** Deep Learning Suite Construction (5 kiến trúc)
+- [x] **CP 1.4** Model Benchmarking & Selection
+- [x] **CP 1.5** Explainable AI (1D Grad-CAM)
 
 ---
 
 ### 🟢 CHECKPOINT 2: HẠ TẦNG WEBSOCKET REAL-TIME & GIAO DIỆN MONITORING MVP
 > **Trọng tâm**: Kết nối luồng dữ liệu liên tục từ Backend sang Frontend với độ trễ tối thiểu và trực quan hóa nhịp tim thời gian thực.
+> **Trạng thái**: ✅ 100% hoàn thành (đã được nâng cấp thêm ở Checkpoint 3, xem payload mới ở mục 3.4).
 
-#### 2.1. Hiện trạng (Đã có gì)
-- Backend FastAPI với kiến trúc module: `backend/api`, `backend/core`, `backend/service`.
-- Kênh truyền WebSocket `ws://localhost:8000/ws/ecg` truyền tải mảng 10 điểm tín hiệu / gói tin ở tốc độ 36 FPS (chuẩn 360 Hz của thiết bị y tế).
-- Singleton `ECGInferenceService` tải mô hình `ResNet1D` vào bộ nhớ và chỉ kích hoạt Grad-CAM khi phát hiện bất thường để tối ưu tài nguyên.
-- Frontend React 19 + Vite sử dụng thư viện `react-plotly.js` vẽ tín hiệu trơn tru.
-- Hệ thống tự phục hồi kết nối (Auto-Reconnect 3s) và giao diện Dark/Light mode tối giản chuẩn y tế.
-- Trang phân tích `XAIPage` với biểu đồ tương tác kết hợp Bar Heatmap và dải sóng ECG.
+#### 2.1. Kiến trúc Backend (`backend/`)
+```
+backend/
+├── main.py              # FastAPI app, lifespan (load model lúc startup), CORS, mount router
+├── core/
+│   ├── config.py         # Settings (pydantic-settings): CORS origins, project name
+│   ├── signal_processing.py   # (CP3) bandpass_filter, notch_filter, normalize_window
+│   ├── qrs_detector.py        # (CP3) Pan-Tompkins, extract_beat_window, resample_signal
+│   └── hrv.py                 # (CP3) HRVTracker, compute_bpm/sdnn/rmssd
+├── api/
+│   ├── ws_routes.py       # WS /ws/ecg (stream real-time)
+│   ├── records_routes.py  # (CP3) GET /api/records
+│   └── diagnosis_routes.py# (CP3) POST /api/diagnosis/upload-ecg
+├── service/
+│   ├── inference_service.py  # Singleton ECGInferenceService (load model, predict + Grad-CAM)
+│   ├── data_streamer.py      # ecg_file_reader() - đọc file WFDB, lọc, phát hiện đỉnh R, stream
+│   └── diagnosis_service.py  # (CP3) run_offline_diagnosis, parse_ecg_csv
+└── scripts/               # Script tiện ích + kiểm thử thủ công (không phải pytest)
+```
 
-#### 2.2. Các Checkpoint nhỏ (Sub-checkpoints)
-- [x] **CP 2.1 - FastAPI WebSocket Engine**: Xây dựng router WebSocket, quản lý vòng đời kết nối (lifespan, connect, disconnect).
-- [x] **CP 2.2 - Simulated Streamer Service**: Trình phát tín hiệu giả lập đọc từ các file PhysioNet với bộ đệm xoay vòng `deque(maxlen=187)`.
-- [x] **CP 2.3 - Real-time Inference Pipeline**: Kết nối dữ liệu bộ đệm với bộ dự đoán AI và đóng gói Payload JSON.
-- [x] **CP 2.4 - React Plotly Streaming Dashboard**: Tạo biểu đồ cuộn liên tục (1000 điểm gần nhất), hiển thị BPM, trạng thái nhịp, độ trễ AI.
-- [x] **CP 2.5 - Anomaly Context & XAI Inspector**: Lưu trữ các sự kiện bất thường vào React Context và xem chi tiết heatmap từng ca lỗi.
+#### 2.2. WebSocket streaming
+- Endpoint `WS /ws/ecg?record=<id>` (query param `record` được thêm ở CP3.4, mặc định `208`).
+- `ecg_file_reader()`: đọc toàn bộ 1 bản ghi WFDB, gửi từng gói **10 điểm / 1/36 giây** (= 360 điểm/giây, đúng chuẩn tần số MIT-BIH), lặp lại từ đầu khi hết file (demo chạy vô hạn).
+- `ECGInferenceService` (singleton, nạp model 1 lần lúc `lifespan` startup trong `main.py`): `predict(beat_window)` → `(label, heatmap|None, latency_ms)`.
+
+#### 2.3. Payload WebSocket (schema hiện tại, sau CP3 — xem thêm mục 3.4)
+```jsonc
+{
+  "chunk": [10 float],        // điểm tín hiệu mới để vẽ tiếp biểu đồ (đã lọc nhiễu)
+  "prediction": "BÌNH THƯỜNG" | "CẢNH BÁO: ...",  // giữ nguyên giữa 2 nhịp (sample-and-hold)
+  "heatmap": [187 float] | null,  // CHỈ khác null đúng ở gói tin vừa chẩn đoán 1 nhịp mới
+  "latency_ms": float,
+  "bpm": float,
+  "hrv_sdnn": float,
+  "hrv_rmssd": float,
+  "is_new_beat": boolean       // true đúng lúc vừa có 1 nhịp mới được chẩn đoán
+}
+```
+
+#### 2.4. Kiến trúc Frontend (`frontend/src/`)
+```
+frontend/src/
+├── App.jsx                 # Tab routing (dashboard/patient/xai/settings), state activeTab
+├── main.jsx
+├── context/
+│   └── AnomalyContext.jsx  # Lưu lịch sử tối đa 20 nhịp lỗi gần nhất (in-memory, mất khi F5)
+├── pages/
+│   ├── DashboardPage.jsx   # Kết nối WS, quản lý xData/yData/heatmap, auto-reconnect 3s
+│   └── XAIPage.jsx         # Danh sách lịch sử cảnh báo + Plotly Bar+Line kết hợp (heatmap đè lên sóng ECG)
+├── components/
+│   ├── layout/Header.jsx, Sidebar.jsx   # 4 tab: Theo Dõi Trực Tuyến, Hồ Sơ Bệnh Nhân*, Phân Tích XAI, Cài Đặt*
+│   └── dashboard/ECGChart.jsx, StatCards.jsx, EventLog.jsx, PatientInfo.jsx, LoadingSpinner.jsx
+└── api/axios.js            # (hiện chưa dùng nhiều — CP3 dùng fetch/axios trực tiếp cho REST mới)
+```
+`*` = tab hiện là **placeholder tĩnh** trong `App.jsx` (dòng "tính năng đang được phát triển") — chính là phạm vi Checkpoint 4.
+
+#### 2.5. Sub-checkpoints
+- [x] **CP 2.1** FastAPI WebSocket Engine (router, lifespan, connect/disconnect)
+- [x] **CP 2.2** Simulated Streamer Service (đọc file PhysioNet)
+- [x] **CP 2.3** Real-time Inference Pipeline (buffer → predict → JSON payload)
+- [x] **CP 2.4** React Plotly Streaming Dashboard (1000 điểm gần nhất, StatCards)
+- [x] **CP 2.5** Anomaly Context & XAI Inspector (lưu + xem lại heatmap)
 
 ---
 
-### 🟡 CHECKPOINT 3: XỬ LÝ TÍN HIỆU SỐ (DSP) NÂNG CAO & CẮT PHỨC BỘ R-PEAK ĐỘNG
-> **Trọng tâm**: Chuyển từ việc cắt cửa sổ tĩnh 187 điểm sang xử lý tín hiệu thực tế: lọc nhiễu y tế (nhiễu thở, nhiễu điện lưới) và tự động nhận diện đỉnh R (Pan-Tompkins Algorithm).
+### 🟢 CHECKPOINT 3: XỬ LÝ TÍN HIỆU SỐ (DSP) NÂNG CAO & CẮT PHỨC BỘ R-PEAK ĐỘNG
+> **Trọng tâm**: Chuyển từ việc cắt cửa sổ tĩnh 187 điểm sang xử lý tín hiệu thực tế: lọc nhiễu y tế và tự động nhận diện đỉnh R (Pan-Tompkins), tính BPM/HRV thật, cho phép chọn bản ghi và chẩn đoán offline từ file upload.
+> **Trạng thái**: ✅ 100% hoàn thành ở backend (2026-08-30, nhánh `feat/dsp-and-beat-segmentation` đã merge `main`). ⚠️ Frontend CHƯA nối (CP 3.6, xem [pccv.md](pccv.md)).
 
-#### 3.0. 🔴 CHẨN ĐOÁN GỐC RỄ (2026-08-29): Vì sao kết quả real-time có vẻ "kém" dù benchmark cao?
-**Không cần train lại 5 model.** Kết quả benchmark (`docs/benchmark_results.md`) là hợp lệ — không có data leakage (train/test split đúng, SMOTE chỉ áp trên tập train). ResNet1D đạt Acc 98.57% / F1-macro 92.16% là con số thật, dùng tiếp được cho production.
+#### 3.0. 🔴 CHẨN ĐOÁN GỐC RỄ: Vì sao kết quả real-time từng có vẻ "kém" dù benchmark cao?
+**Không cần train lại 5 model.** Benchmark (`docs/benchmark_results.md`) hợp lệ, không data leakage. ResNet1D 98.57% Acc / 92.16% F1-macro là số thật.
 
 **Lỗi thật nằm ở tầng serving (real-time inference pipeline), không phải ở model:**
-- Model được train hoàn toàn trên bộ Kaggle MIT-BIH Heartbeat CSV — tín hiệu đã được resample về **125Hz**, cắt theo nhịp (beat-centered) và **chuẩn hoá biên độ về [0, 1]**.
-- Trong khi đó, `backend/service/data_streamer.py` đọc tín hiệu **thô trực tiếp** từ PhysioNet `.dat` (**360Hz**, biên độ mV thực tế, ví dụ record 208 dao động khoảng **-3.5 đến 3.65**), và `inference_service.py` trước đây đưa thẳng cửa sổ 187 điểm thô này vào model — **hoàn toàn lệch miền dữ liệu train** (sai cả biên độ lẫn thời lượng cửa sổ).
-- Bằng chứng đo được: chạy `test_inference.py` quét 10.000 điểm đầu record 208 (bản ghi có tỉ lệ PVC rất cao) — **trước khi vá: chỉ phát hiện 0.2% bất thường** (gần như đoán "bình thường" liên tục). Sau khi thêm lọc + chuẩn hoá biên độ đúng miền train (xem `backend/core/signal_processing.py`, đã vá trong phiên 2026-08-29): **tỉ lệ phát hiện tăng lên 22.9%**, khớp hợp lý với đặc điểm lâm sàng của record 208.
+- Model train trên Kaggle MIT-BIH Heartbeat CSV: tín hiệu **125Hz**, cắt theo nhịp (bắt đầu từ đỉnh R), **chuẩn hoá biên độ [0,1]**.
+- `data_streamer.py` (bản cũ) đọc tín hiệu **thô** từ PhysioNet `.dat` (**360Hz**, biên độ mV thật, vd record 208: -3.5 đến 3.65) và đưa thẳng sliding-window 187 điểm thô vào model — lệch hoàn toàn miền dữ liệu train (sai cả biên độ lẫn thời lượng cửa sổ).
+- Bằng chứng đo được (2026-08-29): quét 10.000 điểm đầu record 208 — **trước khi vá: chỉ phát hiện 0.2%** bất thường. Sau khi thêm lọc + chuẩn hoá biên độ (`signal_processing.py`, chưa có R-peak alignment): **22.9%**.
+- Sau khi hoàn thiện CP3.2/3.3 (R-peak alignment + đúng miền 125Hz + pad/truncate đúng cách — xem mục 3.2 bên dưới): **kiểm chứng end-to-end trên nhãn bác sĩ đạt Accuracy 94.33%**. Đây là con số cuối cùng, đáng tin cậy.
 
-**Đã vá (mitigation, không phải fix hoàn chỉnh):**
-- `backend/core/signal_processing.py`: `bandpass_filter()`, `notch_filter()`, `normalize_window()` — lọc + chuẩn hoá biên độ [0,1] cho từng cửa sổ trước khi vào model.
-- `backend/service/inference_service.py::predict()`: gọi `preprocess_window()` trước khi tạo tensor.
+#### 3.1. Bài học kỹ thuật quan trọng nhất của Checkpoint 3 (đọc trước khi động vào pipeline AI)
+Lần thử đầu tiên của CP3.2 dùng `scipy.signal.resample()` để co giãn (time-warp) **từng nhịp riêng lẻ** về đúng 187 điểm sau khi cắt theo đỉnh R — nghe rất hợp lý (và là cách nhiều tutorial online mô tả). Nhưng **kiểm tra trực tiếp** `data/processed/X_train_kaggle.npy` cho thấy mọi nhịp trong bộ dữ liệu train **có đuôi toàn số 0** — tức là bộ dữ liệu gốc được tạo bằng cách **cắt nhịp có độ dài động (~1.2× RR) rồi ĐỆM SỐ 0 (zero-pad)/CẮT BỚT cho đủ 187 điểm ở 125Hz, KHÔNG hề co giãn (resample) hình dạng từng nhịp**. Resample từng nhịp làm méo hình dạng QRS thật so với những gì model đã học, khiến Accuracy chẩn đoán rơi từ ~92% (benchmark) xuống còn **~27%** dù R-peak detection vẫn đúng gần như hoàn hảo. Đây là lỗi rất dễ mắc lại nếu ai đó "tối ưu lại" phần cắt nhịp trong tương lai — **luôn kiểm tra bằng `validate_classification.py` sau bất kỳ thay đổi nào ở `qrs_detector.py`**, đừng chỉ tin vào lý thuyết.
 
-**Vẫn còn thiếu (đây là lý do CP3.2–3.5 bên dưới vẫn cần làm, không phải việc thừa):**
-- Cửa sổ 187 điểm ở tầng serving vẫn là **360Hz / ~0.52s** (sliding window thô), trong khi model học trên nhịp **~125Hz / ~1.5s được căn theo đỉnh R**. Việc lọc + chuẩn hoá biên độ chỉ sửa được phần *biên độ*, chưa sửa được phần *thời lượng/căn chỉnh nhịp* — đây là lý do bắt buộc phải có Pan-Tompkins R-peak detection + resampling (CP 3.2) để dữ liệu serving thực sự khớp miền dữ liệu train.
-- Khuyến nghị: **giữ nguyên trọng số ResNet1D hiện tại**, hoàn thiện CP3.1–3.3 trước, sau đó đánh giá lại độ chính xác thực tế trên stream; chỉ cân nhắc train lại (hoặc fine-tune) nếu sau khi có R-peak alignment đúng mà độ chính xác thực tế vẫn thấp hơn benchmark offline đáng kể.
+Quy tắc đúng đã áp dụng: **resample được phép áp dụng cho TOÀN BỘ đoạn tín hiệu liên tục** (360Hz → 125Hz, 1 lần cho cả bản ghi — đây là chuyển đổi tần số lấy mẫu hợp lệ, không làm méo hình dạng tương đối giữa các nhịp), nhưng **KHÔNG được áp dụng cho từng nhịp đã cắt riêng lẻ** (phải pad/truncate).
 
-#### 3.1. Phân tích hiện trạng & Hạn chế cần khắc phục
-- Hiện tại dữ liệu đang được đọc bằng bộ đệm trượt 187 điểm liên tiếp mà chưa có bước phát hiện đỉnh R thực tế (R-peak alignment). Khi nhịp tim thay đổi tần số (nhịp nhanh, nhịp chậm), cửa sổ tĩnh có thể cắt lệch đỉnh QRS.
-- Tín hiệu thực tế từ bệnh nhân luôn có nhiễu đường đẳng điện (Baseline Wander) và nhiễu cơ (Electromyogram - EMG).
+#### 3.2. Module DSP & R-Peak Detection (`backend/core/signal_processing.py`, `backend/core/qrs_detector.py`)
 
-#### 3.2. Nội dung cần phát triển
-1. **Module Tiền Xử Lý Tín Hiệu Số (Digital Signal Processing - DSP)**:
-   - Bộ lọc thông dải Butterworth (Bandpass Filter: 0.5 Hz - 45 Hz) loại bỏ trôi đường đẳng điện và nhiễu tần số cao.
-   - Bộ lọc khử nhiễu điện lưới Notch Filter (50 Hz / 60 Hz).
-2. **Thuật toán Phát hiện đỉnh R (R-Peak Detection)**:
-   - Triển khai thuật toán kinh điển **Pan-Tompkins** (Đạo hàm, Bình phương, Tích phân cửa sổ trượt, Ngưỡng thích nghi).
-   - Tự động cắt cửa sổ xung quanh đỉnh R (Ví dụ: -90 mẫu đến +96 mẫu = đúng 187 mẫu, căn chuẩn tâm sóng R).
-3. **Tính toán Nhịp tim Tức thời (Instantaneous Heart Rate - BPM) và HRV**:
-   - Tính khoảng cách R-R interval ($RR = t_{R_i} - t_{R_{i-1}}$).
-   - Trích xuất các chỉ số biến thiên nhịp tim cơ bản: SDNN, RMSSD (chỉ báo sớm suy tim/loạn nhịp).
-4. **Bộ chọn Nguồn Tín hiệu Đa dạng (Data Source Selector)**:
-   - Cho phép chọn stream từ các ca bệnh khác nhau trong MIT-BIH (Record 100 - Bình thường, Record 208 - PVC nặng, Record 207 - Rung thất/Cuồng nhĩ, Record 213 - PAC).
-   - Endpoint upload file ECG từ máy tính (.csv, .dat, .edf) để chạy chẩn đoán Offline/Batch.
+**`signal_processing.py`**:
+- `bandpass_filter(signal, lowcut=0.5, highcut=45.0, fs=360, order=4)`: Butterworth + `filtfilt` (zero-phase), loại trôi đường nền + nhiễu tần số cao.
+- `notch_filter(signal, cutoff=50.0, q=30.0, fs=360)`: `iirnotch` + `filtfilt`, khử nhiễu điện lưới.
+- `normalize_window(window)`: min-max về [0,1], trả `np.zeros` nếu tín hiệu phẳng (tránh chia 0).
 
-#### 3.3. Các Checkpoint nhỏ (Sub-checkpoints)
-- [x] **CP 3.1 - DSP Preprocessing Module** (`backend/core/signal_processing.py`) — **Hoàn thành 2026-08-29**:
-  - Cài đặt hàm `bandpass_filter(signal, lowcut=0.5, highcut=45.0, fs=360)`.
-  - Cài đặt hàm `notch_filter(signal, cutoff=50.0, q=30.0, fs=360)`.
-  - Cài đặt thêm `normalize_window()`, đã nối vào `inference_service.py` để vá lỗi lệch miền dữ liệu train/serving (xem mục 3.0).
-- [x] **CP 3.2 - Dynamic R-Peak Detector** (`backend/core/qrs_detector.py`) — **Hoàn thành 2026-08-30**:
-  - Cài đặt Pan-Tompkins QRS detector (`pan_tompkins_r_peaks`) — kiểm chứng bằng
-    `backend/scripts/validate_qrs.py` đối chiếu nhãn bác sĩ (.atr) trên 8 bản ghi
-    MIT-BIH: **F1 trung bình 97.14%** (99.98% ở bản ghi bình thường, 89-99% ở các
-    bản ghi khó/nhiều loạn nhịp như 207, 119, 208).
-  - Hàm `extract_beat_window(signal, r_peaks, index, window_size=187)`: cắt nhịp
-    từ đỉnh R, độ dài động theo RR, **đệm số 0/cắt bớt (KHÔNG resample từng nhịp)**.
-  - ⚠️ Bài học quan trọng: thử đầu tiên dùng `scipy.signal.resample()` để co giãn
-    từng nhịp về đúng 187 điểm — nghe hợp lý nhưng SAI với cách bộ dữ liệu Kaggle
-    MIT-BIH thực sự được tạo (đã kiểm tra trực tiếp `X_train_kaggle.npy`: mọi nhịp
-    có ĐUÔI TOÀN SỐ 0, tức là họ ĐỆM SỐ 0 chứ không co giãn). Resample từng nhịp làm
-    méo hình dạng QRS thật, khiến Accuracy chẩn đoán rơi từ ~92% (benchmark) xuống
-    còn ~27%. Sau khi sửa thành đệm số 0/cắt bớt: xem CP 3.3 bên dưới.
-  - Toàn bộ tín hiệu được resample 1 lần (360Hz → 125Hz, đúng tần số bộ Kaggle) bằng
-    `resample_signal()` TRƯỚC khi cắt nhịp — resample nguyên đoạn tín hiệu liên tục
-    thì hợp lệ, khác với resample từng nhịp riêng lẻ.
-- [x] **CP 3.3 - HRV & Exact BPM Calculation Engine** (`backend/core/hrv.py`) — **Hoàn thành 2026-08-30**:
-  - `HRVTracker`: tính BPM tức thời theo khoảng RR thực tế + SDNN/RMSSD theo cửa sổ
-    trượt 50 nhịp gần nhất. Đã nối vào `data_streamer.py` và trả về qua WebSocket
-    (field `bpm`, `hrv_sdnn`, `hrv_rmssd`).
-  - **Kiểm chứng end-to-end** (`backend/scripts/validate_classification.py` — lọc
-    nhiễu → phát hiện đỉnh R → cắt nhịp đúng miền 125Hz → chạy ResNet1D → đối chiếu
-    nhãn AAMI thật) trên 8 bản ghi MIT-BIH: **Accuracy 94.33%** (per-record 82-99.8%),
-    không cần train lại 5 model — đúng như khuyến nghị ở mục 3.0.
-- [x] **CP 3.4 - Patient Record Switcher API** (`backend/api/records_routes.py`) — **Hoàn thành 2026-08-30**:
-  - `GET /api/records`: quét `data/raw/physionet_mitdb/` trả về danh sách bản ghi
-    khả dụng kèm mô tả lâm sàng cho các bản ghi tiêu biểu (100, 119, 200, 207, 208,
-    213, 217, 234).
-  - Chuyển bản ghi qua query param khi mở WebSocket: `ws://.../ws/ecg?record=<id>`
-    (đơn giản/an toàn hơn dùng lệnh 2 chiều qua WS; có validate chống path traversal).
-- [x] **CP 3.5 - File Upload & Offline Diagnosis API** (`backend/api/diagnosis_routes.py`,
-  `backend/service/diagnosis_service.py`) — **Hoàn thành 2026-08-30**:
-  - `POST /api/diagnosis/upload-ecg?fs=360` nhận file CSV 1 cột biên độ (có/không
-    header), tiền xử lý + chạy AI trên TOÀN BỘ nhịp phát hiện được, trả về báo cáo:
-    tổng số nhịp, phân bố lớp AAMI, BPM min/avg/max, HRV (SDNN/RMSSD), danh sách
-    nhịp bất thường (thời điểm + nhãn, giới hạn 500 mục), và 1 câu tóm tắt rule-based.
-  - Chưa hỗ trợ `.dat`/`.edf` (chỉ CSV) và chưa có tóm tắt bằng LLM — việc đó thuộc
-    CP 4.2 (Trợ lý AI Tạo Báo Cáo Lâm Sàng), cố tình để dành, tránh chồng lấn phạm vi.
+**`qrs_detector.py`** — 3 hàm chính:
+1. `pan_tompkins_r_peaks(signal, fs=360)`: bandpass 5-15Hz (nhấn phổ QRS) → đạo hàm → bình phương → tích phân cửa sổ trượt ~150ms → `find_peaks` với ngưỡng thích nghi (`0.35 × mean`) + khoảng cách tối thiểu 200ms → hiệu chỉnh lại vị trí đỉnh trên tín hiệu GỐC trong bán kính **±120ms** (không phải ±40ms sách giáo khoa — QRS giãn rộng của nhịp Thất/Fusion khiến "bướu" năng lượng trên tín hiệu tích phân lệch xa đỉnh R thật ~28-33 mẫu, phải nới bán kính tìm kiếm mới bắt kịp).
+   - **Kiểm chứng** (`backend/scripts/validate_qrs.py`, so nhãn bác sĩ `.atr`, 8 bản ghi): **F1 trung bình 97.14%** (100→99.98%, 234→99.98%, 213→99.98%, 200→99.56%, 208→99.04%, 203→96.67%, 119→92.18%, 207→89.70% — 2 bản ghi thấp nhất là 207 (rung thất/cuồng nhĩ, hình dạng QRS gần như biến mất) và 119 (PVC tần suất rất cao), đây là 2 trong số các bản ghi khó nhất toàn bộ MIT-BIH kể cả với thuật toán thương mại).
+2. `resample_signal(signal, orig_fs, target_fs)`: resample **toàn đoạn tín hiệu liên tục** (dùng 1 lần/bản ghi, 360→125Hz).
+3. `extract_beat_window(signal, r_peaks, index, window_size=187, fs=125)`: cắt từ đỉnh R, độ dài = `min(max(1.2×RR_kế_tiếp, 200ms), ...)`, rồi **pad số 0/cắt bớt** — không resample (xem mục 3.1). `compute_all_beats(signal, fs=360, model_fs=125)`: tiện ích chạy cả 3 bước trên cho 1 bản ghi, dùng trong `diagnosis_service.py` và các script validate; **trả chỉ số đỉnh R theo trục thời gian GỐC** (360Hz) để còn khớp với vị trí thực trong luồng stream.
+   - `MODEL_FS = 125` là hằng số dùng chung, định nghĩa ngay trong `qrs_detector.py`.
 
-**Việc còn lại để dùng được trên UI** (nằm ngoài phạm vi CP3 — CP3 chỉ là backend):
-Frontend hiện CHƯA hiển thị `bpm`/`hrv_sdnn`/`hrv_rmssd` (StatCards chỉ có 2 ô: dự
-đoán + latency) và CHƯA có dropdown chọn bản ghi hay form upload file. Đây là việc
-của 1 nhánh `feat/frontend-cp3-integration` riêng, nối vào các API đã có sẵn ở trên.
+**`hrv.py`**:
+- `HRVTracker(fs, max_history=50)`: theo dõi lịch sử khoảng RR gần nhất (tối đa 50 nhịp), `update(r_peak_idx)` trả `{bpm, hrv_sdnn, hrv_rmssd}`. Mỗi kết nối WebSocket có 1 instance riêng (không dùng chung state toàn cục — tránh lỗi 2 tab cùng lúc ghi đè buffer của nhau, vốn là lỗi tiềm ẩn của kiến trúc cũ trước CP3).
+- Hàm thuần tuý (không cần state) để tái sử dụng ở chế độ batch (`diagnosis_service.py`): `compute_bpm`, `compute_sdnn`, `compute_rmssd`, `rr_to_ms`.
+
+#### 3.3. Nối vào luồng real-time (`backend/service/data_streamer.py`, `backend/service/inference_service.py`, `backend/api/ws_routes.py`)
+1. `data_streamer.ecg_file_reader()`: đọc cả bản ghi 1 lần → lọc (`bandpass_filter` + `notch_filter`) 1 lần → `pan_tompkins_r_peaks` 1 lần (trên tín hiệu GỐC 360Hz, nơi đã kiểm chứng 97% F1) → `resample_signal` 1 lần (360→125Hz) + quy đổi chỉ số đỉnh R sang miền 125Hz. Sau đó **stream điểm-theo-điểm** như cũ (10 điểm/gói, 36 FPS) để vẽ biểu đồ mượt, nhưng chỉ khi luồng "đi qua" đúng vị trí 1 đỉnh R (so trên trục 360Hz gốc) mới cắt 1 nhịp (`extract_beat_window` trên miền 125Hz) và tính `HRVTracker.update()`.
+2. `inference_service.predict(beat_window)`: **không lọc lại** (đã lọc ở bước 1, và sau resample fs thực tế không còn là 360Hz nữa nên lọc lại bằng fs=360 sẽ sai) — chỉ gọi `normalize_window()` rồi đưa vào model. Đây là điểm dễ gây bug nhất nếu có người thêm 1 nguồn dữ liệu mới trong tương lai mà quên tuân theo hợp đồng "đầu vào phải đã lọc + đúng miền 125Hz + đã pad/truncate 187 điểm".
+3. `ws_routes.py`: AI + BPM/HRV chỉ tính lại đúng lúc có nhịp mới (`beat_info is not None`), **giữ nguyên giá trị gần nhất giữa 2 nhịp** (sample-and-hold) để Dashboard luôn có dữ liệu hiển thị. `heatmap` là ngoại lệ — chỉ khác `null` đúng ở gói tin vừa chẩn đoán (giữ nguyên ngữ nghĩa cũ: "heatmap khác null = vừa có 1 sự kiện bất thường mới cần log", để không phải sửa gì ở `AnomalyContext`/`DashboardPage` phía frontend).
+
+#### 3.4. API mới
+- **`GET /api/records`** (`backend/api/records_routes.py`): quét `data/raw/physionet_mitdb/` (cặp `.hea`+`.dat`), trả về:
+  ```jsonc
+  { "default_record": "208", "count": 48, "records": [
+      { "id": "100", "description": "Nhịp xoang bình thường - phù hợp demo baseline", "is_default": false },
+      { "id": "208", "description": "Ngoại tâm thu thất (PVC) tần suất rất cao (mặc định khi stream)", "is_default": true },
+      ... // 8 bản ghi có mô tả lâm sàng curated (100,119,200,207,208,213,217,234), còn lại mô tả mặc định "Bản ghi MIT-BIH #<id>"
+  ]}
+  ```
+  - Đổi bản ghi đang stream: mở lại `WS /ws/ecg?record=<id>` (client tự đóng/mở kết nối — không dùng lệnh 2 chiều qua WS để tránh phức tạp/race-condition). `record_exists()` validate chống path traversal (chặn `/`, `\`, `..` trong query param).
+- **`POST /api/diagnosis/upload-ecg?fs=360`** (`backend/api/diagnosis_routes.py`, `backend/service/diagnosis_service.py`): nhận file CSV 1 cột biên độ (có/không header, tách bằng `,` hoặc `;`, lấy CỘT CUỐI nếu nhiều cột), tối thiểu 2 giây dữ liệu. Chạy full pipeline (lọc → R-peak → cắt nhịp → AI) trên toàn bộ file, trả về:
+  ```jsonc
+  {
+    "total_beats": int, "duration_seconds": float,
+    "class_counts": {"BÌNH THƯỜNG": int, ...}, "class_percentages": {...},
+    "bpm": {"avg": float, "min": float, "max": float},
+    "hrv": {"sdnn_ms": float, "rmssd_ms": float},
+    "anomalies": [{"beat_index": int, "r_peak_sample": int, "time_seconds": float, "prediction": str}, ...],  // tối đa 500 mục
+    "anomalies_total": int, "anomalies_truncated": bool,
+    "overall_assessment": "Phát hiện X/Y nhịp bất thường (Z%), chủ yếu là '...' (N nhịp)."  // rule-based, KHÔNG phải LLM
+  }
+  ```
+  - Cố tình **không trả heatmap** cho từng nhịp bất thường (báo cáo có thể có hàng trăm/nghìn nhịp lỗi, heatmap từng nhịp sẽ phình quá lớn) — muốn xem XAI chi tiết 1 nhịp thì dùng luồng real-time + trang XAI hiện có.
+  - Cố tình **chưa có tóm tắt bằng LLM** — thuộc CP 4.2 (Trợ lý AI Tạo Báo Cáo Lâm Sàng), để dành tránh chồng lấn phạm vi.
+  - Chỉ hỗ trợ CSV (chưa `.dat`/`.edf`) — đủ dùng cho demo, mở rộng format là việc nhỏ có thể làm sau nếu cần.
+
+#### 3.5. Công cụ kiểm thử đã xây dựng (`backend/scripts/`)
+| Script | Chạy bằng | Đo gì |
+|:---|:---|:---|
+| `validate_qrs.py` | `python -m backend.scripts.validate_qrs [record_id ...]` | Độ chính xác phát hiện đỉnh R so nhãn bác sĩ (Precision/Recall/F1) |
+| `validate_classification.py` | `python -m backend.scripts.validate_classification [record_id ...]` | Độ chính xác chẩn đoán **end-to-end** (raw signal → AAMI) so nhãn bác sĩ, kèm confusion matrix |
+| `test_ws.py` | `python -m backend.scripts.test_ws [record_id] [so_goi_tin]` | Xem payload WebSocket thực tế (cần server đang chạy) |
+| `test_inference.py` (thư mục gốc) | `python test_inference.py` | Smoke test nhanh, không cần server |
+
+**Dùng 2 script `validate_*` sau MỌI thay đổi ở `qrs_detector.py`/`signal_processing.py`/`inference_service.py`/`data_streamer.py`** — đây là cách duy nhất để biết pipeline có còn đúng hay không, đừng chỉ test bằng mắt qua vài gói WebSocket (bài học từ mục 3.1).
+
+#### 3.6. ⏳ CP 3.6 — Nối Frontend với API mới của CP3 (CHƯA LÀM — phần dễ nhất để bắt đầu track Frontend)
+Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn toàn chưa biết** đến `bpm`, `hrv_sdnn`, `hrv_rmssd`, `is_new_beat`, `GET /api/records`, hay `POST /api/diagnosis/upload-ecg`. Cần:
+- `StatCards.jsx`: thêm 1-2 ô hiển thị BPM tức thời + HRV (SDNN), đọc trực tiếp từ payload WS đã có sẵn field này — **không cần sửa backend gì thêm**.
+- Dropdown chọn bản ghi (component mới, vd `RecordSelector.jsx`): gọi `GET /api/records` lúc mount, khi user chọn → đóng WS cũ, mở `ws://.../ws/ecg?record=<id>` mới (sửa `DashboardPage.jsx`'s `connect()` để nhận `record` từ state thay vì hardcode).
+- Form upload (trang mới hoặc modal): gọi `POST /api/diagnosis/upload-ecg` bằng `FormData`, hiển thị báo cáo trả về (bảng `class_counts`, `bpm`, `hrv`, danh sách `anomalies`).
+
+Đây là task **độc lập, không phụ thuộc ai khác**, nên làm đầu tiên khi bắt đầu track Frontend (xem [pccv.md](pccv.md) — Track A, Sprint 2 tuần 1).
+
+#### 3.7. Sub-checkpoints
+- [x] **CP 3.1** DSP Preprocessing Module (`signal_processing.py`)
+- [x] **CP 3.2** Dynamic R-Peak Detector (`qrs_detector.py`) — F1 97.14%
+- [x] **CP 3.3** HRV & Exact BPM Engine (`hrv.py`) + wiring — Accuracy end-to-end 94.33%
+- [x] **CP 3.4** Patient Record Switcher API (`records_routes.py`)
+- [x] **CP 3.5** File Upload & Offline Diagnosis API (`diagnosis_routes.py`, `diagnosis_service.py`)
+- [ ] **CP 3.6** Nối Frontend với API CP3 (`RecordSelector.jsx`, cập nhật `StatCards.jsx`/`DashboardPage.jsx`, form upload)
 
 ---
 
 ### 🟡 CHECKPOINT 4: NGHIỆP VỤ Y TẾ LÂM SÀNG, BÁO CÁO THÔNG MINH (AI REPORT) & HỆ THỐNG CẢNH BÁO
-> **Trọng tâm**: Nâng cấp giao diện người dùng thành phần mềm trạm điều dưỡng/bác sĩ thực thụ với đầy đủ công cụ theo dõi, cảnh báo đa giác quan và giải trình AI lâm sàng.
+> **Trọng tâm**: Nâng cấp giao diện người dùng thành phần mềm trạm điều dưỡng/bác sĩ thực thụ. **Toàn bộ Checkpoint này là Frontend** (trừ 1 API nhỏ tuỳ chọn ở CP4.5), không phụ thuộc Checkpoint 5 — có thể làm song song.
+> **Quyết định phạm vi quan trọng** (đọc trước khi làm): để giữ mọi sub-checkpoint độc lập và không phải chờ CP5 (database), **toàn bộ dữ liệu Bệnh nhân/Cài đặt ở Checkpoint này lưu tạm ở `localStorage`** giống cách `AnomalyContext` đang làm — KHÔNG chờ database thật. Khi CP5.1 xong, sẽ có 1 task nhỏ riêng để "di cư" localStorage → API thật (không nằm trong CP4).
 
-#### 4.1. Phân tích hiện trạng & Hạn chế cần khắc phục
-- Tab "Hồ sơ bệnh nhân" và "Cài đặt" trên giao diện hiện tại mới chỉ là trang giữ chỗ.
-- Cảnh báo mới chỉ hiển thị dạng chữ và highlight biểu đồ, chưa có chuông âm thanh hay thông báo khẩn cấp khi gặp loạn nhịp nguy hiểm tính mạng (như Rung thất - Ventricular Fibrillation).
-- Chưa có tính năng xuất bệnh án điện tử (PDF/CSV Export) để bàn giao ca trực.
+#### 4.1. Hiện trạng & hạn chế
+- Tab "Hồ sơ bệnh nhân" (`patient`) và "Cài đặt" (`settings`) trong `App.jsx` hiện chỉ render 1 `<div>` tĩnh ghi "tính năng đang được phát triển".
+- Cảnh báo hiện chỉ có highlight màu trên `StatCards`/`ECGChart` (`isDanger`, dải đỏ mờ) — chưa có âm thanh, chưa phân cấp mức độ nguy hiểm.
+- Chưa có xuất báo cáo (PDF/CSV).
+- `AnomalyContext` giới hạn 20 sự kiện gần nhất, mất khi F5 (chấp nhận được cho tới khi có CP5 database).
 
-#### 4.2. Nội dung cần phát triển
-1. **Module Quản lý Hồ sơ Bệnh nhân (Patient Management Dashboard)**:
-   - Danh sách bệnh nhân đang theo dõi tại khoa Tim mạch (Tên, Tuổi, Giới tính, Tiền sử bệnh, Giường bệnh, Bác sĩ phụ trách).
-   - Giao diện chuyển đổi nhanh giữa các giường bệnh (Multi-bed Monitoring View).
-2. **Hệ thống Cảnh báo Đa Tầng (Multi-Tier Alarm System)**:
-   - Phân cấp mức độ nguy hiểm:
-     - 🟢 **Mức 1 (Bình thường)**: Nhịp xoang đều.
-     - 🟡 **Mức 2 (Chú ý)**: Ngoại tâm thu nhĩ (PAC), nhịp nhanh xoang nhẹ.
-     - 🔴 **Mức 3 (Khẩn cấp)**: Ngoại tâm thu thất đa ổ (PVC), Cơn tim nhanh thất (VT), Rung thất.
-   - Hiệu ứng âm thanh cảnh báo (Audio Beep) có thể Bật/Tắt/Tắt tạm thời (Mute 2 phút chuẩn y tế).
-   - Visual flashing và thông báo đẩy (Browser Push Notification).
-3. **Trợ lý AI Tạo Báo Cáo Lâm Sàng (LLM Medical Summary Integration)**:
-   - Tổng hợp dữ liệu đoạn sóng bất thường + kết quả Grad-CAM → Tự động tạo tóm tắt chẩn đoán bằng ngôn ngữ y khoa tự nhiên (VD: *"Phát hiện ngoại tâm thu thất dạng chùm tại giây thứ 45, sóng QRS biến dạng dãn rộng 140ms, đề xuất kiểm tra điện giải và theo dõi Holter"*).
-4. **Xuất Báo Cáo Y Tế (Medical Report Exporter)**:
-   - Xuất file PDF Bệnh án điện tử chuẩn form bệnh viện gồm: Thông tin bệnh nhân, Đồ thị ECG in lưới 25mm/s, Đồ thị XAI Grad-CAM, Bảng thống kê số lần xuất hiện từng dạng nhịp trong ca trực.
-   - Xuất dữ liệu thô dạng CSV để phục vụ nghiên cứu khoa học.
+#### 4.2. CP 4.1 — Patient Management UI
+**File**: `frontend/src/pages/PatientPage.jsx` (thay div placeholder trong `App.jsx`), `frontend/src/context/PatientContext.jsx` (mới, cùng pattern với `AnomalyContext.jsx`), `frontend/src/components/patient/PatientForm.jsx`, `PatientCard.jsx`.
 
-#### 4.3. Các Checkpoint nhỏ (Sub-checkpoints)
-- [ ] **CP 4.1 - Patient Management UI & Form Validation** (`frontend/src/pages/PatientPage.jsx`):
-  - Giao diện CRUD thông tin bệnh nhân, chỉ định giường bệnh, thông số sinh tồn nền (Huyết áp, SpO2).
-- [ ] **CP 4.2 - Medical Audio & Visual Alarm System**:
-  - Tích hợp Web Audio API phát âm thanh cảnh báo chuẩn IEC 60601-1-8 cho thiết bị y tế.
-  - Bộ điều khiển Mute Alarm / Snooze Alarm trên Header.
-- [ ] **CP 4.3 - Automated Medical Report Generator (PDF/CSV)**:
-  - Sử dụng thư viện `jspdf` và `html2canvas` tại frontend hoặc `ReportLab` tại backend.
-  - Vẽ lưới đồ thị điện tim chuẩn y khoa (chuẩn 1mm = 0.04s, 5mm = 0.2s) kèm chữ ký số bác sĩ.
-- [ ] **CP 4.4 - AI Diagnostic Explainer (Contextual XAI)**:
-  - Hiển thị bảng phân tích chi tiết: Thời lượng đoạn sóng PR, khoảng QRS, đoạn ST, giải thích trực quan tại sao AI đánh dấu nghi ngờ.
-- [ ] **CP 4.5 - Settings & Calibration Page** (`frontend/src/pages/SettingsPage.jsx`):
-  - Cấu hình ngưỡng nhạy AI (Sensitivity/Specificity Threshold), tùy chỉnh địa chỉ WebSocket server, cấu hình dark/light mode tự động.
+**Data model** (lưu `localStorage` key `ecg_patients`, mảng JSON):
+```js
+{ id: crypto.randomUUID(), name: "", age: 0, gender: "M|F|Other",
+  bedNumber: "", admissionDate: "ISO date", diagnosis: "",  // tiền sử bệnh, free text
+  attendingDoctor: "", vitals: { bloodPressure: "120/80", spo2: 98 },
+  activeRecordId: "208" }  // gắn với 1 bản ghi PhysioNet đang stream cho giường này (id từ GET /api/records, CP3.4)
+```
+**Yêu cầu chức năng**:
+- CRUD đầy đủ (thêm/sửa/xoá/xem), validate: `name` bắt buộc, `age` 0-120, `bedNumber` không trùng giữa các bệnh nhân đang active.
+- Giao diện lưới nhiều giường (Multi-bed Monitoring View): mỗi `PatientCard` hiển thị tên/giường/trạng thái nhịp gần nhất; bấm vào 1 card → chuyển `Dashboard` sang stream đúng `activeRecordId` của bệnh nhân đó (tái dùng cơ chế đổi record đã làm ở CP3.6 — **phụ thuộc CP3.6 xong trước**, xem ma trận phụ thuộc trong `pccv.md`).
+- **Định nghĩa hoàn thành (DoD)**: CRUD hoạt động, dữ liệu còn sau F5, bấm 1 bệnh nhân đổi đúng luồng stream.
+
+#### 4.3. CP 4.2 — Hệ thống Cảnh báo Đa Tầng (Multi-Tier Alarm System)
+**File**: `frontend/src/constants/alarmLevels.js` (mới — bảng ánh xạ nhãn AAMI → mức độ), `frontend/src/utils/alarmAudio.js` (mới — Web Audio API), mở rộng `AnomalyContext.jsx` hoặc `AlarmContext.jsx` (mới) để giữ trạng thái mute/snooze.
+
+**Bảng phân cấp mức độ nguy hiểm** (định nghĩa cứng, dùng chung toàn hệ thống — đặt trong `alarmLevels.js` để chỉ sửa 1 chỗ):
+| Mức | Màu | Nhãn AAMI tương ứng | Hành vi |
+|:---:|:---:|:---|:---|
+| 1 | 🟢 Bình thường | `BÌNH THƯỜNG` (N) | Không cảnh báo |
+| 2 | 🟡 Chú ý | `CẢNH BÁO: TRÊN THẤT (S)`, `CẢNH BÁO: CHƯA RÕ (Q)` | Highlight vàng, không âm thanh |
+| 3 | 🔴 Khẩn cấp | `CẢNH BÁO: NHỊP THẤT (V)`, `CẢNH BÁO: HỢP NHẤT (F)` | Highlight đỏ + âm thanh + push notification |
+
+- Âm thanh: dùng `OscillatorNode` (Web Audio API, không cần file mp3) phát chuỗi beep theo mẫu chuẩn IEC 60601-1-8 (vd: 1 beep/giây cho mức 2, cụm 3 beep liên tiếp mỗi 2 giây cho mức 3).
+- Mute/Snooze: nút trên `Header.jsx`, tắt âm thanh **2 phút** rồi tự bật lại (chuẩn y tế — không cho tắt vĩnh viễn để tránh rủi ro lâm sàng), có đếm ngược hiển thị.
+- Browser Push Notification: `Notification` API, xin quyền ở trang Cài đặt (CP4.5), chỉ bắn cho mức 3.
+- **DoD**: nhịp V/F thật (từ dashboard đang chạy record 208) kích hoạt âm thanh + notification, nút mute hoạt động đúng 2 phút.
+
+#### 4.4. CP 4.3 — Xuất Báo Cáo Y Tế (Medical Report Exporter)
+**Quyết định kiến trúc**: làm **hoàn toàn ở Frontend** (không cần backend mới) — dùng `jspdf` + `html2canvas` (thêm vào `frontend/package.json`), lấy dữ liệu trực tiếp từ `AnomalyContext`/`PatientContext` đang có sẵn trong session. Lý do: giữ CP4 độc lập hoàn toàn với backend/CP5.
+
+**File**: `frontend/src/utils/reportGenerator.js`, `frontend/src/components/ReportButton.jsx` (đặt ở Header hoặc XAIPage).
+
+**Nội dung PDF**: header thông tin bệnh nhân (từ `PatientContext`), snapshot `ECGChart` hiện tại (`html2canvas` chụp DOM), snapshot heatmap Grad-CAM của nhịp đang chọn ở `XAIPage`, bảng thống kê số lần xuất hiện mỗi loại nhịp trong `anomalyHistory`.
+**CSV**: serialize thẳng `anomalyHistory` (không cần thư viện, dùng `Blob` + `URL.createObjectURL`).
+**DoD**: bấm nút tải về được 1 file PDF có nội dung đọc được + 1 file CSV mở được bằng Excel.
+
+#### 4.5. CP 4.4 — AI Diagnostic Explainer (Contextual XAI) — bản rút gọn có chủ đích
+**Giới hạn phạm vi rõ ràng (quan trọng)**: đo chính xác khoảng PR/QRS/ST theo mili-giây đòi hỏi thuật toán phân đoạn từng sóng P/Q/R/S/T riêng biệt (wave delineation) — đây là 1 bài toán DSP lớn, khó hơn cả việc phát hiện đỉnh R (CP3.2), và **không nằm trong phạm vi CP4**. Vì vậy CP4.4 chỉ làm bản rút gọn, hoàn toàn ở Frontend, không cần API mới:
+- Bảng tra cứu tĩnh (`frontend/src/constants/clinicalExplanations.js`) ánh xạ mỗi nhãn AAMI → đoạn giải thích lâm sàng mẫu chung (vd nhịp V: "Ngoại tâm thu thất — phức bộ QRS thường dãn rộng >120ms, không có sóng P đi trước...").
+- Vùng highlight đỏ đã có sẵn trên `ECGChart.jsx` (dải `shapes` rect) + heatmap Bar trên `XAIPage.jsx` — chỉ cần làm rõ chú thích ("vùng AI tập trung chú ý nhất") thay vì con số PR/QRS/ST đo chính xác.
+- Nếu sau này muốn đo thật (PR/QRS/ST theo ms), đó sẽ là 1 checkpoint DSP riêng trong tương lai, không phải CP4.4.
+- **DoD**: chọn 1 nhịp bất thường ở `XAIPage`, thấy đoạn giải thích lâm sàng tương ứng với đúng nhãn của nhịp đó.
+
+#### 4.6. CP 4.5 — Settings & Calibration Page
+**File**: `frontend/src/pages/SettingsPage.jsx` (thay placeholder), lưu `localStorage` key `ecg_settings`.
+- Cấu hình địa chỉ WebSocket server (mặc định `ws://localhost:8000`), dark/light mode auto theo giờ hoặc theo `prefers-color-scheme`.
+- Nút xin quyền Browser Notification (dùng ở CP4.2).
+- **Ngưỡng nhạy AI (Sensitivity threshold)**: hiện backend `predict()` chỉ trả nhãn `argmax`, **chưa có xác suất/độ tin cậy** để áp ngưỡng — dựng UI trước, nhưng cần 1 thay đổi backend rất nhỏ để có tác dụng thật:
+  > **Yêu cầu chéo track (báo cho người làm Backend/CP5 sớm, việc này ~10-15 phút)**: thêm `confidence: float` (softmax probability của lớp dự đoán) vào tuple trả về của `ai_service.predict()` trong `backend/service/inference_service.py`, và thêm field `confidence` vào payload WS ở `ws_routes.py`. Không có thay đổi này, ô "ngưỡng nhạy" ở Settings chỉ mang tính giao diện (không có tác dụng thật). Ghi chi tiết yêu cầu này ở `pccv.md`.
+- **DoD**: đổi setting → dashboard áp dụng ngay (vd đổi dark/light), Notification permission xin được, setting còn sau F5.
+
+#### 4.7. Sub-checkpoints
+- [ ] **CP 4.1** Patient Management UI & Form Validation (`PatientPage.jsx`, `PatientContext.jsx`)
+- [ ] **CP 4.2** Medical Audio & Visual Alarm System (`alarmAudio.js`, `alarmLevels.js`)
+- [ ] **CP 4.3** Automated Medical Report Generator (PDF/CSV, frontend-only)
+- [ ] **CP 4.4** AI Diagnostic Explainer — bản rút gọn (bảng tra cứu tĩnh, không đo PR/QRS/ST thật)
+- [ ] **CP 4.5** Settings & Calibration Page (+ yêu cầu chéo track: thêm `confidence` vào backend)
 
 ---
 
 ### 🟡 CHECKPOINT 5: HỆ THỐNG CƠ SỞ DỮ LIỆU, XÁC THỰC BẢO MẬT & PHÂN QUYỀN (RBAC)
-> **Trọng tâm**: Chuyển đổi ứng dụng từ dạng Demo bộ nhớ tạm (In-Memory / LocalStorage) sang Hệ thống Y tế Doanh nghiệp (Enterprise Healthcare System) có cơ sở dữ liệu bền vững và bảo mật tiêu chuẩn.
+> **Trọng tâm**: Chuyển từ Demo bộ nhớ tạm (In-Memory/LocalStorage) sang hệ thống có cơ sở dữ liệu bền vững + bảo mật. **Toàn bộ Checkpoint này là Backend** (trừ CP5.5 là điểm nối với Frontend), độc lập với Checkpoint 4 — có thể làm song song.
 
-#### 5.1. Phân tích hiện trạng & Hạn chế cần khắc phục
-- Hiện tại mọi sự kiện bất thường chỉ được lưu tạm trên `AnomalyContext` của React (tối đa trong phiên làm việc, F5 là mất nếu không có DB).
-- Chưa có cơ chế đăng nhập, ai truy cập cũng có quyền xem và cấu hình.
-- Thiếu cơ chế ghi nhật ký kiểm toán (Audit Trail) - yếu tố bắt buộc của phần mềm y tế (chuẩn HIPAA/HL7).
+#### 5.1. Hiện trạng & hạn chế
+- Mọi sự kiện bất thường chỉ lưu tạm ở `AnomalyContext` (React, mất khi F5, không chia sẻ giữa nhiều máy/nhiều người xem).
+- Chưa có đăng nhập — ai mở app cũng xem/cấu hình được hết.
+- Thiếu Audit Trail (bắt buộc với phần mềm y tế theo tinh thần HIPAA/HL7 — dự án không cần tuân thủ thật, nhưng nên có cho đúng chuẩn thiết kế).
 
-#### 5.2. Nội dung cần phát triển
-1. **Cơ sở Dữ liệu Quan hệ & Chuỗi Thời gian (Database Architecture)**:
-   - **PostgreSQL / SQLite** (cho giai đoạn dev): Lưu trữ User, Bệnh nhân, Lịch sử Ca bệnh, Cấu hình thiết bị.
-   - Bảng `ecg_records` & `anomaly_events`: Lưu trữ dấu vết từng nhịp lỗi, nhãn dự đoán, độ tin cậy (confidence), heatmap array, timestamp chính xác đến mili-giây.
-2. **Hệ thống Xác thực (Authentication) & Phân quyền (RBAC)**:
-   - Đăng nhập JWT (JSON Web Token), mã hóa mật khẩu bằng bcrypt.
-   - Các vai trò (Roles):
-     - `Admin`: Quản lý người dùng, cấu hình server, xem log hệ thống.
-     - `Doctor (Bác sĩ)`: Xem stream thời gian thực, xem XAI, xác nhận/sửa nhãn chẩn đoán của AI (Human-in-the-loop), xuất báo cáo y tế.
-     - `Nurse (Điều dưỡng)`: Giám sát tín hiệu, tiếp nhận và tắt chuông cảnh báo, cập nhật thông tin bệnh nhân.
-3. **Cơ chế Human-in-the-Loop (Bác sĩ xác nhận kết quả AI)**:
-   - Cho phép Bác sĩ bấm nút: "Đồng ý với AI" hoặc "Sửa thành [Nhịp khác]".
-   - Lưu trữ dữ liệu được Bác sĩ sửa làm tập dữ liệu Active Learning để tái huấn luyện (Retrain) mô hình trong tương lai.
-4. **Nhật ký Kiểm toán (Audit Logs)**:
-   - Ghi lại ai đã xem bệnh án nào, ai đã tắt chuông cảnh báo lúc mấy giờ, ai đã chỉnh sửa thông tin.
+#### 5.2. CP 5.1 — Database Schema & SQLAlchemy ORM
+**Quyết định công nghệ**: **SQLite** cho giai đoạn dev (file-based, zero-config, đủ cho demo/đồ án — không cần dựng PostgreSQL server). File DB: `backend/db/ecg_system.db` (thêm vào `.gitignore`). ORM: SQLAlchemy 2.x. Migration: Alembic.
 
-#### 5.3. Các Checkpoint nhỏ (Sub-checkpoints)
-- [ ] **CP 5.1 - Database Schema & SQLAlchemy ORM** (`backend/db/`):
-  - Thiết kế các bảng: `users`, `patients`, `records`, `anomaly_logs`, `audit_trails`.
-  - Thiết lập Alembic migration quản lý phiên bản database.
-- [ ] **CP 5.2 - Authentication & Authorization APIs** (`backend/api/auth.py`):
-  - Endpoints: `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/auth/me`.
-  - Middleware kiểm tra JWT token và phân quyền RBAC cho từng endpoint.
-- [ ] **CP 5.3 - Historical Anomaly Query & Pagination APIs** (`backend/api/anomalies.py`):
-  - `GET /api/anomalies?patient_id=...&from=...&to=...&page=1`
-  - Lọc sự kiện theo dạng bất thường (chỉ xem PVC hoặc chỉ xem PAC).
-- [ ] **CP 5.4 - Doctor Feedback & Human-in-the-Loop API**:
-  - `POST /api/anomalies/{id}/verify` (Lưu xác nhận của bác sĩ: Approved / Corrected).
-- [ ] **CP 5.5 - Frontend Auth Guard & Role-based UI**:
-  - Màn hình Đăng nhập (Login Page), quản lý token qua HTTP-only Cookie / Secure Storage.
-  - Ẩn/Hiện tính năng tùy theo vai trò người dùng đăng nhập.
+**File**: `backend/db/models.py`, `backend/db/session.py` (engine + `SessionLocal` + dependency `get_db()` cho FastAPI), `backend/db/migrations/` (Alembic).
+
+**Schema (5 bảng)**:
+```
+users            id PK, username UNIQUE, email, hashed_password, role ENUM(admin,doctor,nurse), created_at
+patients         id PK, name, age, gender, bed_number, admission_date, diagnosis, attending_doctor,
+                 active_record_id, created_at, updated_at
+ecg_records      id PK, patient_id FK->patients, physionet_record_id, started_at, ended_at
+anomaly_events   id PK, patient_id FK->patients, record_id FK->ecg_records, prediction_label,
+                 confidence FLOAT, heatmap JSON, r_peak_sample INT, timestamp_ms BIGINT,
+                 reviewed_by FK->users (nullable), review_status ENUM(pending,approved,corrected) DEFAULT pending,
+                 corrected_label (nullable)
+audit_trails     id PK, user_id FK->users, action, target_type, target_id, detail JSON, timestamp
+```
+- **DoD**: `alembic upgrade head` tạo đủ 5 bảng trên SQLite trống, có ít nhất 1 test insert/query qua SQLAlchemy session chạy được.
+
+#### 5.3. CP 5.2 — Authentication & Authorization APIs
+**File**: `backend/api/auth.py`, `backend/core/security.py` (hash password bằng `passlib[bcrypt]`, tạo/verify JWT bằng `python-jose`).
+
+**API contract (CỐ ĐỊNH — đây là hợp đồng Frontend sẽ build theo, xem `pccv.md` để biết cách Frontend mock trước khi API thật xong)**:
+```
+POST /api/auth/login
+  body: { "username": string, "password": string }
+  200: { "access_token": string, "refresh_token": string, "token_type": "bearer", "role": "admin"|"doctor"|"nurse" }
+  401: { "detail": "Sai tài khoản hoặc mật khẩu" }
+
+POST /api/auth/refresh
+  body: { "refresh_token": string }
+  200: { "access_token": string, "token_type": "bearer" }
+
+GET /api/auth/me
+  header: Authorization: Bearer <access_token>
+  200: { "id": int, "username": string, "role": string }
+  401: { "detail": "Token không hợp lệ hoặc hết hạn" }
+```
+- Middleware: `get_current_user` (FastAPI dependency, decode JWT từ header), `require_role(*roles)` (dependency factory, trả 403 nếu role không khớp) — áp vào các endpoint cần bảo vệ ở CP5.3/5.4.
+- **DoD**: login đúng trả token, `GET /api/auth/me` với token đó trả đúng user, sai password trả 401, gọi endpoint có `require_role("admin")` bằng token role `nurse` trả 403.
+
+#### 5.4. CP 5.3 — Historical Anomaly Query & Pagination APIs
+**File**: `backend/api/anomalies.py`.
+```
+GET /api/anomalies?patient_id=&from=&to=&label=&page=1&page_size=20
+  header: Authorization: Bearer <token>  (mọi role đã login đều xem được)
+  200: { "total": int, "page": int, "page_size": int, "items": [ {...anomaly_event...} ] }
+```
+- **Phụ thuộc**: cần CP5.1 (bảng `anomaly_events`) xong trước. Ngoài ra cần 1 thay đổi nhỏ ở `ws_routes.py` để **ghi anomaly vào DB mỗi khi phát hiện** (hiện tại CP3 chỉ gửi qua WS, không lưu đâu cả) — đây là việc nhỏ đi kèm CP5.3, không phải CP3.
+- **DoD**: filter theo `patient_id`/khoảng thời gian/loại nhãn hoạt động đúng, phân trang đúng.
+
+#### 5.5. CP 5.4 — Doctor Feedback & Human-in-the-Loop API
+```
+POST /api/anomalies/{id}/verify
+  body: { "status": "approved"|"corrected", "corrected_label"?: string }
+  yêu cầu role: doctor hoặc admin (require_role("doctor","admin"))
+  200: { ...anomaly_event đã cập nhật... }
+```
+- Ghi audit trail (`audit_trails`) mỗi lần verify: ai xác nhận, lúc nào, kết quả gì.
+- Dữ liệu được bác sĩ sửa (`review_status=corrected`) là nền cho Active Learning/retrain tương lai — **không làm retrain thật trong checkpoint này**, chỉ cần lưu đúng để sẵn sàng dùng sau.
+- **DoD**: bác sĩ verify 1 anomaly, trạng thái đổi đúng trong DB, audit log ghi lại đúng.
+
+#### 5.6. CP 5.5 — Frontend Auth Guard & Role-based UI (ĐIỂM NỐI 2 TRACK)
+**File**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/context/AuthContext.jsx`, `frontend/src/components/AuthGuard.jsx`.
+- Trang đăng nhập gọi `POST /api/auth/login`, lưu token (khuyến nghị: `localStorage` cho đơn giản ở giai đoạn demo — ghi rõ đây KHÔNG phải best practice bảo mật production, httpOnly cookie mới chuẩn, nhưng đủ cho đồ án).
+- `AuthGuard`: bọc quanh `App.jsx`, chưa có token hợp lệ → chỉ render `LoginPage`.
+- Ẩn/hiện tab theo role (vd tab "Cài Đặt Hệ Thống" chỉ `admin` mới thấy, nút "Sửa nhãn" ở XAIPage chỉ `doctor` mới thấy).
+- **Đây là task DUY NHẤT bắt buộc chờ người kia** — người làm Frontend (CP4) làm task này **sau khi** CP5.2 xong (hoặc build song song bằng cách mock đúng response shape ở mục 5.3 rồi cắm API thật vào sau — khuyến khích làm cách này để không bị block, chi tiết ở `pccv.md`).
+- **DoD**: chưa login không vào được app, login đúng role thấy đúng menu, token hết hạn tự về LoginPage.
+
+#### 5.7. Sub-checkpoints
+- [ ] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`)
+- [ ] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`)
+- [ ] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`)
+- [ ] **CP 5.4** Doctor Feedback & Human-in-the-Loop API
+- [ ] **CP 5.5** Frontend Auth Guard & Role-based UI *(điểm nối 2 track — xem `pccv.md`)*
 
 ---
 
 ### 🟡 CHECKPOINT 6: TỐI ƯU EDGE AI, ĐÓNG GÓI DOCKER, CI/CD & KIỂM THỬ TOÀN DIỆN
-> **Trọng tâm**: Tối ưu hóa hiệu năng mô hình cho thiết bị biên (Edge Device), đóng gói toàn bộ hệ sinh thái thành các container Docker và tự động hóa kiểm thử.
+> **Trọng tâm**: Tối ưu hiệu năng mô hình, đóng gói Docker, tự động hoá kiểm thử. Chủ yếu **Backend/Hạ tầng**, phần test frontend (Vitest) là phần việc nhỏ của người làm Frontend, viết test cho chính phần mình làm.
 
-#### 6.1. Nội dung cần phát triển
-1. **Tối ưu hóa Mô hình (Model Optimization & Edge Acceleration)**:
-   - Chuyển đổi mô hình PyTorch `resnet1d.pth` sang định dạng **ONNX (Open Neural Network Exchange)** và **TensorRT / OpenVINO**.
-   - Thực hiện lượng hóa mô hình (INT8 / FP16 Quantization) giúp giảm kích thước mô hình từ 2.7MB xuống < 700KB, tăng tốc độ xử lý gấp 3-5 lần trên CPU/Edge IoT (Raspberry Pi, Jetson Nano).
-2. **Container Hóa với Docker & Docker Compose**:
-   - `Dockerfile.backend`: Python slim, cài đặt thư viện cần thiết, chạy uvicorn đa worker.
-   - `Dockerfile.frontend`: Multi-stage build với Node.js và serve bằng Nginx reverse proxy siêu nhẹ.
-   - `docker-compose.yml`: Khởi chạy đồng thời Backend, Frontend, Database PostgreSQL chỉ với 1 lệnh `docker compose up -d`.
-3. **Bộ Kiểm Thử Tự Động Toàn Diện (Testing Suite)**:
-   - **Unit Tests** (Pytest): Kiểm thử các hàm DSP lọc nhiễu, Pan-Tompkins, các lớp mạng ResNet1D, hàm tính Grad-CAM.
-   - **WebSocket Integration Tests**: Kiểm thử khả năng chịu tải của WebSocket, mô phỏng 50-100 kết nối đồng thời mà không bị rớt gói tin.
-   - **Frontend Tests**: Unit test các component React với Vitest/React Testing Library.
-4. **CI/CD Pipeline (GitHub Actions)**:
-   - Tự động chạy linter (oxlint, flake8), chạy test suite khi push code hoặc tạo Pull Request.
-   - Tự động build Docker Image và kiểm tra lỗ hổng bảo mật.
+#### 6.1. CP 6.1 — PyTorch → ONNX & Quantization
+**File**: `src/models/export_onnx.py` (mới).
+- `torch.onnx.export(model, dummy_input=torch.randn(1,1,187), "saved_models/resnet1d.onnx", input_names=["input"], output_names=["logits"], dynamic_axes=None)`.
+- Kiểm chứng sai số: chạy cùng 1 batch qua PyTorch model và `onnxruntime.InferenceSession`, so `np.allclose(..., atol=1e-5)`.
+- Quantization: `onnxruntime.quantization.quantize_dynamic` → INT8, so sánh lại accuracy trên `validate_classification.py` (chấp nhận rớt tối đa 1-2% Accuracy để đổi lấy tốc độ/kích thước).
+- Thêm `onnx`, `onnxruntime` vào `requirements.txt`.
+- **DoD**: `resnet1d.onnx` chạy được qua `onnxruntime`, sai số < 1e-5 so với PyTorch (bản FP32), có bản quantized kèm bảng so sánh kích thước file + latency trước/sau.
 
-#### 6.2. Các Checkpoint nhỏ (Sub-checkpoints)
-- [ ] **CP 6.1 - PyTorch to ONNX & Quantization Pipeline** (`src/models/export_onnx.py`):
-  - Chuyển đổi mô hình ResNet1D sang `resnet1d.onnx` và kiểm chứng sai số đầu ra ($< 10^{-5}$).
-  - Cài đặt backend inference bằng `onnxruntime`.
-- [ ] **CP 6.2 - Automated Test Suite**:
-  - `tests/test_dsp.py`: Kiểm thử bộ lọc tín hiệu.
-  - `tests/test_model.py`: Kiểm thử kích thước tensor và độ chính xác suy luận.
-  - `tests/test_websocket.py`: Kiểm thử kết nối WebSocket và payload schema.
-- [ ] **CP 6.3 - Dockerization**:
-  - Viết `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, và `docker-compose.yml`.
-- [ ] **CP 6.4 - CI/CD GitHub Actions Workflow**:
-  - Tạo file `.github/workflows/ci-cd.yml` tự động kiểm tra code quality, chạy pytest và build frontend.
-- [ ] **CP 6.5 - Hoàn thiện Tài liệu Kỹ thuật & Báo cáo Nghiệm thu Tổng kết**:
-  - Cập nhật `README.md` chính, `docs/api_reference.md`, `docs/deployment_guide.md`.
-  - Hướng dẫn demo trực quan cho buổi bảo vệ đồ án / nghiệm thu dự án.
+#### 6.2. CP 6.2 — Automated Test Suite
+**Backend** (`tests/`, dùng `pytest`):
+- `tests/test_dsp.py`: `bandpass_filter` triệt tiêu tone 60Hz tổng hợp; `notch_filter` triệt tiêu đúng tần số cutoff; `normalize_window` luôn trả về [0,1].
+- `tests/test_qrs.py`: bọc `validate_qrs.py` thành assertion (`assert f1 > 0.90` cho ít nhất record 100/213/234 — không assert record 207 vì biết trước khó).
+- `tests/test_model.py`: shape đầu ra `(batch, 5)`, tổng softmax ≈ 1, ONNX vs PyTorch parity (nếu CP6.1 đã xong).
+- `tests/test_websocket.py`: dùng `starlette.testclient.TestClient` mở WS `/ws/ecg`, kiểm tra đủ key trong payload JSON (`chunk`, `prediction`, `bpm`, `hrv_sdnn`, `is_new_beat`, ...).
+- `tests/test_api.py`: `GET /api/records` trả đúng shape, `POST /api/diagnosis/upload-ecg` với CSV mẫu trả đúng shape báo cáo.
+
+**Frontend** (`frontend/src/**/*.test.jsx`, thêm `vitest` + `@testing-library/react` vào `package.json`):
+- Test các component do chính người làm CP4 viết (`PatientForm`, `alarmAudio` logic thuần JS, `reportGenerator` CSV serializer).
+
+**Quy ước**: mỗi người viết test cho phần mình phụ trách (Backend viết `tests/*.py`, Frontend viết `*.test.jsx`) — không ai phải hiểu sâu code của người kia để viết test.
+**DoD**: `pytest` xanh hết, `npm run test` (Vitest) xanh hết.
+
+#### 6.3. CP 6.3 — Dockerization
+**File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml` (đặt ở gốc repo).
+- `backend.Dockerfile`: base `python:3.12-slim`, copy `requirements.txt` cài trước (tận dụng layer cache), copy code, `CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]`. **Lưu ý**: image sẽ KHÔNG có `saved_models/*.pth` và `data/raw/` (gitignored) — cần mount volume hoặc copy thủ công lúc build, ghi rõ trong `docs/deployment_guide.md` (CP6.5).
+- `frontend.Dockerfile`: multi-stage — stage 1 `node:20` build `npm run build`, stage 2 `nginx:alpine` copy `dist/` + `nginx.conf` (reverse proxy `/api` và `/ws` sang service backend).
+- `docker-compose.yml`: service `backend` (port 8000), `frontend` (port 80, phụ thuộc `backend`), volume mount `./saved_models` và `./data/raw` vào container backend (thay vì bake vào image, vì các file này không nằm trong git).
+- **DoD**: `docker compose up -d` từ máy sạch (đã có sẵn `saved_models/` và `data/raw/` ở host) chạy được cả hệ thống, truy cập frontend qua `http://localhost`.
+
+#### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions)
+**File**: `.github/workflows/ci-cd.yml`.
+- Job `lint`: `flake8`/`ruff` cho backend, `oxlint` cho frontend (đã có `frontend/.oxlintrc.json`).
+- Job `test`: chạy `pytest` (backend) + `npm run test` (frontend) — **chạy trên GitHub-hosted runner nên KHÔNG có `saved_models/`/`data/raw/`**: cần skip hoặc mock các test phụ thuộc model thật (đánh dấu `@pytest.mark.skipif` nếu file không tồn tại), chỉ chạy được các test thuần logic (DSP, HRV, schema).
+- Job `build`: dựng Docker image (không push, trừ khi có yêu cầu deploy thật).
+- **DoD**: PR mới tự động chạy lint+test, hiện trạng thái pass/fail trên GitHub.
+
+#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật
+- Cập nhật `README.md` (đã có phần lớn, bổ sung sau khi CP4-6 xong).
+- `docs/api_reference.md`: liệt kê toàn bộ endpoint (WS + REST) — có thể sinh 1 phần tự động từ OpenAPI của FastAPI (`http://localhost:8000/docs`) rồi biên tập lại.
+- `docs/deployment_guide.md`: hướng dẫn Docker Compose, biến môi trường, cách chuẩn bị `saved_models/`/`data/raw/` trước khi build.
+- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch.
+
+#### 6.6. Sub-checkpoints
+- [ ] **CP 6.1** PyTorch → ONNX & Quantization Pipeline
+- [ ] **CP 6.2** Automated Test Suite (pytest + Vitest)
+- [ ] **CP 6.3** Dockerization
+- [ ] **CP 6.4** CI/CD GitHub Actions Workflow
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
 
 ---
 
-## IV. BẢNG TỔNG HỢP TIẾN ĐỘ VÀ KẾ HOẠCH PHÂN BỔ THỜI GIAN DỰ KIẾN
+## IV. BẢNG TỔNG HỢP TIẾN ĐỘ
 
-| Checkpoint | Hạng mục công việc | Trạng thái | Ưu tiên | Độ phức tạp |
+| Checkpoint | Hạng mục công việc | Trạng thái | Track phụ trách | Độ phức tạp |
 |:---|:---|:---:|:---:|:---:|
-| **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, Huấn luyện 5 Models, Benchmark, 1D Grad-CAM | ✅ **100% Hoàn thành** | Cao | Cao |
-| **CP 2** | FastAPI WebSocket Server, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ **100% Hoàn thành** | Cao | Trung bình |
-| **CP 3** | DSP Lọc nhiễu, Pan-Tompkins R-peak, BPM/HRV, chọn bản ghi, upload chẩn đoán offline | ✅ **100% Hoàn thành (backend)** — frontend chưa nối | Rất Cao | Trung bình |
-| **CP 4** | Quản lý Hồ sơ Bệnh nhân, Hệ thống Chuông Cảnh báo Y tế, Xuất Bệnh án PDF/CSV, Cài đặt | ⏳ **Sprint 2** | Cao | Trung bình |
-| **CP 5** | Database PostgreSQL/SQLite, Xác thực JWT, Phân quyền RBAC Bác sĩ/Điều dưỡng, Audit Log | ⏳ **Sprint 3** | Trung bình | Cao |
-| **CP 6** | Tối ưu ONNX INT8, Đóng gói Docker Compose, Kiểm thử tự động Pytest, CI/CD Pipeline | ⏳ **Sprint 4** | Trung bình | Cao |
+| **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, 5 Models, Benchmark, Grad-CAM | ✅ 100% | — | Cao |
+| **CP 2** | FastAPI WebSocket, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ 100% | — | Trung bình |
+| **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
+| **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
+| **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
+| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ⏳ Chưa làm | Track B (Backend) | Cao |
+| **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | ⏳ Chưa làm | Track B (Backend) | Cao |
 
 ---
 
 ## V. ĐỀ XUẤT CÁC BƯỚC HÀNH ĐỘNG TIẾP THEO (NEXT STEPS)
 
-1. ~~**Đồng bộ hóa Git**: merge `feat/frontend-integration` vào `main`.~~ ✅ **Đã xong (2026-08-29)** — `main` đã fast-forward lên ngang `feat/frontend-integration`, là nhánh chuẩn duy nhất từ giờ.
-2. ~~**Vá lỗi lệch miền dữ liệu train/serving (mitigation)**~~ ✅ **Đã xong (2026-08-29)** — xem mục 3.0.
-3. ~~**Hoàn thiện Checkpoint 3 (CP 3.2 → 3.5)**~~ ✅ **Đã xong (2026-08-30)**, nhánh `feat/dsp-and-beat-segmentation`:
-   - Pan-Tompkins R-peak detector, BPM/HRV thực tế, `GET /api/records`, `POST /api/diagnosis/upload-ecg`.
-   - Đã kiểm chứng end-to-end trên dữ liệu thật: Accuracy 94.33% (so nhãn bác sĩ) — **xác nhận không cần train lại model**, chỉ cần tiền xử lý đúng.
-4. **Nối Frontend với các API mới của CP3** (nhánh mới, vd `feat/frontend-cp3-integration`):
-   - Hiển thị `bpm`/`hrv_sdnn`/`hrv_rmssd` trên `StatCards`, dropdown chọn bản ghi (`GET /api/records`) đổi query param của WebSocket, form upload file gọi `POST /api/diagnosis/upload-ecg`.
-5. **Phát triển Checkpoint 4**:
-   - Hoàn thiện UI trang Quản lý Bệnh nhân và tích hợp chuông cảnh báo âm thanh y tế.
+1. ~~Đồng bộ hoá Git, merge về `main`~~ ✅ Xong.
+2. ~~Vá lỗi lệch miền dữ liệu train/serving~~ ✅ Xong.
+3. ~~Hoàn thiện Checkpoint 3 (backend)~~ ✅ Xong — Accuracy end-to-end 94.33%, không cần train lại model.
+4. **Chia việc cho 2 người, bắt đầu Checkpoint 3.6 + 4 (Track A) và Checkpoint 5 + 6 (Track B) song song** — xem chi tiết phân công, thứ tự làm, và giao thức đồng bộ giữa 2 người tại **[pccv.md](pccv.md)**.
