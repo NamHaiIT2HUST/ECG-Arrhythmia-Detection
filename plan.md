@@ -130,18 +130,50 @@ flowchart TD
 - [x] **CP 3.1 - DSP Preprocessing Module** (`backend/core/signal_processing.py`) — **Hoàn thành 2026-08-29**:
   - Cài đặt hàm `bandpass_filter(signal, lowcut=0.5, highcut=45.0, fs=360)`.
   - Cài đặt hàm `notch_filter(signal, cutoff=50.0, q=30.0, fs=360)`.
-  - Cài đặt thêm `normalize_window()` + `preprocess_window()`, đã nối vào `inference_service.py` để vá lỗi lệch miền dữ liệu train/serving (xem mục 3.0).
-- [ ] **CP 3.2 - Dynamic R-Peak Detector** (`backend/core/qrs_detector.py`):
-  - Cài đặt Pan-Tompkins QRS detector hoặc tích hợp `scipy.signal.find_peaks` kết hợp adaptive threshold.
-  - Hàm `extract_beat_window(signal, r_peak_idx, window_size=187)`.
-- [ ] **CP 3.3 - HRV & Exact BPM Calculation Engine**:
-  - Tính toán BPM tức thời dựa trên khoảng cách RR thực tế thay vì giá trị cố định.
-  - Cung cấp chỉ số HRV (SDNN) phục vụ cảnh báo nguy cơ rối loạn hệ thần kinh tim.
-- [ ] **CP 3.4 - Patient Record Switcher API**:
-  - REST endpoint `GET /api/records` lấy danh sách hồ sơ mẫu.
-  - WebSocket command hoặc endpoint `POST /api/stream/switch-record` chuyển đổi bản ghi đang phát trực tiếp.
-- [ ] **CP 3.5 - File Upload & Offline Diagnosis API**:
-  - `POST /api/diagnosis/upload-ecg` nhận file tín hiệu, tiền xử lý, chạy inference toàn bộ và trả về báo cáo tổng hợp.
+  - Cài đặt thêm `normalize_window()`, đã nối vào `inference_service.py` để vá lỗi lệch miền dữ liệu train/serving (xem mục 3.0).
+- [x] **CP 3.2 - Dynamic R-Peak Detector** (`backend/core/qrs_detector.py`) — **Hoàn thành 2026-08-30**:
+  - Cài đặt Pan-Tompkins QRS detector (`pan_tompkins_r_peaks`) — kiểm chứng bằng
+    `backend/scripts/validate_qrs.py` đối chiếu nhãn bác sĩ (.atr) trên 8 bản ghi
+    MIT-BIH: **F1 trung bình 97.14%** (99.98% ở bản ghi bình thường, 89-99% ở các
+    bản ghi khó/nhiều loạn nhịp như 207, 119, 208).
+  - Hàm `extract_beat_window(signal, r_peaks, index, window_size=187)`: cắt nhịp
+    từ đỉnh R, độ dài động theo RR, **đệm số 0/cắt bớt (KHÔNG resample từng nhịp)**.
+  - ⚠️ Bài học quan trọng: thử đầu tiên dùng `scipy.signal.resample()` để co giãn
+    từng nhịp về đúng 187 điểm — nghe hợp lý nhưng SAI với cách bộ dữ liệu Kaggle
+    MIT-BIH thực sự được tạo (đã kiểm tra trực tiếp `X_train_kaggle.npy`: mọi nhịp
+    có ĐUÔI TOÀN SỐ 0, tức là họ ĐỆM SỐ 0 chứ không co giãn). Resample từng nhịp làm
+    méo hình dạng QRS thật, khiến Accuracy chẩn đoán rơi từ ~92% (benchmark) xuống
+    còn ~27%. Sau khi sửa thành đệm số 0/cắt bớt: xem CP 3.3 bên dưới.
+  - Toàn bộ tín hiệu được resample 1 lần (360Hz → 125Hz, đúng tần số bộ Kaggle) bằng
+    `resample_signal()` TRƯỚC khi cắt nhịp — resample nguyên đoạn tín hiệu liên tục
+    thì hợp lệ, khác với resample từng nhịp riêng lẻ.
+- [x] **CP 3.3 - HRV & Exact BPM Calculation Engine** (`backend/core/hrv.py`) — **Hoàn thành 2026-08-30**:
+  - `HRVTracker`: tính BPM tức thời theo khoảng RR thực tế + SDNN/RMSSD theo cửa sổ
+    trượt 50 nhịp gần nhất. Đã nối vào `data_streamer.py` và trả về qua WebSocket
+    (field `bpm`, `hrv_sdnn`, `hrv_rmssd`).
+  - **Kiểm chứng end-to-end** (`backend/scripts/validate_classification.py` — lọc
+    nhiễu → phát hiện đỉnh R → cắt nhịp đúng miền 125Hz → chạy ResNet1D → đối chiếu
+    nhãn AAMI thật) trên 8 bản ghi MIT-BIH: **Accuracy 94.33%** (per-record 82-99.8%),
+    không cần train lại 5 model — đúng như khuyến nghị ở mục 3.0.
+- [x] **CP 3.4 - Patient Record Switcher API** (`backend/api/records_routes.py`) — **Hoàn thành 2026-08-30**:
+  - `GET /api/records`: quét `data/raw/physionet_mitdb/` trả về danh sách bản ghi
+    khả dụng kèm mô tả lâm sàng cho các bản ghi tiêu biểu (100, 119, 200, 207, 208,
+    213, 217, 234).
+  - Chuyển bản ghi qua query param khi mở WebSocket: `ws://.../ws/ecg?record=<id>`
+    (đơn giản/an toàn hơn dùng lệnh 2 chiều qua WS; có validate chống path traversal).
+- [x] **CP 3.5 - File Upload & Offline Diagnosis API** (`backend/api/diagnosis_routes.py`,
+  `backend/service/diagnosis_service.py`) — **Hoàn thành 2026-08-30**:
+  - `POST /api/diagnosis/upload-ecg?fs=360` nhận file CSV 1 cột biên độ (có/không
+    header), tiền xử lý + chạy AI trên TOÀN BỘ nhịp phát hiện được, trả về báo cáo:
+    tổng số nhịp, phân bố lớp AAMI, BPM min/avg/max, HRV (SDNN/RMSSD), danh sách
+    nhịp bất thường (thời điểm + nhãn, giới hạn 500 mục), và 1 câu tóm tắt rule-based.
+  - Chưa hỗ trợ `.dat`/`.edf` (chỉ CSV) và chưa có tóm tắt bằng LLM — việc đó thuộc
+    CP 4.2 (Trợ lý AI Tạo Báo Cáo Lâm Sàng), cố tình để dành, tránh chồng lấn phạm vi.
+
+**Việc còn lại để dùng được trên UI** (nằm ngoài phạm vi CP3 — CP3 chỉ là backend):
+Frontend hiện CHƯA hiển thị `bpm`/`hrv_sdnn`/`hrv_rmssd` (StatCards chỉ có 2 ô: dự
+đoán + latency) và CHƯA có dropdown chọn bản ghi hay form upload file. Đây là việc
+của 1 nhánh `feat/frontend-cp3-integration` riêng, nối vào các API đã có sẵn ở trên.
 
 ---
 
@@ -271,7 +303,7 @@ flowchart TD
 |:---|:---|:---:|:---:|:---:|
 | **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, Huấn luyện 5 Models, Benchmark, 1D Grad-CAM | ✅ **100% Hoàn thành** | Cao | Cao |
 | **CP 2** | FastAPI WebSocket Server, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ **100% Hoàn thành** | Cao | Trung bình |
-| **CP 3** | DSP Lọc nhiễu (✅ xong), Pan-Tompkins R-peak, Tính BPM/HRV chính xác, Bộ chọn bản ghi bệnh nhân | 🟡 **Đang làm (CP3.1 xong, CP3.2-3.5 kế tiếp)** | Rất Cao | Trung bình |
+| **CP 3** | DSP Lọc nhiễu, Pan-Tompkins R-peak, BPM/HRV, chọn bản ghi, upload chẩn đoán offline | ✅ **100% Hoàn thành (backend)** — frontend chưa nối | Rất Cao | Trung bình |
 | **CP 4** | Quản lý Hồ sơ Bệnh nhân, Hệ thống Chuông Cảnh báo Y tế, Xuất Bệnh án PDF/CSV, Cài đặt | ⏳ **Sprint 2** | Cao | Trung bình |
 | **CP 5** | Database PostgreSQL/SQLite, Xác thực JWT, Phân quyền RBAC Bác sĩ/Điều dưỡng, Audit Log | ⏳ **Sprint 3** | Trung bình | Cao |
 | **CP 6** | Tối ưu ONNX INT8, Đóng gói Docker Compose, Kiểm thử tự động Pytest, CI/CD Pipeline | ⏳ **Sprint 4** | Trung bình | Cao |
@@ -281,10 +313,11 @@ flowchart TD
 ## V. ĐỀ XUẤT CÁC BƯỚC HÀNH ĐỘNG TIẾP THEO (NEXT STEPS)
 
 1. ~~**Đồng bộ hóa Git**: merge `feat/frontend-integration` vào `main`.~~ ✅ **Đã xong (2026-08-29)** — `main` đã fast-forward lên ngang `feat/frontend-integration`, là nhánh chuẩn duy nhất từ giờ.
-2. ~~**Vá lỗi lệch miền dữ liệu train/serving**~~ ✅ **Đã xong (2026-08-29)** — xem mục 3.0. Không cần train lại model.
-3. **Tiếp tục Checkpoint 3 (CP 3.2 → 3.5)**:
-   - Tạo nhánh mới `feat/dsp-and-beat-segmentation` từ `main`.
-   - Cài đặt Pan-Tompkins R-peak detector (`backend/core/qrs_detector.py`) để cửa sổ 187 điểm được căn đúng theo đỉnh R thay vì sliding window thô — đây là phần còn thiếu để dữ liệu serving khớp hoàn toàn miền dữ liệu train (xem mục 3.0).
-   - Tính BPM/HRV thực tế theo khoảng RR, bộ chọn bản ghi bệnh nhân, upload file chẩn đoán offline.
-4. **Phát triển Checkpoint 4**:
+2. ~~**Vá lỗi lệch miền dữ liệu train/serving (mitigation)**~~ ✅ **Đã xong (2026-08-29)** — xem mục 3.0.
+3. ~~**Hoàn thiện Checkpoint 3 (CP 3.2 → 3.5)**~~ ✅ **Đã xong (2026-08-30)**, nhánh `feat/dsp-and-beat-segmentation`:
+   - Pan-Tompkins R-peak detector, BPM/HRV thực tế, `GET /api/records`, `POST /api/diagnosis/upload-ecg`.
+   - Đã kiểm chứng end-to-end trên dữ liệu thật: Accuracy 94.33% (so nhãn bác sĩ) — **xác nhận không cần train lại model**, chỉ cần tiền xử lý đúng.
+4. **Nối Frontend với các API mới của CP3** (nhánh mới, vd `feat/frontend-cp3-integration`):
+   - Hiển thị `bpm`/`hrv_sdnn`/`hrv_rmssd` trên `StatCards`, dropdown chọn bản ghi (`GET /api/records`) đổi query param của WebSocket, form upload file gọi `POST /api/diagnosis/upload-ecg`.
+5. **Phát triển Checkpoint 4**:
    - Hoàn thiện UI trang Quản lý Bệnh nhân và tích hợp chuông cảnh báo âm thanh y tế.
