@@ -42,8 +42,8 @@ def load_data(dataset_type="kaggle"):
     X_train = np.load(x_tr_path)
     y_train = np.load(y_tr_path)
     X_test = np.load(x_te_path)
-    y_test = np.load(y_test_path if 'y_test_path' in locals() else y_te_path)
-    
+    y_test = np.load(y_te_path)
+
     return X_train, y_train, X_test, y_test
 
 def count_parameters(model):
