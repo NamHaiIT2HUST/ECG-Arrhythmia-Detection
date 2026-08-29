@@ -11,7 +11,7 @@ Dưới đây là tổng hợp rà soát toàn bộ các nhánh trong kho mã ng
 
 | Tên nhánh (Branch) | Trạng thái | Nội dung đã hoàn thành | Đánh giá & Vấn đề tồn đọng |
 |:---|:---:|:---|:---|
-| `main` | Cũ (Behind) | Đã merge PR #1 → #4 (Data setup, Kaggle CSV, MIT-BIH PhysioNet, SMOTE, Docs cơ bản). | Chưa đồng bộ các nhánh AI, Backend, Frontend mới nhất. Cần merge theo lộ trình. |
+| `main` | ✅ Cập nhật (2026-08-29) | Đã fast-forward merge toàn bộ `feat/frontend-integration` (bao gồm mọi nhánh con: data, AI models, XAI, backend, websocket, frontend) + vá lỗi tiền xử lý real-time. `main` hiện là nhánh chuẩn, mọi nhánh `feat/*` khác đều đã là ancestor của nó. | Sẵn sàng làm nền cho Checkpoint 3 trở đi. |
 | `feat/data` | Hoàn thành | Pipeline nạp MIT-BIH, SMOTE cân bằng dữ liệu 5 lớp AAMI (N, S, V, F, Q), xuất `.npy`. | Cần bổ sung thêm pipeline lọc nhiễu số (DSP) chuyên sâu và dynamic R-peak detection. |
 | `feat/ai-model-development` | Hoàn thành | Xây dựng & benchmark 5 mô hình: ResNet1D, CNN-LSTM, TCN, Transformer1D, Mamba1D. ResNet1D đạt Acc 98.57%, Latency 0.13ms. | Model đang nhận đầu vào cố định 187 điểm; cần chuẩn hóa pipeline inference động. |
 | `feat/explainable-ai` | Hoàn thành | Tích hợp 1D Grad-CAM vào layer3 của ResNet1D, xuất heatmap trọng số vùng sóng bất thường. | Mới áp dụng cho ResNet1D; cần thêm cơ chế trích xuất đa phương pháp (Integrated Gradients / SHAP). |
@@ -92,6 +92,22 @@ flowchart TD
 ### 🟡 CHECKPOINT 3: XỬ LÝ TÍN HIỆU SỐ (DSP) NÂNG CAO & CẮT PHỨC BỘ R-PEAK ĐỘNG
 > **Trọng tâm**: Chuyển từ việc cắt cửa sổ tĩnh 187 điểm sang xử lý tín hiệu thực tế: lọc nhiễu y tế (nhiễu thở, nhiễu điện lưới) và tự động nhận diện đỉnh R (Pan-Tompkins Algorithm).
 
+#### 3.0. 🔴 CHẨN ĐOÁN GỐC RỄ (2026-08-29): Vì sao kết quả real-time có vẻ "kém" dù benchmark cao?
+**Không cần train lại 5 model.** Kết quả benchmark (`docs/benchmark_results.md`) là hợp lệ — không có data leakage (train/test split đúng, SMOTE chỉ áp trên tập train). ResNet1D đạt Acc 98.57% / F1-macro 92.16% là con số thật, dùng tiếp được cho production.
+
+**Lỗi thật nằm ở tầng serving (real-time inference pipeline), không phải ở model:**
+- Model được train hoàn toàn trên bộ Kaggle MIT-BIH Heartbeat CSV — tín hiệu đã được resample về **125Hz**, cắt theo nhịp (beat-centered) và **chuẩn hoá biên độ về [0, 1]**.
+- Trong khi đó, `backend/service/data_streamer.py` đọc tín hiệu **thô trực tiếp** từ PhysioNet `.dat` (**360Hz**, biên độ mV thực tế, ví dụ record 208 dao động khoảng **-3.5 đến 3.65**), và `inference_service.py` trước đây đưa thẳng cửa sổ 187 điểm thô này vào model — **hoàn toàn lệch miền dữ liệu train** (sai cả biên độ lẫn thời lượng cửa sổ).
+- Bằng chứng đo được: chạy `test_inference.py` quét 10.000 điểm đầu record 208 (bản ghi có tỉ lệ PVC rất cao) — **trước khi vá: chỉ phát hiện 0.2% bất thường** (gần như đoán "bình thường" liên tục). Sau khi thêm lọc + chuẩn hoá biên độ đúng miền train (xem `backend/core/signal_processing.py`, đã vá trong phiên 2026-08-29): **tỉ lệ phát hiện tăng lên 22.9%**, khớp hợp lý với đặc điểm lâm sàng của record 208.
+
+**Đã vá (mitigation, không phải fix hoàn chỉnh):**
+- `backend/core/signal_processing.py`: `bandpass_filter()`, `notch_filter()`, `normalize_window()` — lọc + chuẩn hoá biên độ [0,1] cho từng cửa sổ trước khi vào model.
+- `backend/service/inference_service.py::predict()`: gọi `preprocess_window()` trước khi tạo tensor.
+
+**Vẫn còn thiếu (đây là lý do CP3.2–3.5 bên dưới vẫn cần làm, không phải việc thừa):**
+- Cửa sổ 187 điểm ở tầng serving vẫn là **360Hz / ~0.52s** (sliding window thô), trong khi model học trên nhịp **~125Hz / ~1.5s được căn theo đỉnh R**. Việc lọc + chuẩn hoá biên độ chỉ sửa được phần *biên độ*, chưa sửa được phần *thời lượng/căn chỉnh nhịp* — đây là lý do bắt buộc phải có Pan-Tompkins R-peak detection + resampling (CP 3.2) để dữ liệu serving thực sự khớp miền dữ liệu train.
+- Khuyến nghị: **giữ nguyên trọng số ResNet1D hiện tại**, hoàn thiện CP3.1–3.3 trước, sau đó đánh giá lại độ chính xác thực tế trên stream; chỉ cân nhắc train lại (hoặc fine-tune) nếu sau khi có R-peak alignment đúng mà độ chính xác thực tế vẫn thấp hơn benchmark offline đáng kể.
+
 #### 3.1. Phân tích hiện trạng & Hạn chế cần khắc phục
 - Hiện tại dữ liệu đang được đọc bằng bộ đệm trượt 187 điểm liên tiếp mà chưa có bước phát hiện đỉnh R thực tế (R-peak alignment). Khi nhịp tim thay đổi tần số (nhịp nhanh, nhịp chậm), cửa sổ tĩnh có thể cắt lệch đỉnh QRS.
 - Tín hiệu thực tế từ bệnh nhân luôn có nhiễu đường đẳng điện (Baseline Wander) và nhiễu cơ (Electromyogram - EMG).
@@ -111,9 +127,10 @@ flowchart TD
    - Endpoint upload file ECG từ máy tính (.csv, .dat, .edf) để chạy chẩn đoán Offline/Batch.
 
 #### 3.3. Các Checkpoint nhỏ (Sub-checkpoints)
-- [ ] **CP 3.1 - DSP Preprocessing Module** (`backend/core/signal_processing.py`):
+- [x] **CP 3.1 - DSP Preprocessing Module** (`backend/core/signal_processing.py`) — **Hoàn thành 2026-08-29**:
   - Cài đặt hàm `bandpass_filter(signal, lowcut=0.5, highcut=45.0, fs=360)`.
   - Cài đặt hàm `notch_filter(signal, cutoff=50.0, q=30.0, fs=360)`.
+  - Cài đặt thêm `normalize_window()` + `preprocess_window()`, đã nối vào `inference_service.py` để vá lỗi lệch miền dữ liệu train/serving (xem mục 3.0).
 - [ ] **CP 3.2 - Dynamic R-Peak Detector** (`backend/core/qrs_detector.py`):
   - Cài đặt Pan-Tompkins QRS detector hoặc tích hợp `scipy.signal.find_peaks` kết hợp adaptive threshold.
   - Hàm `extract_beat_window(signal, r_peak_idx, window_size=187)`.
@@ -254,7 +271,7 @@ flowchart TD
 |:---|:---|:---:|:---:|:---:|
 | **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, Huấn luyện 5 Models, Benchmark, 1D Grad-CAM | ✅ **100% Hoàn thành** | Cao | Cao |
 | **CP 2** | FastAPI WebSocket Server, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ **100% Hoàn thành** | Cao | Trung bình |
-| **CP 3** | DSP Lọc nhiễu, Pan-Tompkins R-peak, Tính BPM/HRV chính xác, Bộ chọn bản ghi bệnh nhân | ⏳ **Kế tiếp (Sprint 1)** | Rất Cao | Trung bình |
+| **CP 3** | DSP Lọc nhiễu (✅ xong), Pan-Tompkins R-peak, Tính BPM/HRV chính xác, Bộ chọn bản ghi bệnh nhân | 🟡 **Đang làm (CP3.1 xong, CP3.2-3.5 kế tiếp)** | Rất Cao | Trung bình |
 | **CP 4** | Quản lý Hồ sơ Bệnh nhân, Hệ thống Chuông Cảnh báo Y tế, Xuất Bệnh án PDF/CSV, Cài đặt | ⏳ **Sprint 2** | Cao | Trung bình |
 | **CP 5** | Database PostgreSQL/SQLite, Xác thực JWT, Phân quyền RBAC Bác sĩ/Điều dưỡng, Audit Log | ⏳ **Sprint 3** | Trung bình | Cao |
 | **CP 6** | Tối ưu ONNX INT8, Đóng gói Docker Compose, Kiểm thử tự động Pytest, CI/CD Pipeline | ⏳ **Sprint 4** | Trung bình | Cao |
@@ -263,10 +280,11 @@ flowchart TD
 
 ## V. ĐỀ XUẤT CÁC BƯỚC HÀNH ĐỘNG TIẾP THEO (NEXT STEPS)
 
-1. **Đồng bộ hóa Git**:
-   - Tạo Pull Request merge nhánh `feat/frontend-integration` vào `main` để đưa mã nguồn ổn định nhất về nhánh chính.
-2. **Bắt đầu thực thi Checkpoint 3**:
+1. ~~**Đồng bộ hóa Git**: merge `feat/frontend-integration` vào `main`.~~ ✅ **Đã xong (2026-08-29)** — `main` đã fast-forward lên ngang `feat/frontend-integration`, là nhánh chuẩn duy nhất từ giờ.
+2. ~~**Vá lỗi lệch miền dữ liệu train/serving**~~ ✅ **Đã xong (2026-08-29)** — xem mục 3.0. Không cần train lại model.
+3. **Tiếp tục Checkpoint 3 (CP 3.2 → 3.5)**:
    - Tạo nhánh mới `feat/dsp-and-beat-segmentation` từ `main`.
-   - Xây dựng module `backend/core/signal_processing.py` để xử lý lọc nhiễu thực thụ và tích hợp thuật toán phát hiện đỉnh R.
-3. **Phát triển Checkpoint 4**:
+   - Cài đặt Pan-Tompkins R-peak detector (`backend/core/qrs_detector.py`) để cửa sổ 187 điểm được căn đúng theo đỉnh R thay vì sliding window thô — đây là phần còn thiếu để dữ liệu serving khớp hoàn toàn miền dữ liệu train (xem mục 3.0).
+   - Tính BPM/HRV thực tế theo khoảng RR, bộ chọn bản ghi bệnh nhân, upload file chẩn đoán offline.
+4. **Phát triển Checkpoint 4**:
    - Hoàn thiện UI trang Quản lý Bệnh nhân và tích hợp chuông cảnh báo âm thanh y tế.

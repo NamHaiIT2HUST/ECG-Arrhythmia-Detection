@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from src.models.resnet1d import ResNet1D
 from src.xai.gradcam1d import GradCAM1D
+from backend.core.signal_processing import preprocess_window
 
 # Nhãn phân loại
 AAMI_CLASSES = {
@@ -43,17 +44,23 @@ class ECGInferenceService:
         Dự đoán trên 1 cửa sổ 187 điểm.
         - Trả về: (nhãn_chữ, heatmap_list, latency_ms)
         - Nếu là Bình thường (0), heatmap = None để tiết kiệm băng thông.
-        
+
         BUG FIX: Grad-CAM cần gradient nên KHÔNG dùng torch.no_grad().
         Thay vào đó, tách 2 bước: predict nhanh với no_grad, chỉ bật grad khi cần XAI.
+
+        BUG FIX: Model được train trên dữ liệu Kaggle MIT-BIH đã lọc nhiễu và chuẩn hoá
+        biên độ về [0, 1]. Tín hiệu thô đọc trực tiếp từ PhysioNet (.dat) có biên độ mV
+        thực tế (~ -3.5 đến 3.65) hoàn toàn lệch miền dữ liệu train, khiến model gần như
+        đoán ngẫu nhiên khi chạy real-time. Vì vậy phải lọc + chuẩn hoá cửa sổ trước khi
+        đưa vào model, giống hệt bước tiền xử lý lúc train.
         """
         if not self.is_ready or len(window_187) != 187:
             return "CHỜ DỮ LIỆU", None, 0.0
-            
+
         t0 = time.time()
-        
-        # Chuyển đổi sang Tensor
-        input_np = np.array(window_187, dtype=np.float32)
+
+        # Lọc nhiễu (bandpass + notch) và chuẩn hoá biên độ về [0, 1] khớp miền dữ liệu train
+        input_np = preprocess_window(window_187)
         # Reshape thành (batch_size=1, channels=1, seq_len=187)
         input_tensor = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
         
