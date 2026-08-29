@@ -3,12 +3,12 @@ uvicorn
 fastapi-cors
 websockets
 numpy==2.0.2
-pandas==2.2.2
+pandas==2.2.3
 scipy==1.16.3
 scikit-learn==1.6.1
 tensorflow==2.20.0
 keras==3.13.2
-wfdb
+wfdb==4.3.1
 h5py==3.16.0
 protobuf==5.29.6
 typing-extensions==4.15.0
