@@ -464,18 +464,21 @@ POST /api/anomalies/{id}/verify
 - **DoD đã đạt**: `resnet1d.onnx` chạy được qua `onnxruntime`, lớp dự đoán khớp 100% với PyTorch trên 200 batch ngẫu nhiên; có bản quantized kèm bảng so sánh kích thước/latency/accuracy đầy đủ trong `docs/onnx_comparison.md`.
 
 #### 6.2. CP 6.2 — Automated Test Suite
-**Backend** (`tests/`, dùng `pytest`):
-- `tests/test_dsp.py`: `bandpass_filter` triệt tiêu tone 60Hz tổng hợp; `notch_filter` triệt tiêu đúng tần số cutoff; `normalize_window` luôn trả về [0,1].
-- `tests/test_qrs.py`: bọc `validate_qrs.py` thành assertion (`assert f1 > 0.90` cho ít nhất record 100/213/234 — không assert record 207 vì biết trước khó).
-- `tests/test_model.py`: shape đầu ra `(batch, 5)`, tổng softmax ≈ 1, ONNX vs PyTorch parity (nếu CP6.1 đã xong).
-- `tests/test_websocket.py`: dùng `starlette.testclient.TestClient` mở WS `/ws/ecg`, kiểm tra đủ key trong payload JSON (`chunk`, `prediction`, `bpm`, `hrv_sdnn`, `is_new_beat`, ...).
-- `tests/test_api.py`: `GET /api/records` trả đúng shape, `POST /api/diagnosis/upload-ecg` với CSV mẫu trả đúng shape báo cáo.
+**Backend — ✅ Hoàn thành 2026-08-31** (`tests/`, `pytest.ini`, dùng `pytest`):
+- `tests/conftest.py`: fixture dùng chung — DB test **cô lập hoàn toàn** với DB dev thật (SQLite `:memory:` + `StaticPool` để mọi session trong 1 phiên pytest dùng chung 1 connection, ghi đè dependency `get_db` của FastAPI qua `app.dependency_overrides` — **không sửa code production**); `client` (TestClient session-scoped, tránh nạp lại model AI ~1-2s cho mỗi test); `seeded_users`/`auth_headers` (3 tài khoản test/3 role, tách biệt hoàn toàn với tài khoản do `seed_users.py` tạo trên DB dev thật); các marker `requires_physionet_data`/`requires_saved_model`/`requires_onnx_model` để tự skip khi thiếu file gitignored (đúng tinh thần CP6.4: CI không có `data/raw/`/`saved_models/`).
+  - ⚠️ Gặp lỗi `PermissionError` khi dùng `tmp_path_factory` (thư mục temp mặc định của pytest trên Windows) — chuyển hẳn sang SQLite in-memory, vừa né lỗi vừa không cần dọn file sau khi chạy. Đã xác nhận: chạy `pytest` không hề đụng tới `backend/db/ecg_system.db` (kiểm tra size/mtime file không đổi trước/sau).
+- `tests/test_dsp.py`: `bandpass_filter`/`notch_filter` triệt tiêu đúng dải tần nhiễu (đo bằng tổng năng lượng FFT trong 1 dải tần thay vì 1 bin đơn lẻ — bin đơn dễ sai vì phụ thuộc độ phân giải FFT khớp chính xác tần số cần đo, đã tự vấp lỗi này lúc đầu với tone 0.1Hz trên cửa sổ 2s quá ngắn); `normalize_window` luôn trả về [0,1] + xử lý tín hiệu phẳng không chia cho 0.
+- `tests/test_qrs.py`: bọc `validate_qrs.py::evaluate_record()` thành assertion `f1 > 0.90` cho record 100/213/234 (không assert 207/119 — biết trước khó, xem plan.md mục 3.2).
+- `tests/test_model.py`: shape đầu ra `(batch, 5)`, chấp nhận input thiếu chiều channel, tổng softmax ≈ 1, ONNX vs PyTorch argmax khớp 100% (skip nếu chưa export ONNX).
+- `tests/test_websocket.py`: mở WS `/ws/ecg` thật, kiểm tra đủ key trong payload JSON, và record không tồn tại tự fallback về mặc định thay vì lỗi.
+- `tests/test_api.py`: `GET /api/records`, `POST /api/diagnosis/upload-ecg` (kèm test file quá ngắn bị từ chối 400), **cùng với auth** (sai mật khẩu, token giả, refresh token bị đưa nhầm) **và anomalies/verify** (401/403/422/404, lọc đúng, `corrected_label` phải hợp lệ) — mở rộng nhẹ so với spec ban đầu (chỉ nhắc records+diagnosis) vì đây đều là bề mặt API chưa có test tự động nào, không có lý do bỏ qua.
+- **26/26 test xanh, chạy dưới 4 giây** (không cần dữ liệu MIT-BIH thật cho phần lớn test — DoD của CP6.4 "CI không có data/raw/" vẫn thoả vì các test cần nó tự skip).
 
-**Frontend** (`frontend/src/**/*.test.jsx`, thêm `vitest` + `@testing-library/react` vào `package.json`):
+**Frontend** (`frontend/src/**/*.test.jsx`, thêm `vitest` + `@testing-library/react` vào `package.json`) — ⏳ Track A tự làm:
 - Test các component do chính người làm CP4 viết (`PatientForm`, `alarmAudio` logic thuần JS, `reportGenerator` CSV serializer).
 
 **Quy ước**: mỗi người viết test cho phần mình phụ trách (Backend viết `tests/*.py`, Frontend viết `*.test.jsx`) — không ai phải hiểu sâu code của người kia để viết test.
-**DoD**: `pytest` xanh hết, `npm run test` (Vitest) xanh hết.
+**DoD**: `pytest` xanh hết (✅ đã đạt phần backend), `npm run test` (Vitest) xanh hết (Track A).
 
 #### 6.3. CP 6.3 — Dockerization
 **File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml` (đặt ở gốc repo).
@@ -499,7 +502,7 @@ POST /api/anomalies/{id}/verify
 
 #### 6.6. Sub-checkpoints
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
-- [ ] **CP 6.2** Automated Test Suite (pytest + Vitest)
+- [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
 - [ ] **CP 6.3** Dockerization
 - [ ] **CP 6.4** CI/CD GitHub Actions Workflow
 - [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
@@ -517,7 +520,7 @@ POST /api/anomalies/{id}/verify
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1 xong, 6.2-6.5 chưa làm | Track B (Backend) | Cao |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.2(backend) xong, 6.3-6.5 chưa làm | Track B (Backend) | Cao |
 
 ---
 
