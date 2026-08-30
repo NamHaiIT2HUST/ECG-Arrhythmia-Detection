@@ -134,9 +134,10 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **✅ Đã báo**: `saved_models/resnet1d.onnx` (FP32, giống hệt PyTorch — lớp dự đoán khớp 100%/200 batch) + `resnet1d_int8.onnx` (697.3KB, đạt mục tiêu <700KB, accuracy 94.18% so baseline 94.33%).
 - **⚠️ Phát hiện đáng chú ý cho ai đọc lại sau này**: ngưỡng sai số tuyệt đối 1e-5 ban đầu không phù hợp với logit thô của mạng sâu (đã đổi sang kiểm tra argmax + sai số tương đối, xem `plan.md`). Và INT8 **không nhanh hơn** trên CPU dev thường (thiếu tập lệnh INT8 chuyên dụng) — nếu chỉ cần tốc độ (không cần thu nhỏ file), dùng ONNX FP32 (nhanh hơn PyTorch 4.5 lần), không phải INT8.
 
-### B6. CP 6.2 — Automated Test Suite (phần backend)
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.2. Chỉ viết phần `tests/*.py` (Track A tự viết `*.test.jsx` cho phần của mình — không ai phải viết test hộ người kia).
-- **✅ Khi xong, báo**: "CP6.2 (backend) xong — `pytest` xanh hết, PR #___". Nhắc Track A tự bổ sung Vitest cho phần Frontend nếu chưa làm.
+### B6. CP 6.2 — Automated Test Suite (phần backend) — ✅ Hoàn thành 2026-08-31
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.2.
+- **✅ Đã báo**: 26/26 test xanh (`pytest`, chạy dưới 4 giây), có `conftest.py` dùng DB test cô lập hoàn toàn (SQLite in-memory) — chạy `pytest` không đụng gì tới DB dev thật.
+- **Nhắc Track A**: tự bổ sung Vitest cho phần Frontend khi tới lượt (`frontend/src/**/*.test.jsx`), không cần đợi Track B, không ai viết test hộ ai.
 
 ### B7. CP 6.3 — Dockerization
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.3.
@@ -197,7 +198,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
 - [x] B4 — CP 5.4 Human-in-the-loop API
 - [x] B5 — CP 6.1 ONNX Export
-- [ ] B6 — CP 6.2 Test Suite (backend)
+- [x] B6 — CP 6.2 Test Suite (backend)
 - [ ] B7 — CP 6.3 Docker
 - [ ] B8 — CP 6.4 CI/CD
 
