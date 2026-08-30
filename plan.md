@@ -134,6 +134,7 @@ backend/
   "prediction": "BÌNH THƯỜNG" | "CẢNH BÁO: ...",  // giữ nguyên giữa 2 nhịp (sample-and-hold)
   "heatmap": [187 float] | null,  // CHỈ khác null đúng ở gói tin vừa chẩn đoán 1 nhịp mới
   "latency_ms": float,
+  "confidence": float,         // xác suất softmax của nhãn dự đoán gần nhất (0-1), thêm ở CP5.3
   "bpm": float,
   "hrv_sdnn": float,
   "hrv_rmssd": float,
@@ -398,15 +399,22 @@ GET /api/auth/me
 - **`backend/scripts/validate_auth.py`** (mới, theo pattern `validate_qrs.py`): dùng FastAPI `TestClient` kiểm tra toàn bộ 18 trường hợp — login đúng/sai mật khẩu/sai username, `/me` với token hợp lệ/thiếu/giả, `/refresh` hợp lệ + từ chối khi đưa nhầm access token vào chỗ refresh token, và `require_role("admin")` từ chối role `doctor` (403)/chấp nhận role `admin` (200) qua 1 route test riêng (không đụng vào `main.py` thật). Chạy: `python -m backend.scripts.seed_users` trước, rồi `python -m backend.scripts.validate_auth`.
 - **DoD đã đạt**: toàn bộ 18 assertion trong `validate_auth.py` xanh.
 
-#### 5.4. CP 5.3 — Historical Anomaly Query & Pagination APIs
-**File**: `backend/api/anomalies.py`.
+#### 5.4. CP 5.3 — Historical Anomaly Query & Pagination APIs — ✅ Hoàn thành 2026-08-30
+**File**: `backend/api/anomalies.py`, `backend/service/anomaly_log_service.py` (mới).
 ```
 GET /api/anomalies?patient_id=&from=&to=&label=&page=1&page_size=20
   header: Authorization: Bearer <token>  (mọi role đã login đều xem được)
   200: { "total": int, "page": int, "page_size": int, "items": [ {...anomaly_event...} ] }
 ```
-- **Phụ thuộc**: cần CP5.1 (bảng `anomaly_events`) xong trước. Ngoài ra cần 1 thay đổi nhỏ ở `ws_routes.py` để **ghi anomaly vào DB mỗi khi phát hiện** (hiện tại CP3 chỉ gửi qua WS, không lưu đâu cả) — đây là việc nhỏ đi kèm CP5.3, không phải CP3.
-- **DoD**: filter theo `patient_id`/khoảng thời gian/loại nhãn hoạt động đúng, phân trang đúng.
+- `from`/`to`: ISO 8601 (vd `2026-08-30T00:00:00Z`); nếu không có timezone thì coi như UTC (không phụ thuộc múi giờ máy chạy server). Sắp xếp `timestamp_ms` giảm dần (mới nhất trước). `items` KHÔNG kèm `heatmap` (tránh payload phình to khi phân trang) — xem chi tiết XAI 1 sự kiện qua luồng real-time hiện có.
+
+**Vấn đề kiến trúc phát sinh khi làm (đã giải quyết)**: `anomaly_events`/`ecg_records` bắt buộc phải có `patient_id` hợp lệ (khoá ngoại), nhưng CP4.1 (Patient Management) vẫn đang lưu localStorage ở Frontend, CHƯA có API tạo `Patient` thật trong Database — nghĩa là chưa có cách nào tạo được 1 dòng `patients` hợp lệ khi CP5.3 cần ghi log. Giải quyết bằng `backend/service/anomaly_log_service.py::resolve_patient()`: `/ws/ecg` nhận thêm query param **tuỳ chọn** `patient_id` — nếu không truyền (hoặc truyền id không tồn tại), tự dùng 1 "bệnh nhân mặc định" (`(Chưa gán bệnh nhân)`, tự tạo 1 lần nếu chưa có). Khi CP4.1 có API bệnh nhân thật, Frontend chỉ cần truyền đúng `patient_id` qua query param, không cần sửa gì ở backend.
+- Mỗi khi mở `WS /ws/ecg`: tạo 1 dòng `ecg_records` mới (`start_ecg_record`), đóng lại `ended_at` khi ngắt kết nối (`end_ecg_record`, chạy trong `finally`).
+- Mỗi khi phát hiện 1 nhịp bất thường (heatmap khác `None`, đúng ngữ nghĩa cũ): ghi 1 dòng `anomaly_events` (`log_anomaly`) kèm `confidence` thật (xem mục dưới).
+- **Nhân tiện hoàn thành luôn "yêu cầu chéo track #1"** đã ghi trong `pccv.md`: `ai_service.predict()` giờ trả về 4 giá trị `(label, heatmap, latency_ms, confidence)` thay vì 3 (softmax probability của lớp được chọn) — CP4.5 (ngưỡng nhạy AI) dùng được ngay, không cần chờ thêm. Đã cập nhật đồng bộ mọi nơi gọi `predict()`: `ws_routes.py` (thêm field `confidence` vào payload WS), `diagnosis_service.py` (thêm `confidence` vào từng mục `anomalies` của báo cáo offline — bổ sung so với spec CP3.5 gốc, tương thích ngược), `test_inference.py`, `validate_classification.py`.
+- **`backend/scripts/validate_anomalies.py`** (mới): mở 1 phiên WebSocket THẬT (record 208) qua FastAPI `TestClient` để `ws_routes.py` tự ghi anomaly thật vào DB, rồi kiểm tra 25 assertion — xác thực bắt buộc (401 nếu thiếu token), lọc đúng theo `patient_id`/`label`/khoảng thời gian (kể cả 2 trường hợp biên: lọc tương lai → rỗng, lọc quá khứ xa → vẫn thấy), và phân trang đúng (`page_size=1` không lặp item giữa các trang). Chạy: `python -m backend.scripts.validate_anomalies` (mất ~8-10s vì phải chờ dữ liệu WS thật, không rút ngắn được).
+- **Phụ thuộc**: cần CP5.1 (bảng `anomaly_events`) xong trước — đã có.
+- **DoD đã đạt**: toàn bộ 25 assertion trong `validate_anomalies.py` xanh.
 
 #### 5.5. CP 5.4 — Doctor Feedback & Human-in-the-Loop API
 ```
@@ -430,7 +438,7 @@ POST /api/anomalies/{id}/verify
 #### 5.7. Sub-checkpoints
 - [x] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`) — Hoàn thành 2026-08-30
 - [x] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`) — Hoàn thành 2026-08-30
-- [ ] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`)
+- [x] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`) — Hoàn thành 2026-08-30
 - [ ] **CP 5.4** Doctor Feedback & Human-in-the-Loop API
 - [ ] **CP 5.5** Frontend Auth Guard & Role-based UI *(điểm nối 2 track — xem `pccv.md`)*
 
@@ -499,7 +507,7 @@ POST /api/anomalies/{id}/verify
 | **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
 | **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
-| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | 🟡 CP5.1-5.2 xong, 5.3-5.4 chưa làm | Track B (Backend) | Cao |
+| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | 🟡 CP5.1-5.3 xong, 5.4 chưa làm | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
 | **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | ⏳ Chưa làm | Track B (Backend) | Cao |
 

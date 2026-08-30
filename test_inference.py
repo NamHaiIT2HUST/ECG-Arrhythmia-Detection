@@ -22,7 +22,7 @@ print('\n--- Chẩn đoán 200 nhịp đầu tiên ---')
 anomaly_count = 0
 normal_count = 0
 for i, (r_peak_idx, window) in enumerate(beats[:200]):
-    label, heatmap, latency = ai_service.predict(window)
+    label, heatmap, latency, confidence = ai_service.predict(window)
     if 'CẢNH BÁO' in label:
         anomaly_count += 1
         if anomaly_count <= 3:
