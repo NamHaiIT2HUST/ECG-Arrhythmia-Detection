@@ -56,7 +56,7 @@ def evaluate_record(record_id, tol_ms=75, data_dir='data/raw/physionet_mitdb'):
         j = int(np.argmin(diffs)) if len(diffs) else None
         if j is None or diffs[j] > tol:
             continue  # khong khop dinh GT nao trong nguong (da danh gia rieng o validate_qrs.py)
-        pred_text, _heatmap, _latency = ai_service.predict(window)
+        pred_text, _heatmap, _latency, _confidence = ai_service.predict(window)
         y_true.append(gt_labels[j])
         y_pred.append(LABEL2IDX.get(pred_text, -1))
 
