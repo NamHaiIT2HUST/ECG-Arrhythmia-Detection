@@ -48,7 +48,7 @@ def run_offline_diagnosis(signal, fs=360, max_anomalies=MAX_ANOMALIES_IN_REPORT)
     prev_r_peak = None
 
     for i, (r_peak_idx, window) in enumerate(beats):
-        prediction, _heatmap, _latency = ai_service.predict(window)
+        prediction, _heatmap, _latency, confidence = ai_service.predict(window)
         class_counts[prediction] = class_counts.get(prediction, 0) + 1
 
         if prev_r_peak is not None:
@@ -65,6 +65,7 @@ def run_offline_diagnosis(signal, fs=360, max_anomalies=MAX_ANOMALIES_IN_REPORT)
                     'r_peak_sample': r_peak_idx,
                     'time_seconds': round(r_peak_idx / fs, 2),
                     'prediction': prediction,
+                    'confidence': confidence,
                 })
 
     total_beats = len(beats)

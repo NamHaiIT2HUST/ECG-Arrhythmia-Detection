@@ -25,7 +25,7 @@ async def test_websocket(record="208", num_packets=40):
                 beats_seen += 1
                 heatmap = data.get("heatmap")
                 print(f"--- Nhịp tim mới #{beats_seen} (gói tin thứ {i+1}) ---")
-                print(f"Chẩn đoán AI        : {data.get('prediction')}")
+                print(f"Chẩn đoán AI        : {data.get('prediction')} (độ tin cậy: {data.get('confidence')})")
                 print(f"BPM tức thời        : {data.get('bpm')}")
                 print(f"HRV (SDNN / RMSSD)  : {data.get('hrv_sdnn')} ms / {data.get('hrv_rmssd')} ms")
                 print(f"Độ trễ AI (Latency) : {data.get('latency_ms')} ms")

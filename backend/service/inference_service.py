@@ -43,8 +43,10 @@ class ECGInferenceService:
         """
         Dự đoán trên 1 nhịp tim đã được cắt theo đỉnh R (xem `backend/core/qrs_detector.py`),
         độ dài đúng 187 điểm.
-        - Trả về: (nhãn_chữ, heatmap_list, latency_ms)
+        - Trả về: (nhãn_chữ, heatmap_list, latency_ms, confidence)
         - Nếu là Bình thường (0), heatmap = None để tiết kiệm băng thông.
+        - `confidence`: xác suất softmax của lớp được chọn (0-1) — dùng cho CP4.5 (ngưỡng nhạy AI)
+          và CP5.3 (lưu kèm mỗi sự kiện bất thường vào DB).
 
         BUG FIX: Grad-CAM cần gradient nên KHÔNG dùng torch.no_grad().
         Thay vào đó, tách 2 bước: predict nhanh với no_grad, chỉ bật grad khi cần XAI.
@@ -57,7 +59,7 @@ class ECGInferenceService:
         Kaggle MIT-BIH đã dùng lúc train (xem plan.md mục 3.0).
         """
         if not self.is_ready or len(beat_window) != 187:
-            return "CHỜ DỮ LIỆU", None, 0.0
+            return "CHỜ DỮ LIỆU", None, 0.0, 0.0
 
         t0 = time.time()
 
@@ -65,12 +67,14 @@ class ECGInferenceService:
         input_np = normalize_window(beat_window)
         # Reshape thành (batch_size=1, channels=1, seq_len=187)
         input_tensor = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
-        
-        # Bước 1: Predict NHANH với no_grad để lấy class
+
+        # Bước 1: Predict NHANH với no_grad để lấy class + xác suất (softmax)
         with torch.no_grad():
             output = self.model(input_tensor)
-            pred_class = torch.argmax(output, dim=1).item()
-            
+            probs = torch.softmax(output, dim=1)
+            pred_class = torch.argmax(probs, dim=1).item()
+            confidence = probs[0, pred_class].item()
+
         latency_ms = (time.time() - t0) * 1000
         
         heatmap_list = None
@@ -87,8 +91,8 @@ class ECGInferenceService:
             latency_ms += (time.time() - t1) * 1000
             
         label_text = AAMI_CLASSES.get(pred_class, "KHÔNG XÁC ĐỊNH")
-        
-        return label_text, heatmap_list, round(latency_ms, 2)
+
+        return label_text, heatmap_list, round(latency_ms, 2), round(confidence, 4)
 
 # Khởi tạo instance toàn cục (Singleton)
 ai_service = ECGInferenceService()
