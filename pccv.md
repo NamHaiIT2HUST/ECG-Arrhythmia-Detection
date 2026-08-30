@@ -101,15 +101,22 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 
 ## 3. TRACK B — NGƯỜI 2: BACKEND, DATABASE & HẠ TẦNG
 
-### B1. CP 5.1 — Database Schema & SQLAlchemy ORM
+### B1. CP 5.1 — Database Schema & SQLAlchemy ORM — ✅ Hoàn thành 2026-08-30
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.2 (schema 5 bảng đầy đủ).
 - **Không phụ thuộc gì** — làm được ngay song song với Track A từ ngày đầu tiên.
-- **✅ Khi xong, báo**: "CP5.1 xong — DB SQLite + 5 bảng đã có, `alembic upgrade head` chạy được, PR #___".
+- **✅ Đã báo**: DB SQLite (`backend/db/ecg_system.db`, gitignore) + đủ 5 bảng (`users`, `patients`, `ecg_records`, `anomaly_events`, `audit_trails`) qua SQLAlchemy 2.0 + Alembic. `alembic upgrade head`/`downgrade base` đã kiểm chứng cả 2 chiều. `python -m backend.scripts.validate_db` chạy xanh (insert/query/relationship 2 chiều đúng). Ai cần dùng DB (B2, B3, B4) chỉ cần: `from backend.db.session import get_db`, `from backend.db.models import User, Patient, ...`.
+- **Lưu ý cho B2/B3/B4**: mọi model đã có sẵn index đúng những cột CP5.3 sẽ lọc (`patient_id`, `prediction_label`, `timestamp_ms`) — không cần thêm index nữa trừ khi có nhu cầu mới phát sinh.
 
-### B2. CP 5.2 — Authentication & Authorization APIs
-- **Chi tiết kỹ thuật đầy đủ + API contract cố định**: `plan.md` mục 5.3 — **giữ đúng response shape đã ghi trong `plan.md`**, vì Track A (A7) đang build UI theo đúng contract đó từ trước, đổi shape sẽ làm A7 phải sửa lại.
-- **Phụ thuộc**: cần B1 xong trước (bảng `users`).
-- **✅ Khi xong, báo ngay cho Track A**: "CP5.2 xong — `/api/auth/login`, `/api/auth/refresh`, `/api/auth/me` đã chạy thật theo đúng contract trong plan.md mục 5.3, có thể đổi mock sang thật". Đính kèm 1 tài khoản test (username/password) cho mỗi role (admin/doctor/nurse) để Track A test đủ 3 role.
+### B2. CP 5.2 — Authentication & Authorization APIs — ✅ Hoàn thành 2026-08-30
+- **Chi tiết kỹ thuật đầy đủ + API contract cố định**: `plan.md` mục 5.3 — giữ đúng response shape đã ghi, không đổi.
+- **✅ Đã báo cho Track A**: `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/auth/me` đã chạy thật đúng contract trong `plan.md` mục 5.3, có thể đổi mock sang thật (base URL thật, không cần sửa logic nếu contract được tuân thủ). Kiểm chứng bằng `python -m backend.scripts.validate_auth` (18/18 assertion xanh).
+- **3 tài khoản test cho Track A** (chạy `python -m backend.scripts.seed_users` để tạo trên máy bạn nếu DB chưa có):
+  | Username | Password | Role |
+  |:---|:---|:---|
+  | `admin` | `Admin@123` | admin |
+  | `bs_hai` | `Doctor@123` | doctor |
+  | `dd_lan` | `Nurse@123` | nurse |
+- **Lưu ý kỹ thuật cho A7 (Auth Guard)**: access token hết hạn sau 30 phút (`ACCESS_TOKEN_EXPIRE_MINUTES`), lúc đó `GET /api/auth/me` trả 401 — Frontend nên tự gọi `/api/auth/refresh` bằng refresh_token đang lưu rồi thử lại, chỉ đá về LoginPage nếu refresh cũng thất bại (refresh hết hạn sau 7 ngày).
 
 ### B3. CP 5.3 — Historical Anomaly Query & Pagination APIs
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.4. Bao gồm cả việc nhỏ đi kèm: sửa `backend/api/ws_routes.py` để **ghi anomaly vào DB** mỗi khi phát hiện (hiện tại CP3 chỉ gửi qua WS, chưa lưu đâu cả) — đây là phần duy nhất của B3 có chạm vào file `backend/api/ws_routes.py` (thuộc CP3, nhưng CP3 đã xong và không ai khác đang sửa file này, nên an toàn).
@@ -184,8 +191,8 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [ ] A7 — CP 5.5 Frontend Auth Guard
 
 **Track B**
-- [ ] B1 — CP 5.1 Database Schema
-- [ ] B2 — CP 5.2 Auth API (báo contract sẵn sàng cho A7 ngay khi xong)
+- [x] B1 — CP 5.1 Database Schema
+- [x] B2 — CP 5.2 Auth API (báo contract sẵn sàng cho A7 ngay khi xong)
 - [ ] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
 - [ ] B4 — CP 5.4 Human-in-the-loop API
 - [ ] B5 — CP 6.1 ONNX Export

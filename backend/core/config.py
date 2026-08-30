@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     # DATABASE_URL khi cần chuyển sang PostgreSQL (CP6.3 Docker) mà không sửa code.
     DATABASE_URL: str = "sqlite:///./backend/db/ecg_system.db"
 
+    # Cấu hình JWT (CP5.2). ⚠️ JWT_SECRET_KEY mặc định CHỈ dùng cho dev/demo local —
+    # bắt buộc override bằng biến môi trường JWT_SECRET_KEY thật trước khi triển khai
+    # ngoài máy cá nhân (đổi secret sẽ làm mọi token cũ hết hiệu lực, không có tác dụng phụ nguy hiểm).
+    JWT_SECRET_KEY: str = "dev-only-doi-bien-moi-truong-truoc-khi-trien-khai-that-8f3a1c9e2b7d"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     class Config:
         case_sensitive = True
 
