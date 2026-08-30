@@ -88,8 +88,8 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 
 ### A6. CP 4.5 — Settings & Calibration Page
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 4.6.
-- **⚠️ Có 1 yêu cầu chéo track**: ô "ngưỡng nhạy AI" cần backend trả thêm `confidence` (xem mục 4 bên dưới — "Yêu cầu chéo track #1"). Làm UI trước bình thường (input số 0-1, lưu localStorage), phần áp dụng thật sẽ nối sau khi Track B thêm field — không cần chờ, chỉ cần dựng UI với dữ liệu giả trước.
-- **✅ Khi xong, báo**: "CP4.5 xong — Settings Page hoạt động, đang chờ backend field `confidence` để ngưỡng nhạy có tác dụng thật (xem yêu cầu chéo track #1)".
+- **✅ Yêu cầu chéo track #1 đã xong (2026-08-30)**: field `confidence` đã có sẵn trong payload WS (`data.confidence`, 0-1) — dùng thẳng được, không cần mock/chờ gì nữa.
+- **✅ Khi xong, báo**: "CP4.5 xong — Settings Page hoạt động, ngưỡng nhạy AI đã áp dụng thật qua field `confidence`, PR #___".
 
 ### A7. CP 5.5 — Frontend Auth Guard & Role-based UI (ĐIỂM NỐI VỚI TRACK B)
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.6.
@@ -118,24 +118,26 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
   | `dd_lan` | `Nurse@123` | nurse |
 - **Lưu ý kỹ thuật cho A7 (Auth Guard)**: access token hết hạn sau 30 phút (`ACCESS_TOKEN_EXPIRE_MINUTES`), lúc đó `GET /api/auth/me` trả 401 — Frontend nên tự gọi `/api/auth/refresh` bằng refresh_token đang lưu rồi thử lại, chỉ đá về LoginPage nếu refresh cũng thất bại (refresh hết hạn sau 7 ngày).
 
-### B3. CP 5.3 — Historical Anomaly Query & Pagination APIs
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.4. Bao gồm cả việc nhỏ đi kèm: sửa `backend/api/ws_routes.py` để **ghi anomaly vào DB** mỗi khi phát hiện (hiện tại CP3 chỉ gửi qua WS, chưa lưu đâu cả) — đây là phần duy nhất của B3 có chạm vào file `backend/api/ws_routes.py` (thuộc CP3, nhưng CP3 đã xong và không ai khác đang sửa file này, nên an toàn).
-- **Phụ thuộc**: B1 xong trước.
-- **✅ Khi xong, báo**: "CP5.3 xong — `GET /api/anomalies` hoạt động, mọi nhịp bất thường từ giờ được lưu DB, PR #___".
+### B3. CP 5.3 — Historical Anomaly Query & Pagination APIs — ✅ Hoàn thành 2026-08-30
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.4.
+- **✅ Đã báo**: `GET /api/anomalies` hoạt động (lọc `patient_id`/`from`/`to`/`label` + phân trang), mọi nhịp bất thường từ `/ws/ecg` giờ tự ghi vào bảng `anomaly_events`. Kiểm chứng bằng `python -m backend.scripts.validate_anomalies` (25/25 assertion xanh, dùng dữ liệu thật từ 1 phiên WS thật).
+- **Đã tiện thể làm luôn Yêu cầu chéo track #1** (xem mục 4 bên dưới) — `confidence` đã có sẵn trong `predict()` và payload WS, Track A dùng được ngay cho CP4.5, không cần chờ nữa.
+- **⚠️ Lưu ý quan trọng cho Track A (CP4.1 Patient Management)**: `/ws/ecg` giờ nhận thêm query param TUỲ CHỌN `patient_id` (int). Hiện tại không truyền gì vẫn chạy bình thường (tự dùng 1 "bệnh nhân mặc định" trong DB). Khi CP4.1 xong và có patient thật (kể cả đang ở localStorage), **nếu muốn nhịp bất thường được gắn đúng bệnh nhân trong lịch sử tra cứu (CP5.3), cần truyền đúng `patient_id` khi mở WS** — nhưng patient đó phải là 1 dòng thật trong bảng `patients` (DB), không phải id tự sinh ở localStorage. Vì CP4.1 chưa có API tạo Patient thật trong DB (chỉ localStorage), tạm thời cứ để mặc định cũng không sao, không có gì bị chặn — chỉ là lịch sử sẽ gộp chung vào 1 "bệnh nhân mặc định" cho tới khi có API Patient thật (dự kiến việc di cư localStorage → DB, đã nhắc ở đầu mục CP4 trong `plan.md`).
 
-### B4. CP 5.4 — Doctor Feedback & Human-in-the-Loop API
+### B4. CP 5.4 — Doctor Feedback & Human-in-the-Loop API — ✅ Hoàn thành 2026-08-30
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.5.
-- **Phụ thuộc**: B2 (cần `require_role`) + B3 (cần bảng đã có dữ liệu) xong trước.
-- **✅ Khi xong, báo**: "CP5.4 xong — `POST /api/anomalies/{id}/verify` hoạt động, PR #___".
+- **✅ Đã báo**: `POST /api/anomalies/{id}/verify` hoạt động — doctor/admin duyệt hoặc sửa nhãn, nurse bị từ chối (403), `corrected_label` bắt buộc thuộc 5 nhãn AAMI hợp lệ, mọi lần verify thành công đều ghi `audit_trails`. Kiểm chứng bằng `python -m backend.scripts.validate_review` (16/16 assertion xanh).
+- **Toàn bộ Checkpoint 5 (backend) đã xong** — chỉ còn CP5.5 (Frontend Auth Guard, Track A) cần API `/api/auth/*` (đã có từ B2) để hoàn thiện.
 
-### B5. CP 6.1 — PyTorch → ONNX & Quantization
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.1.
-- **Không phụ thuộc CP5** — có thể làm B5 song song/trước B1-B4 nếu muốn đổi thứ tự (không bắt buộc tuần tự trong Track B, khác với Track A). Gợi ý: nếu muốn có kết quả "demo được" sớm, làm B5 trước B1 cũng hợp lý.
-- **✅ Khi xong, báo**: "CP6.1 xong — có `resnet1d.onnx`, sai số < 1e-5, bảng so sánh kích thước/latency trong PR #___".
+### B5. CP 6.1 — PyTorch → ONNX & Quantization — ✅ Hoàn thành 2026-08-30
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.1, `docs/onnx_comparison.md`.
+- **✅ Đã báo**: `saved_models/resnet1d.onnx` (FP32, giống hệt PyTorch — lớp dự đoán khớp 100%/200 batch) + `resnet1d_int8.onnx` (697.3KB, đạt mục tiêu <700KB, accuracy 94.18% so baseline 94.33%).
+- **⚠️ Phát hiện đáng chú ý cho ai đọc lại sau này**: ngưỡng sai số tuyệt đối 1e-5 ban đầu không phù hợp với logit thô của mạng sâu (đã đổi sang kiểm tra argmax + sai số tương đối, xem `plan.md`). Và INT8 **không nhanh hơn** trên CPU dev thường (thiếu tập lệnh INT8 chuyên dụng) — nếu chỉ cần tốc độ (không cần thu nhỏ file), dùng ONNX FP32 (nhanh hơn PyTorch 4.5 lần), không phải INT8.
 
-### B6. CP 6.2 — Automated Test Suite (phần backend)
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.2. Chỉ viết phần `tests/*.py` (Track A tự viết `*.test.jsx` cho phần của mình — không ai phải viết test hộ người kia).
-- **✅ Khi xong, báo**: "CP6.2 (backend) xong — `pytest` xanh hết, PR #___". Nhắc Track A tự bổ sung Vitest cho phần Frontend nếu chưa làm.
+### B6. CP 6.2 — Automated Test Suite (phần backend) — ✅ Hoàn thành 2026-08-31
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.2.
+- **✅ Đã báo**: 26/26 test xanh (`pytest`, chạy dưới 4 giây), có `conftest.py` dùng DB test cô lập hoàn toàn (SQLite in-memory) — chạy `pytest` không đụng gì tới DB dev thật.
+- **Nhắc Track A**: tự bổ sung Vitest cho phần Frontend khi tới lượt (`frontend/src/**/*.test.jsx`), không cần đợi Track B, không ai viết test hộ ai.
 
 ### B7. CP 6.3 — Dockerization
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.3.
@@ -157,7 +159,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 
 | # | Việc phụ thuộc | Ai chờ ai | Cách làm song song không bị block |
 |:---:|:---|:---|:---|
-| 1 | CP4.5 (Track A) cần `confidence` để ngưỡng nhạy AI có tác dụng thật | A chờ B | **Yêu cầu chéo track #1**: Track B thêm `confidence: float` (softmax của lớp dự đoán) vào `ai_service.predict()` (`backend/service/inference_service.py`) + payload WS (`ws_routes.py`) — việc này ~10-15 phút, nên làm sớm trong lúc rảnh, không cần đợi tới B4. Track A dựng UI Settings trước với dữ liệu giả, cắm field thật vào sau. |
+| 1 | CP4.5 (Track A) cần `confidence` để ngưỡng nhạy AI có tác dụng thật | ✅ Đã xong (2026-08-30, đi kèm CP5.3) | `ai_service.predict()` giờ trả `(label, heatmap, latency_ms, confidence)` + payload WS đã có field `confidence`. Track A dùng ngay được, không cần mock nữa. |
 | 2 | CP5.5 (Track A) cần API `/api/auth/*` | A chờ B (B2) | Contract đã cố định sẵn trong `plan.md` mục 5.3 ngay từ đầu dự án con này — Track A build thẳng theo contract + mock server, đổi sang backend thật khi B báo xong CP5.2 (đổi 1 base URL, không sửa logic). |
 | 3 | CP5.3 cần sửa `ws_routes.py` (file gốc thuộc CP3) | Không ai chờ ai | File này đã xong CP3, không có ai khác đang sửa — Track B tự do sửa thêm đoạn ghi DB, không đụng phần payload đã có (chỉ thêm side-effect ghi log). |
 | 4 | CP6.3 (Docker) cần Frontend build sạch | B chờ A (nhẹ) | Track A giữ `npm run build` chạy sạch xuyên suốt (thói quen tốt, không phải việc riêng) — nếu tới lúc B7 mà build lỗi, báo ngay cho A xử lý trong ngày, không phải chờ cả sprint. |
@@ -193,15 +195,15 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 **Track B**
 - [x] B1 — CP 5.1 Database Schema
 - [x] B2 — CP 5.2 Auth API (báo contract sẵn sàng cho A7 ngay khi xong)
-- [ ] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
-- [ ] B4 — CP 5.4 Human-in-the-loop API
-- [ ] B5 — CP 6.1 ONNX Export
-- [ ] B6 — CP 6.2 Test Suite (backend)
+- [x] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
+- [x] B4 — CP 5.4 Human-in-the-loop API
+- [x] B5 — CP 6.1 ONNX Export
+- [x] B6 — CP 6.2 Test Suite (backend)
 - [ ] B7 — CP 6.3 Docker
 - [ ] B8 — CP 6.4 CI/CD
 
 **Yêu cầu chéo track**
-- [ ] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)
+- [x] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)
 
 **Chung**
 - [ ] CP 6.5 — Tài liệu kỹ thuật & Demo cuối
