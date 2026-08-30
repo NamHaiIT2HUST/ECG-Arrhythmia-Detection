@@ -21,3 +21,5 @@ alembic==1.13.3
 pyjwt==2.10.1
 bcrypt==4.2.1
 httpx==0.28.1
+onnx==1.17.0
+onnxruntime==1.20.1
