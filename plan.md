@@ -343,8 +343,17 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 - Chưa có đăng nhập — ai mở app cũng xem/cấu hình được hết.
 - Thiếu Audit Trail (bắt buộc với phần mềm y tế theo tinh thần HIPAA/HL7 — dự án không cần tuân thủ thật, nhưng nên có cho đúng chuẩn thiết kế).
 
-#### 5.2. CP 5.1 — Database Schema & SQLAlchemy ORM
-**Quyết định công nghệ**: **SQLite** cho giai đoạn dev (file-based, zero-config, đủ cho demo/đồ án — không cần dựng PostgreSQL server). File DB: `backend/db/ecg_system.db` (thêm vào `.gitignore`). ORM: SQLAlchemy 2.x. Migration: Alembic.
+#### 5.2. CP 5.1 — Database Schema & SQLAlchemy ORM — ✅ Hoàn thành 2026-08-30
+**Quyết định công nghệ**: **SQLite** cho giai đoạn dev (file-based, zero-config, đủ cho demo/đồ án — không cần dựng PostgreSQL server). File DB: `backend/db/ecg_system.db` (đã thêm vào `.gitignore`, KHÔNG commit). ORM: SQLAlchemy 2.0.52 (style `Mapped`/`mapped_column` mới, không dùng `declarative_base()` cũ). Migration: Alembic 1.13.3.
+
+**Đã cài đặt**:
+- `backend/db/base.py`: `Base(DeclarativeBase)` dùng chung cho mọi model.
+- `backend/db/models.py`: đủ 5 bảng đúng schema bên dưới, dùng `enum.Enum` (`UserRole`, `ReviewStatus`) cho các cột ENUM thay vì string thô, có `relationship()` 2 chiều đầy đủ giữa các bảng (`Patient.ecg_records`, `Patient.anomaly_events`, `AnomalyEvent.reviewer`, `User.reviewed_anomalies`, `User.audit_trails`, ...) và index trên mọi cột sẽ dùng để lọc ở CP5.3 (`patient_id`, `record_id`, `prediction_label`, `timestamp_ms`).
+- `backend/db/session.py`: `engine` + `SessionLocal` + dependency `get_db()` cho FastAPI (`check_same_thread=False` khi SQLite, không ảnh hưởng nếu sau này đổi Postgres).
+- `backend/core/config.py`: thêm `DATABASE_URL` vào `Settings` (mặc định `sqlite:///./backend/db/ecg_system.db`) — đổi qua biến môi trường khi cần chuyển Postgres ở CP6.3, không phải sửa code.
+- `alembic.ini` (gốc repo) + `backend/db/migrations/` (`env.py` đã sửa để đọc model từ `Base.metadata` và lấy connection string từ `settings.DATABASE_URL` thay vì hardcode) + 1 migration khởi tạo (`versions/9840408bc1c5_initial_schema_*.py`) tự sinh bằng `alembic revision --autogenerate`, đã kiểm chứng cả 2 chiều `upgrade head` và `downgrade base` chạy sạch, đúng thứ tự phụ thuộc khoá ngoại.
+- `backend/scripts/validate_db.py` (script kiểm thử, theo đúng pattern `validate_qrs.py`/`validate_classification.py` ở CP3): tạo DB SQLite in-memory riêng, insert đủ 5 bảng + xác nhận quan hệ 2 chiều hoạt động đúng (`patient.anomaly_events`, `anomaly.reviewer`, `doctor.reviewed_anomalies`, cột JSON `heatmap` đọc/ghi đúng). Chạy: `python -m backend.scripts.validate_db`.
+- **DoD đã đạt**: `alembic upgrade head` tạo đúng 5 bảng (xác nhận bằng `sqlite3` trực tiếp), `validate_db.py` chạy xanh toàn bộ assertion.
 
 **File**: `backend/db/models.py`, `backend/db/session.py` (engine + `SessionLocal` + dependency `get_db()` cho FastAPI), `backend/db/migrations/` (Alembic).
 
@@ -362,8 +371,10 @@ audit_trails     id PK, user_id FK->users, action, target_type, target_id, detai
 ```
 - **DoD**: `alembic upgrade head` tạo đủ 5 bảng trên SQLite trống, có ít nhất 1 test insert/query qua SQLAlchemy session chạy được.
 
-#### 5.3. CP 5.2 — Authentication & Authorization APIs
-**File**: `backend/api/auth.py`, `backend/core/security.py` (hash password bằng `passlib[bcrypt]`, tạo/verify JWT bằng `python-jose`).
+#### 5.3. CP 5.2 — Authentication & Authorization APIs — ✅ Hoàn thành 2026-08-30
+**File**: `backend/api/auth.py`, `backend/core/security.py`.
+
+**Lệch nhẹ so với đề xuất công nghệ ban đầu (có chủ đích)**: dùng **`PyJWT`** thay vì `python-jose`, và gọi thẳng thư viện **`bcrypt`** thay vì qua `passlib[bcrypt]`. Lý do: `python-jose` gần đây ít được bảo trì tích cực; `passlib` có xung đột phiên bản đã biết với `bcrypt>=4.1` (passlib tự dò version bcrypt bằng cách gọi API đã bị đổi, ném lỗi ở một số tổ hợp phiên bản) — gọi thẳng `bcrypt.hashpw`/`bcrypt.checkpw` tránh hẳn lớp bọc trung gian này. Hành vi bên ngoài (API contract) không đổi so với spec ban đầu.
 
 **API contract (CỐ ĐỊNH — đây là hợp đồng Frontend sẽ build theo, xem `pccv.md` để biết cách Frontend mock trước khi API thật xong)**:
 ```
@@ -382,7 +393,10 @@ GET /api/auth/me
   401: { "detail": "Token không hợp lệ hoặc hết hạn" }
 ```
 - Middleware: `get_current_user` (FastAPI dependency, decode JWT từ header), `require_role(*roles)` (dependency factory, trả 403 nếu role không khớp) — áp vào các endpoint cần bảo vệ ở CP5.3/5.4.
-- **DoD**: login đúng trả token, `GET /api/auth/me` với token đó trả đúng user, sai password trả 401, gọi endpoint có `require_role("admin")` bằng token role `nurse` trả 403.
+- **Chi tiết token**: access token (30 phút, claim `sub`/`username`/`role`/`type=access`) và refresh token (7 ngày, chỉ claim `sub`/`type=refresh`) đều là JWT ký `HS256` bằng `JWT_SECRET_KEY` (đã thêm vào `Settings`, mặc định là secret CHỈ DÙNG DEV — bắt buộc đổi qua biến môi trường trước khi triển khai thật). Refresh token cố tình KHÔNG mang theo `role` — lúc `/api/auth/refresh` luôn đọc lại role hiện tại từ DB, để nếu tài khoản bị đổi quyền thì access token mới cấp phản ánh đúng quyền mới nhất, không dùng quyền cũ lúc đăng nhập. Có kiểm tra claim `type` để access token không thể bị dùng thay refresh token và ngược lại.
+- **`backend/scripts/seed_users.py`** (mới): tạo sẵn 3 tài khoản test — `admin/Admin@123` (admin), `bs_hai/Doctor@123` (doctor), `dd_lan/Nurse@123` (nurse) — Track Frontend (CP5.5) dùng ngay để test đủ 3 role. Chạy: `python -m backend.scripts.seed_users` (idempotent, chạy lại không tạo trùng).
+- **`backend/scripts/validate_auth.py`** (mới, theo pattern `validate_qrs.py`): dùng FastAPI `TestClient` kiểm tra toàn bộ 18 trường hợp — login đúng/sai mật khẩu/sai username, `/me` với token hợp lệ/thiếu/giả, `/refresh` hợp lệ + từ chối khi đưa nhầm access token vào chỗ refresh token, và `require_role("admin")` từ chối role `doctor` (403)/chấp nhận role `admin` (200) qua 1 route test riêng (không đụng vào `main.py` thật). Chạy: `python -m backend.scripts.seed_users` trước, rồi `python -m backend.scripts.validate_auth`.
+- **DoD đã đạt**: toàn bộ 18 assertion trong `validate_auth.py` xanh.
 
 #### 5.4. CP 5.3 — Historical Anomaly Query & Pagination APIs
 **File**: `backend/api/anomalies.py`.
@@ -414,8 +428,8 @@ POST /api/anomalies/{id}/verify
 - **DoD**: chưa login không vào được app, login đúng role thấy đúng menu, token hết hạn tự về LoginPage.
 
 #### 5.7. Sub-checkpoints
-- [ ] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`)
-- [ ] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`)
+- [x] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`) — Hoàn thành 2026-08-30
+- [x] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`) — Hoàn thành 2026-08-30
 - [ ] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`)
 - [ ] **CP 5.4** Doctor Feedback & Human-in-the-Loop API
 - [ ] **CP 5.5** Frontend Auth Guard & Role-based UI *(điểm nối 2 track — xem `pccv.md`)*
@@ -485,7 +499,7 @@ POST /api/anomalies/{id}/verify
 | **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
 | **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
-| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ⏳ Chưa làm | Track B (Backend) | Cao |
+| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | 🟡 CP5.1-5.2 xong, 5.3-5.4 chưa làm | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
 | **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | ⏳ Chưa làm | Track B (Backend) | Cao |
 
