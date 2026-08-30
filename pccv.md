@@ -129,10 +129,10 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **✅ Đã báo**: `POST /api/anomalies/{id}/verify` hoạt động — doctor/admin duyệt hoặc sửa nhãn, nurse bị từ chối (403), `corrected_label` bắt buộc thuộc 5 nhãn AAMI hợp lệ, mọi lần verify thành công đều ghi `audit_trails`. Kiểm chứng bằng `python -m backend.scripts.validate_review` (16/16 assertion xanh).
 - **Toàn bộ Checkpoint 5 (backend) đã xong** — chỉ còn CP5.5 (Frontend Auth Guard, Track A) cần API `/api/auth/*` (đã có từ B2) để hoàn thiện.
 
-### B5. CP 6.1 — PyTorch → ONNX & Quantization
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.1.
-- **Không phụ thuộc CP5** — có thể làm B5 song song/trước B1-B4 nếu muốn đổi thứ tự (không bắt buộc tuần tự trong Track B, khác với Track A). Gợi ý: nếu muốn có kết quả "demo được" sớm, làm B5 trước B1 cũng hợp lý.
-- **✅ Khi xong, báo**: "CP6.1 xong — có `resnet1d.onnx`, sai số < 1e-5, bảng so sánh kích thước/latency trong PR #___".
+### B5. CP 6.1 — PyTorch → ONNX & Quantization — ✅ Hoàn thành 2026-08-30
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.1, `docs/onnx_comparison.md`.
+- **✅ Đã báo**: `saved_models/resnet1d.onnx` (FP32, giống hệt PyTorch — lớp dự đoán khớp 100%/200 batch) + `resnet1d_int8.onnx` (697.3KB, đạt mục tiêu <700KB, accuracy 94.18% so baseline 94.33%).
+- **⚠️ Phát hiện đáng chú ý cho ai đọc lại sau này**: ngưỡng sai số tuyệt đối 1e-5 ban đầu không phù hợp với logit thô của mạng sâu (đã đổi sang kiểm tra argmax + sai số tương đối, xem `plan.md`). Và INT8 **không nhanh hơn** trên CPU dev thường (thiếu tập lệnh INT8 chuyên dụng) — nếu chỉ cần tốc độ (không cần thu nhỏ file), dùng ONNX FP32 (nhanh hơn PyTorch 4.5 lần), không phải INT8.
 
 ### B6. CP 6.2 — Automated Test Suite (phần backend)
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.2. Chỉ viết phần `tests/*.py` (Track A tự viết `*.test.jsx` cho phần của mình — không ai phải viết test hộ người kia).
@@ -196,7 +196,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] B2 — CP 5.2 Auth API (báo contract sẵn sàng cho A7 ngay khi xong)
 - [x] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
 - [x] B4 — CP 5.4 Human-in-the-loop API
-- [ ] B5 — CP 6.1 ONNX Export
+- [x] B5 — CP 6.1 ONNX Export
 - [ ] B6 — CP 6.2 Test Suite (backend)
 - [ ] B7 — CP 6.3 Docker
 - [ ] B8 — CP 6.4 CI/CD
