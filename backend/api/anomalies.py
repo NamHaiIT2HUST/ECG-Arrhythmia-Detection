@@ -1,15 +1,18 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy.orm import Session
 
-from backend.core.security import get_current_user
-from backend.db.models import AnomalyEvent, User
+from backend.core.security import get_current_user, require_role
+from backend.db.models import AnomalyEvent, AuditTrail, ReviewStatus, User
 from backend.db.session import get_db
+from backend.service.inference_service import AAMI_CLASSES
 
 router = APIRouter(prefix="/api/anomalies", tags=["anomalies"])
+
+VALID_LABELS = set(AAMI_CLASSES.values())
 
 
 class AnomalyEventOut(BaseModel):
@@ -23,9 +26,24 @@ class AnomalyEventOut(BaseModel):
     r_peak_sample: Optional[int]
     timestamp_ms: int
     review_status: str
+    reviewed_by: Optional[int]
     corrected_label: Optional[str]
     # Không trả `heatmap` (mảng 187 float) trong danh sách để tránh payload phình to khi
     # phân trang nhiều mục — muốn xem XAI chi tiết 1 sự kiện thì dùng luồng real-time hiện có.
+
+
+class VerifyRequest(BaseModel):
+    status: Literal["approved", "corrected"]
+    corrected_label: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _check_corrected_label(self):
+        if self.status == "corrected":
+            if not self.corrected_label:
+                raise ValueError("corrected_label là bắt buộc khi status='corrected'")
+            if self.corrected_label not in VALID_LABELS:
+                raise ValueError(f"corrected_label phải là 1 trong: {sorted(VALID_LABELS)}")
+        return self
 
 
 class AnomalyListResponse(BaseModel):
@@ -76,3 +94,38 @@ def list_anomalies(
     )
 
     return AnomalyListResponse(total=total, page=page, page_size=page_size, items=items)
+
+
+@router.post("/{anomaly_id}/verify", response_model=AnomalyEventOut)
+def verify_anomaly(
+    anomaly_id: int,
+    payload: VerifyRequest,
+    current_user: User = Depends(require_role("doctor", "admin")),
+    db: Session = Depends(get_db),
+):
+    """CP5.4: Bác sĩ (hoặc Admin) xác nhận hoặc sửa lại nhãn AI đã dự đoán cho 1 sự kiện
+    bất thường (Human-in-the-loop). Dữ liệu `corrected_label` là nền cho Active Learning/
+    retrain trong tương lai — checkpoint này chỉ lưu đúng, KHÔNG chạy retrain thật.
+
+    Mỗi lần verify ghi thêm 1 dòng vào `audit_trails` (ai, lúc nào, kết quả gì) — verify lại
+    1 sự kiện đã verify trước đó vẫn được phép (ghi đè trạng thái mới nhất), lịch sử đầy đủ
+    vẫn còn nguyên trong audit_trails.
+    """
+    event = db.get(AnomalyEvent, anomaly_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy sự kiện bất thường")
+
+    event.review_status = ReviewStatus(payload.status)
+    event.reviewed_by = current_user.id
+    event.corrected_label = payload.corrected_label if payload.status == "corrected" else None
+
+    db.add(AuditTrail(
+        user_id=current_user.id,
+        action="anomaly.verify",
+        target_type="anomaly_event",
+        target_id=event.id,
+        detail={"status": payload.status, "corrected_label": payload.corrected_label},
+    ))
+    db.commit()
+    db.refresh(event)
+    return event

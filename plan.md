@@ -416,16 +416,20 @@ GET /api/anomalies?patient_id=&from=&to=&label=&page=1&page_size=20
 - **Phụ thuộc**: cần CP5.1 (bảng `anomaly_events`) xong trước — đã có.
 - **DoD đã đạt**: toàn bộ 25 assertion trong `validate_anomalies.py` xanh.
 
-#### 5.5. CP 5.4 — Doctor Feedback & Human-in-the-Loop API
+#### 5.5. CP 5.4 — Doctor Feedback & Human-in-the-Loop API — ✅ Hoàn thành 2026-08-30
+**File**: `backend/api/anomalies.py` (thêm route vào cùng router đã có ở CP5.3).
 ```
 POST /api/anomalies/{id}/verify
   body: { "status": "approved"|"corrected", "corrected_label"?: string }
   yêu cầu role: doctor hoặc admin (require_role("doctor","admin"))
-  200: { ...anomaly_event đã cập nhật... }
+  200: { ...anomaly_event đã cập nhật, kèm reviewed_by... }
+  401: chưa đăng nhập | 403: role không phải doctor/admin | 404: không tìm thấy anomaly
+  422: status="corrected" mà thiếu corrected_label, hoặc corrected_label không thuộc 5 nhãn AAMI hợp lệ
 ```
-- Ghi audit trail (`audit_trails`) mỗi lần verify: ai xác nhận, lúc nào, kết quả gì.
-- Dữ liệu được bác sĩ sửa (`review_status=corrected`) là nền cho Active Learning/retrain tương lai — **không làm retrain thật trong checkpoint này**, chỉ cần lưu đúng để sẵn sàng dùng sau.
-- **DoD**: bác sĩ verify 1 anomaly, trạng thái đổi đúng trong DB, audit log ghi lại đúng.
+- Ghi audit trail (`audit_trails`) mỗi lần verify **thành công** (đủ quyền + qua validate): ai xác nhận (`user_id`), lúc nào (`timestamp` mặc định `now()`), kết quả gì (`detail` JSON chứa `status`+`corrected_label`). Verify lại 1 sự kiện đã verify trước đó vẫn được phép (ghi đè trạng thái mới nhất trên `anomaly_events`), nhưng lịch sử đầy đủ từng lần vẫn còn nguyên trong `audit_trails` (không ghi đè).
+- `corrected_label` bắt buộc phải là 1 trong 5 nhãn AAMI hợp lệ (validate theo `AAMI_CLASSES` của `inference_service.py`, không chấp nhận chuỗi tự do) — đảm bảo dữ liệu bác sĩ sửa (`review_status=corrected`) sạch, sẵn sàng làm nền cho Active Learning/retrain tương lai. **Không làm retrain thật trong checkpoint này**, chỉ cần lưu đúng.
+- **`backend/scripts/validate_review.py`** (mới): tạo 1 `anomaly_events` test trực tiếp qua ORM (không cần mở WS thật — đường ghi log đã được `validate_anomalies.py` kiểm chứng riêng), rồi kiểm tra 16 assertion: nurse bị từ chối (403), thiếu token (401), doctor/admin verify được (200, `review_status`/`reviewed_by`/`corrected_label` đúng), thiếu/sai `corrected_label` bị từ chối (422), id không tồn tại (404), và `audit_trails` ghi đủ đúng 3 lần verify thành công (2 lần thất bại do 403/401/422 KHÔNG được ghi audit).
+- **DoD đã đạt**: toàn bộ 16 assertion trong `validate_review.py` xanh; chạy lại `validate_anomalies.py` không hồi quy.
 
 #### 5.6. CP 5.5 — Frontend Auth Guard & Role-based UI (ĐIỂM NỐI 2 TRACK)
 **File**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/context/AuthContext.jsx`, `frontend/src/components/AuthGuard.jsx`.
@@ -439,7 +443,7 @@ POST /api/anomalies/{id}/verify
 - [x] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`) — Hoàn thành 2026-08-30
 - [x] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`) — Hoàn thành 2026-08-30
 - [x] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`) — Hoàn thành 2026-08-30
-- [ ] **CP 5.4** Doctor Feedback & Human-in-the-Loop API
+- [x] **CP 5.4** Doctor Feedback & Human-in-the-Loop API — Hoàn thành 2026-08-30
 - [ ] **CP 5.5** Frontend Auth Guard & Role-based UI *(điểm nối 2 track — xem `pccv.md`)*
 
 ---
@@ -507,7 +511,7 @@ POST /api/anomalies/{id}/verify
 | **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
 | **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
-| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | 🟡 CP5.1-5.3 xong, 5.4 chưa làm | Track B (Backend) | Cao |
+| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
 | **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | ⏳ Chưa làm | Track B (Backend) | Cao |
 

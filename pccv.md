@@ -124,10 +124,10 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **Đã tiện thể làm luôn Yêu cầu chéo track #1** (xem mục 4 bên dưới) — `confidence` đã có sẵn trong `predict()` và payload WS, Track A dùng được ngay cho CP4.5, không cần chờ nữa.
 - **⚠️ Lưu ý quan trọng cho Track A (CP4.1 Patient Management)**: `/ws/ecg` giờ nhận thêm query param TUỲ CHỌN `patient_id` (int). Hiện tại không truyền gì vẫn chạy bình thường (tự dùng 1 "bệnh nhân mặc định" trong DB). Khi CP4.1 xong và có patient thật (kể cả đang ở localStorage), **nếu muốn nhịp bất thường được gắn đúng bệnh nhân trong lịch sử tra cứu (CP5.3), cần truyền đúng `patient_id` khi mở WS** — nhưng patient đó phải là 1 dòng thật trong bảng `patients` (DB), không phải id tự sinh ở localStorage. Vì CP4.1 chưa có API tạo Patient thật trong DB (chỉ localStorage), tạm thời cứ để mặc định cũng không sao, không có gì bị chặn — chỉ là lịch sử sẽ gộp chung vào 1 "bệnh nhân mặc định" cho tới khi có API Patient thật (dự kiến việc di cư localStorage → DB, đã nhắc ở đầu mục CP4 trong `plan.md`).
 
-### B4. CP 5.4 — Doctor Feedback & Human-in-the-Loop API
+### B4. CP 5.4 — Doctor Feedback & Human-in-the-Loop API — ✅ Hoàn thành 2026-08-30
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.5.
-- **Phụ thuộc**: B2 (cần `require_role`) + B3 (cần bảng đã có dữ liệu) xong trước.
-- **✅ Khi xong, báo**: "CP5.4 xong — `POST /api/anomalies/{id}/verify` hoạt động, PR #___".
+- **✅ Đã báo**: `POST /api/anomalies/{id}/verify` hoạt động — doctor/admin duyệt hoặc sửa nhãn, nurse bị từ chối (403), `corrected_label` bắt buộc thuộc 5 nhãn AAMI hợp lệ, mọi lần verify thành công đều ghi `audit_trails`. Kiểm chứng bằng `python -m backend.scripts.validate_review` (16/16 assertion xanh).
+- **Toàn bộ Checkpoint 5 (backend) đã xong** — chỉ còn CP5.5 (Frontend Auth Guard, Track A) cần API `/api/auth/*` (đã có từ B2) để hoàn thiện.
 
 ### B5. CP 6.1 — PyTorch → ONNX & Quantization
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.1.
@@ -195,7 +195,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] B1 — CP 5.1 Database Schema
 - [x] B2 — CP 5.2 Auth API (báo contract sẵn sàng cho A7 ngay khi xong)
 - [x] B3 — CP 5.3 Anomaly Query API (+ ghi DB từ ws_routes.py)
-- [ ] B4 — CP 5.4 Human-in-the-loop API
+- [x] B4 — CP 5.4 Human-in-the-loop API
 - [ ] B5 — CP 6.1 ONNX Export
 - [ ] B6 — CP 6.2 Test Suite (backend)
 - [ ] B7 — CP 6.3 Docker
