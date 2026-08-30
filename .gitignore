@@ -4,3 +4,4 @@ data/processed/
 saved_models/
 __pycache__/
 *.pyc
+backend/db/*.db
