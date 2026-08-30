@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from backend.api.ws_routes import router as ws_router
+from backend.api.records_routes import router as records_router
+from backend.api.diagnosis_routes import router as diagnosis_router
 from backend.core.config import settings
 from backend.service.inference_service import ai_service
 import os
@@ -47,6 +49,8 @@ async def root():
 
 # Gắn Router
 app.include_router(ws_router)
+app.include_router(records_router)
+app.include_router(diagnosis_router)
 
 if __name__ == "__main__":
     import uvicorn
