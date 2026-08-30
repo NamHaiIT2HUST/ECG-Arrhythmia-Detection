@@ -16,3 +16,5 @@ joblib==1.5.3
 imbalanced-learn
 torch
 tabulate
+sqlalchemy==2.0.52
+alembic==1.13.3

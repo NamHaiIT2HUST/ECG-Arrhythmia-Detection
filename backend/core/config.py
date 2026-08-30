@@ -10,7 +10,11 @@ class Settings(BaseSettings):
     
     # Đường dẫn file dữ liệu
     MOCK_DATA_PATH: str = "data/mock_ecg.csv"
-    
+
+    # Cấu hình Database (CP5.1) — SQLite cho giai đoạn dev, đổi qua biến môi trường
+    # DATABASE_URL khi cần chuyển sang PostgreSQL (CP6.3 Docker) mà không sửa code.
+    DATABASE_URL: str = "sqlite:///./backend/db/ecg_system.db"
+
     class Config:
         case_sensitive = True
 
