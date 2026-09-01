@@ -4,6 +4,7 @@ import numpy as np
 
 from backend.db.models import AnomalyEvent
 from backend.service.anomaly_log_service import get_or_create_default_patient, start_ecg_record
+from tests.conftest import requires_saved_model
 
 # ---------------------------------------------------------------------------
 # GET /api/records
@@ -22,6 +23,7 @@ def test_get_records_shape(client):
 # POST /api/diagnosis/upload-ecg
 # ---------------------------------------------------------------------------
 
+@requires_saved_model
 def test_upload_diagnosis_shape(client):
     # Tín hiệu sin tổng hợp (không cần dữ liệu MIT-BIH thật) — chỉ để kiểm tra ĐÚNG SHAPE
     # response, không kiểm tra ý nghĩa lâm sàng của kết quả.
