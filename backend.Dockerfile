@@ -22,6 +22,16 @@ COPY src/ src/
 COPY data/preprocess.py data/preprocess.py
 COPY alembic.ini .
 
+# Dat O CUOI (sau moi buoc pip install nang) de khong lam mat cache cua nhung buoc do khi
+# rebuild - ENV/COPY o day chi lam invalidate 1 vai layer nhe, khong phai tai lai torch/requirements.
+#
+# Stdout/stderr trong container KHONG phai TTY nen Python mac dinh chuyen sang block-buffering
+# (gom du 4-8KB moi ghi ra 1 lan) thay vi line-buffering nhu khi chay truc tiep tren terminal -
+# cac print() trong lifespan (backend/main.py) va inference_service.py (vd bao model nap thanh
+# cong/that bai) co the bi giu trong buffer rat lau, khong hien ra "docker compose logs" ngay,
+# de gay hieu lam la code khong chay toi do. PYTHONUNBUFFERED=1 tat han che nay.
+ENV PYTHONUNBUFFERED=1
+
 EXPOSE 8000
 
 # Chay migration DB (tao du bang neu chua co) truoc khi khoi dong server, dam bao schema
