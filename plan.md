@@ -259,7 +259,7 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 - [x] **CP 3.3** HRV & Exact BPM Engine (`hrv.py`) + wiring — Accuracy end-to-end 94.33%
 - [x] **CP 3.4** Patient Record Switcher API (`records_routes.py`)
 - [x] **CP 3.5** File Upload & Offline Diagnosis API (`diagnosis_routes.py`, `diagnosis_service.py`)
-- [ ] **CP 3.6** Nối Frontend với API CP3 (`RecordSelector.jsx`, cập nhật `StatCards.jsx`/`DashboardPage.jsx`, form upload)
+- [x] **CP 3.6** Nối Frontend với API CP3 (`RecordSelector.jsx`, cập nhật `StatCards.jsx`/`DashboardPage.jsx`, form upload)
 
 ---
 
@@ -516,7 +516,7 @@ POST /api/anomalies/{id}/verify
 | **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, 5 Models, Benchmark, Grad-CAM | ✅ 100% | — | Cao |
 | **CP 2** | FastAPI WebSocket, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ 100% | — | Trung bình |
 | **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
-| **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
+| **CP 3.6** | Nối Frontend với API CP3 | ✅ Xong | Track A (Frontend) | Thấp |
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
