@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class Chomp1d(nn.Module):
     """Cắt bớt phần padding phía sau để đảm bảo tính Causal (không nhìn trước tương lai)."""

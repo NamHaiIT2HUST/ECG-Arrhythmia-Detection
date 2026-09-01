@@ -1,0 +1,21 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+
+frontend/node_modules/
+frontend/dist/
+
+# Du lieu lon / trong so model - khong bake vao image, mount qua volume trong docker-compose.yml
+data/raw/
+data/processed/
+saved_models/
+backend/db/*.db
+
+# Khong can trong image production
+tests/
+docs/
+notebooks/
+*.md

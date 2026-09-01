@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from models import CNN1D_LSTM, TemporalConvNet, ResNet1D, Transformer1D, Mamba1D
 
@@ -50,9 +50,9 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def train_and_eval_model(model_name, model, train_loader, test_loader, num_classes=5):
-    print(f"\n==================================================")
+    print("\n==================================================")
     print(f" 🚀 ĐANG TRAIN & BÁO CÁO: {model_name}")
-    print(f"==================================================")
+    print("==================================================")
     print(f"[i] Thiết bị: {DEVICE} | Số lượng tham số: {count_parameters(model):,}")
     
     model = model.to(DEVICE)
@@ -227,7 +227,7 @@ if __name__ == "__main__":
         with open(temp_path, 'w', encoding='utf-8') as f:
             json.dump(res, f, ensure_ascii=False, indent=4)
         print(f"[✓] Đã lưu kết quả tạm vào {temp_path}")
-        print(f"    (Chạy các model khác, sau đó dùng cờ --aggregate để tổng hợp)")
+        print("    (Chạy các model khác, sau đó dùng cờ --aggregate để tổng hợp)")
         
     else:
         print("[+] Không chỉ định --model. Sẽ train toàn bộ 5 model liên tục...")

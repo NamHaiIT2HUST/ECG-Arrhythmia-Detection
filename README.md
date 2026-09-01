@@ -53,8 +53,16 @@ cd frontend && npm install
 
 ## Chạy hệ thống
 
+**Cách 1 — Docker Compose (khuyến nghị, không cần cài Python/Node thủ công)**:
+```bash
+docker compose up -d --build
+```
+Backend tại `http://localhost:8000`, frontend tại `http://localhost`. Hướng dẫn đầy đủ (biến môi trường, xử lý sự cố thường gặp): [docs/deployment_guide.md](docs/deployment_guide.md).
+
+**Cách 2 — Chạy thủ công**:
 ```bash
 # Backend (từ thư mục gốc repo)
+python -m alembic upgrade head          # tạo schema database lần đầu
 uvicorn backend.main:app --reload --port 8000
 
 # Frontend (thư mục frontend/)
@@ -63,11 +71,9 @@ npm run dev
 
 Backend mặc định stream bản ghi PhysioNet record 208 (nhiều PVC) qua `ws://localhost:8000/ws/ecg`. Frontend chạy tại `http://localhost:5173`.
 
-### API chính
+### API
 
-- `WS /ws/ecg?record=<id>` — stream real-time (mặc định `record=208`). Mỗi gói tin gồm `chunk` (10 điểm vẽ biểu đồ), `prediction`/`heatmap`/`latency_ms` (giữ nguyên giữa 2 nhịp, chỉ cập nhật khi `is_new_beat=true`), `bpm`, `hrv_sdnn`, `hrv_rmssd`.
-- `GET /api/records` — danh sách bản ghi PhysioNet khả dụng kèm mô tả lâm sàng, dùng để đổ vào dropdown chọn bản ghi.
-- `POST /api/diagnosis/upload-ecg?fs=360` — upload file CSV 1 cột tín hiệu ECG, trả về báo cáo chẩn đoán offline (phân bố lớp AAMI, BPM, HRV, danh sách nhịp bất thường).
+Danh sách đầy đủ endpoint (WebSocket + REST: auth, records, anomalies/verify, upload chẩn đoán offline) kèm request/response mẫu: [docs/api_reference.md](docs/api_reference.md). Khi backend đang chạy, có thể xem tài liệu tương tác tại `http://localhost:8000/docs`.
 
 ### Kiểm thử pipeline AI
 
