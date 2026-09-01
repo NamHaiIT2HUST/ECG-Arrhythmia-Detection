@@ -154,10 +154,11 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
   - Thêm `pydantic-settings` và `python-multipart` — 2 gói này CODE ĐÃ CẦN TỪ LÂU (config.py và upload-ecg endpoint) nhưng chưa từng khai báo, chỉ "chạy được" trên máy dev vì lỡ có sẵn ngoài ý muốn. Nếu máy bạn từng gặp lỗi lạ liên quan 2 thứ này mà không hiểu vì sao — giờ đã rõ nguyên nhân.
 - **Khi bạn `pull` code mới, nhớ `pip install -r requirements.txt` lại** để đồng bộ đúng danh sách trên.
 
-### B8. CP 6.4 — CI/CD Pipeline
+### B8. CP 6.4 — CI/CD Pipeline — ✅ Hoàn thành 2026-08-31
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4.
-- **Phụ thuộc**: B6 (cần test suite tồn tại để CI có gì mà chạy).
-- **✅ Khi xong, báo**: "CP6.4 xong — PR mới tự chạy lint+test, PR #___".
+- **✅ Đã báo**: `.github/workflows/ci-cd.yml` có 5 job (lint-backend, lint-frontend, test-backend, test-frontend, build-docker) chạy trên mọi PR/push vào `main`. Đã kiểm chứng từng phần cục bộ (ruff/oxlint sạch, 26 test pytest xanh, YAML hợp lệ) — **chưa thấy chạy thật trên GitHub Actions** vì chưa push, sẽ biết ngay khi bạn push/mở PR (tab Actions).
+- **Lưu ý cho Track A**: job `test-frontend` tự kiểm tra `package.json` có script `test` chưa trước khi chạy — hiện tại (chưa có Vitest) sẽ tự in "bỏ qua" chứ không làm CI đỏ. Khi bạn thêm Vitest (đặt tên script đúng là `"test"` trong `package.json`), CI sẽ tự động chạy thật mà không cần ai sửa lại file workflow.
+- **Toàn bộ Track B (B1→B8) đã xong.** Chỉ còn CP 6.5 (tài liệu + demo cuối) làm chung với Track A sau khi cả 2 bên hoàn thành.
 
 ### Cuối cùng (chung, ai rảnh trước làm) — CP 6.5, Tài liệu & Demo
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4 (đoạn `docs/api_reference.md`, `docs/deployment_guide.md`).
@@ -210,7 +211,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] B5 — CP 6.1 ONNX Export
 - [x] B6 — CP 6.2 Test Suite (backend)
 - [x] B7 — CP 6.3 Docker
-- [ ] B8 — CP 6.4 CI/CD
+- [x] B8 — CP 6.4 CI/CD
 
 **Yêu cầu chéo track**
 - [x] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)

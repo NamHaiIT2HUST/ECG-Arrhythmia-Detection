@@ -492,12 +492,16 @@ POST /api/anomalies/{id}/verify
 - **Phát hiện thêm lúc chạy thật**: `docker compose logs` ban đầu thiếu hẳn dòng banner khởi động + log nạp model — do container stdout không phải TTY nên Python mặc định block-buffering, giữ `print()` lại rất lâu thay vì flush ngay. Thêm `ENV PYTHONUNBUFFERED=1` vào `backend.Dockerfile` (đặt SAU các bước `pip install` nặng để không làm mất cache, không đặt ở đầu file) — xác nhận log hiện đủ ngay lập tức sau khi sửa.
 - **DoD đã đạt**: `docker compose up -d --build` từ máy có sẵn `saved_models/` và `data/raw/` chạy đúng cả 2 container; xác nhận `MODEL READY: True` (model nạp thành công qua volume mount), `GET /api/records` trả đúng 48 bản ghi qua `curl http://localhost:8000/api/records`, log khởi động hiện đầy đủ ngay lập tức.
 
-#### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions)
-**File**: `.github/workflows/ci-cd.yml`.
-- Job `lint`: `flake8`/`ruff` cho backend, `oxlint` cho frontend (đã có `frontend/.oxlintrc.json`).
-- Job `test`: chạy `pytest` (backend) + `npm run test` (frontend) — **chạy trên GitHub-hosted runner nên KHÔNG có `saved_models/`/`data/raw/`**: cần skip hoặc mock các test phụ thuộc model thật (đánh dấu `@pytest.mark.skipif` nếu file không tồn tại), chỉ chạy được các test thuần logic (DSP, HRV, schema).
-- Job `build`: dựng Docker image (không push, trừ khi có yêu cầu deploy thật).
-- **DoD**: PR mới tự động chạy lint+test, hiện trạng thái pass/fail trên GitHub.
+#### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions) — ✅ Hoàn thành 2026-08-31
+**File**: `.github/workflows/ci-cd.yml`, `ruff.toml` (mới).
+- 5 job chạy trên mọi PR/push vào `main`: `lint-backend`, `lint-frontend`, `test-backend`, `test-frontend`, `build-docker` (phụ thuộc 4 job trước, chỉ chạy nếu tất cả pass).
+- **`lint-backend`**: `ruff check backend/ src/ tests/`. Đã thử chạy ruff với rule mặc định trước khi đưa vào CI — phát hiện 104 lỗi, phần lớn là style thuần tuý (thứ tự import, `Optional[X]` vs `X | None`...) và **1 rule (`B008`) báo sai**: coi `Depends(...)` làm giá trị mặc định của FastAPI là anti-pattern, trong khi đó CHÍNH LÀ cách dùng chuẩn của framework. Giới hạn `ruff.toml` chỉ bật nhóm `F` (pyflakes: import/biến thật sự không dùng, lỗi cú pháp) — còn đúng 11 lỗi, đều là phát hiện thật (import thừa, tiền tố `f` thừa), đã tự sửa (`ruff check --fix`) để CI khởi động sạch, chạy lại toàn bộ 26 test xác nhận không có gì hỏng.
+- **`lint-frontend`**: `npm run lint` (oxlint có sẵn từ trước) — hiện chỉ có warning (unused var, missing hook dep...), không có lỗi, không làm CI đỏ; đây là code Track A, không tự sửa.
+- **`test-backend`**: cài `torch` từ index CPU-only trước `requirements.txt` (giống `backend.Dockerfile`, tránh kéo cả bộ CUDA trên Linux runner) rồi chạy `pytest tests/ -v` — các test cần `data/raw/`/`saved_models/`/ONNX tự skip qua marker đã có sẵn từ CP6.2, không cần sửa gì thêm.
+- **`test-frontend`**: kiểm tra `package.json` có script `test` chưa (Track A chưa thêm Vitest) trước khi chạy — chưa có thì in thông báo bỏ qua thay vì làm CI đỏ vì lý do "chưa tới lượt", tự động chạy thật khi Track A thêm Vitest mà không cần sửa lại workflow.
+- **`build-docker`**: build cả 2 Dockerfile, quét lỗ hổng bảo mật ảnh backend bằng `aquasecurity/trivy-action` (chỉ báo cáo, `exit-code: "0"` — không làm CI đỏ vì CVE của image nền ngoài tầm kiểm soát của repo; ghim `@master` thay vì 1 tag cụ thể vì không xác minh được tag chính xác lúc viết workflow, không có mạng truy cập GitHub), rồi chạy `docker compose up -d` thật + `curl` xác nhận cả 2 service phản hồi (không kiểm tra kết quả AI đúng/sai vì CI không có `saved_models/`/`data/raw/` thật — chỉ xác nhận container không crash).
+- Đã thêm `ruff==0.16.5` vào `requirements.txt` (đồng bộ version với CI) theo đúng tiền lệ đã có với `pytest` ở CP6.2 (dự án không tách dev-requirements riêng).
+- **DoD đã đạt**: cấu hình đầy đủ 5 job, đã kiểm chứng cục bộ từng phần (ruff sạch, oxlint sạch/chỉ warning, 26 test pytest xanh, YAML hợp lệ) — chưa kiểm chứng được bằng 1 lần chạy Actions thật (cần push lên GitHub mới thấy), nhưng mọi thành phần đã tự chạy đúng cục bộ với đúng lệnh workflow sẽ gọi.
 
 #### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật
 - Cập nhật `README.md` (đã có phần lớn, bổ sung sau khi CP4-6 xong).
@@ -509,7 +513,7 @@ POST /api/anomalies/{id}/verify
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
 - [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
-- [ ] **CP 6.4** CI/CD GitHub Actions Workflow
+- [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31 (chờ lần push đầu để xác nhận chạy thật trên GitHub)
 - [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
 
 ---
@@ -525,7 +529,7 @@ POST /api/anomalies/{id}/verify
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.3 xong, 6.4-6.5 chưa làm | Track B (Backend) | Cao |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong (Track B xong hết phần riêng), chỉ còn 6.5 làm chung | Track B (Backend) | Cao |
 
 ---
 

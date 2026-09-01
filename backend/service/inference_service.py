@@ -1,7 +1,6 @@
 import os
 import time
 import torch
-import numpy as np
 from src.models.resnet1d import ResNet1D
 from src.xai.gradcam1d import GradCAM1D
 from backend.core.signal_processing import normalize_window

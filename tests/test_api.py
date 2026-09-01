@@ -105,7 +105,7 @@ def test_list_anomalies_requires_login(client):
 
 def test_list_anomalies_filters_by_id(client, auth_headers, test_session_factory):
     anomaly_id = _seed_anomaly(test_session_factory)
-    res = client.get(f"/api/anomalies?patient_id=999999999", headers=auth_headers["nurse"])
+    res = client.get("/api/anomalies?patient_id=999999999", headers=auth_headers["nurse"])
     assert res.status_code == 200
     assert res.json()["total"] == 0  # patient_id không tồn tại
 
