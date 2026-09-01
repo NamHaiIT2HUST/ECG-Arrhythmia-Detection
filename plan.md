@@ -503,18 +503,19 @@ POST /api/anomalies/{id}/verify
 - Đã thêm `ruff==0.16.5` vào `requirements.txt` (đồng bộ version với CI) theo đúng tiền lệ đã có với `pytest` ở CP6.2 (dự án không tách dev-requirements riêng).
 - **DoD đã đạt**: cấu hình đầy đủ 5 job, đã kiểm chứng cục bộ từng phần (ruff sạch, oxlint sạch/chỉ warning, 26 test pytest xanh, YAML hợp lệ) — chưa kiểm chứng được bằng 1 lần chạy Actions thật (cần push lên GitHub mới thấy), nhưng mọi thành phần đã tự chạy đúng cục bộ với đúng lệnh workflow sẽ gọi.
 
-#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật
-- Cập nhật `README.md` (đã có phần lớn, bổ sung sau khi CP4-6 xong).
-- `docs/api_reference.md`: liệt kê toàn bộ endpoint (WS + REST) — có thể sinh 1 phần tự động từ OpenAPI của FastAPI (`http://localhost:8000/docs`) rồi biên tập lại.
-- `docs/deployment_guide.md`: hướng dẫn Docker Compose, biến môi trường, cách chuẩn bị `saved_models/`/`data/raw/` trước khi build.
-- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch.
+#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật — 🟡 2/3 phần xong (2026-09-02), phần còn lại chờ Track A
+- ✅ `docs/api_reference.md`: liệt kê đầy đủ mọi endpoint hiện có (WS `/ws/ecg`, `GET /api/records`, `POST /api/diagnosis/upload-ecg`, `POST/GET /api/auth/*`, `GET /api/anomalies`, `POST /api/anomalies/{id}/verify`) kèm request/response mẫu, mã lỗi, 3 tài khoản test.
+- ✅ `docs/deployment_guide.md`: hướng dẫn cả 2 cách chạy (Docker Compose và thủ công), bảng biến môi trường override được, và mục riêng ghi lại **các lỗi thực tế đã gặp lúc làm CP6.3** (thiếu `pydantic-settings`/`python-multipart`, buffering log, torch kéo theo CUDA) kèm cách xử lý — tránh người sau lặp lại đúng những lỗi đã tốn công tìm ra.
+- ✅ Cập nhật `README.md`: thêm link tới 2 file trên, thêm lựa chọn chạy bằng Docker Compose.
+- ⏳ **Còn lại — cần Track A xong CP3.6/CP4 trước mới viết được**: hướng dẫn demo trực quan cho buổi bảo vệ đồ án (kịch bản click-through đủ tính năng frontend+backend).
+- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch — **đã đạt** cho phần backend/Docker; phần kịch bản demo đầy đủ tính năng chờ Track A.
 
 #### 6.6. Sub-checkpoints
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
 - [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
 - [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31 (chờ lần push đầu để xác nhận chạy thật trên GitHub)
-- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — 2/3 xong (api_reference.md, deployment_guide.md), còn kịch bản demo chờ Track A
 
 ---
 
@@ -529,7 +530,7 @@ POST /api/anomalies/{id}/verify
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong (Track B xong hết phần riêng), chỉ còn 6.5 làm chung | Track B (Backend) | Cao |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong, CP6.5 backend xong 2/3 — chỉ còn kịch bản demo chờ Track A | Track B (Backend) | Cao |
 
 ---
 

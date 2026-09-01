@@ -160,9 +160,10 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **Lưu ý cho Track A**: job `test-frontend` tự kiểm tra `package.json` có script `test` chưa trước khi chạy — hiện tại (chưa có Vitest) sẽ tự in "bỏ qua" chứ không làm CI đỏ. Khi bạn thêm Vitest (đặt tên script đúng là `"test"` trong `package.json`), CI sẽ tự động chạy thật mà không cần ai sửa lại file workflow.
 - **Toàn bộ Track B (B1→B8) đã xong.** Chỉ còn CP 6.5 (tài liệu + demo cuối) làm chung với Track A sau khi cả 2 bên hoàn thành.
 
-### Cuối cùng (chung, ai rảnh trước làm) — CP 6.5, Tài liệu & Demo
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4 (đoạn `docs/api_reference.md`, `docs/deployment_guide.md`).
-- Làm sau khi cả 2 track xong (cần biết toàn bộ API + cách chạy Docker thật để viết hướng dẫn đúng).
+### Cuối cùng (chung) — CP 6.5, Tài liệu & Demo — 🟡 Track B đã xong phần của mình
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.5.
+- **✅ Track B đã làm xong**: `docs/api_reference.md` (toàn bộ endpoint hiện có), `docs/deployment_guide.md` (Docker Compose + chạy thủ công + các lỗi thực tế đã gặp), cập nhật link trong `README.md`.
+- **⏳ Còn lại, cần Track A**: kịch bản demo trực quan cho buổi bảo vệ — chỉ viết được sau khi CP3.6/CP4 (frontend) xong, vì cần đi qua đủ tính năng cả 2 phía mới lên được kịch bản click-through hoàn chỉnh.
 
 ---
 
