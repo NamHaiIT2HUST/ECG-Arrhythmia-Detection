@@ -480,11 +480,15 @@ POST /api/anomalies/{id}/verify
 **Quy ước**: mỗi người viết test cho phần mình phụ trách (Backend viết `tests/*.py`, Frontend viết `*.test.jsx`) — không ai phải hiểu sâu code của người kia để viết test.
 **DoD**: `pytest` xanh hết (✅ đã đạt phần backend), `npm run test` (Vitest) xanh hết (Track A).
 
-#### 6.3. CP 6.3 — Dockerization
-**File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml` (đặt ở gốc repo).
-- `backend.Dockerfile`: base `python:3.12-slim`, copy `requirements.txt` cài trước (tận dụng layer cache), copy code, `CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]`. **Lưu ý**: image sẽ KHÔNG có `saved_models/*.pth` và `data/raw/` (gitignored) — cần mount volume hoặc copy thủ công lúc build, ghi rõ trong `docs/deployment_guide.md` (CP6.5).
-- `frontend.Dockerfile`: multi-stage — stage 1 `node:20` build `npm run build`, stage 2 `nginx:alpine` copy `dist/` + `nginx.conf` (reverse proxy `/api` và `/ws` sang service backend).
-- `docker-compose.yml`: service `backend` (port 8000), `frontend` (port 80, phụ thuộc `backend`), volume mount `./saved_models` và `./data/raw` vào container backend (thay vì bake vào image, vì các file này không nằm trong git).
+#### 6.3. CP 6.3 — Dockerization — 🟡 Build xong 2026-08-31, chờ xác nhận chạy thật
+**File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml`, `.dockerignore` (đặt ở gốc repo).
+- `backend.Dockerfile`: base `python:3.12-slim`, copy `requirements.txt` cài trước (tận dụng layer cache), copy code, chạy `alembic upgrade head` (tự tạo schema DB nếu chưa có) rồi mới `uvicorn backend.main:app --host 0.0.0.0 --port 8000`. **Lưu ý**: image KHÔNG có `saved_models/*.pth` và `data/raw/` (gitignored) — bắt buộc mount volume, xem `docker-compose.yml`.
+- `frontend.Dockerfile`: multi-stage — stage 1 `node:20-alpine` build `npm run build`, stage 2 `nginx:alpine` copy `dist/` + `nginx.conf`.
+- `docker-compose.yml`: service `backend` (port 8000), `frontend` (port 80, phụ thuộc `backend`), volume mount `./saved_models`, `./data/raw`, và `./backend/db` (giữ DB SQLite qua các lần container restart) vào container backend.
+- **⚠️ Frontend hiện hardcode gọi thẳng `http://localhost:8000`** (`frontend/src/api/axios.js`, `DashboardPage.jsx`) — CHƯA dùng đường dẫn tương đối qua `nginx.conf`'s reverse proxy `/api`/`/ws`. Vì vậy `docker-compose.yml` vẫn publish port 8000 ra host để code hiện tại chạy đúng không cần sửa. `nginx.conf` đã cấu hình sẵn proxy `/api`, `/ws` — khi Track A đổi frontend sang gọi đường dẫn tương đối (tiện thể lúc làm CP3.6 sửa URL WS), không cần sửa lại `nginx.conf`.
+- **Phát hiện quan trọng lúc build (đã sửa)**: `requirements.txt` có `tensorflow==2.20.0` + `keras==3.13.2` (620MB+) **chưa từng được import ở bất kỳ đâu trong code** (xác nhận bằng grep toàn repo, 0 kết quả) — xoá luôn khỏi `requirements.txt` (kéo theo `h5py`, `protobuf` ăn theo cũng xoá, chỉ mình chúng nó cần 2 gói này). Ngoài ra `torch` không ghim rõ nguồn nên trên Linux pip mặc định tải kèm toàn bộ CUDA/GPU toolkit (nvidia-*, triton...) dù service chỉ chạy CPU (ResNet1D nhỏ, không cần GPU) — sửa `backend.Dockerfile` cài `torch` từ index CPU-only riêng (`--index-url https://download.pytorch.org/whl/cpu`) trước, giảm từ hàng GB xuống còn 191.8MB.
+- **Đã xác nhận**: `docker compose build` chạy thành công, cả 2 image `ecg-arrhythmia-detection-backend` và `-frontend` build xong không lỗi (build lần đầu mất ~48 phút do máy dev có nhiều container khác đang chạy song song chiếm băng thông — không phải lỗi cấu hình, các lần build sau sẽ nhanh hơn nhiều nhờ layer cache).
+- **Chưa xác nhận**: `docker compose up -d` chạy thật (containers khởi động đúng, backend nạp model, frontend truy cập được qua `http://localhost`, WS hoạt động) — cần chạy tay để xác nhận, xem hướng dẫn test trong `pccv.md`.
 - **DoD**: `docker compose up -d` từ máy sạch (đã có sẵn `saved_models/` và `data/raw/` ở host) chạy được cả hệ thống, truy cập frontend qua `http://localhost`.
 
 #### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions)
@@ -503,7 +507,7 @@ POST /api/anomalies/{id}/verify
 #### 6.6. Sub-checkpoints
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
-- [ ] **CP 6.3** Dockerization
+- [ ] **CP 6.3** Dockerization — build thành công 2026-08-31, chờ chạy `docker compose up -d` xác nhận
 - [ ] **CP 6.4** CI/CD GitHub Actions Workflow
 - [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
 
@@ -520,7 +524,7 @@ POST /api/anomalies/{id}/verify
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.2(backend) xong, 6.3-6.5 chưa làm | Track B (Backend) | Cao |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.2(backend) xong, 6.3 build xong (chờ test chạy), 6.4-6.5 chưa làm | Track B (Backend) | Cao |
 
 ---
 

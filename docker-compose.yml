@@ -1,0 +1,26 @@
+# CP6.3: docker compose up -d chạy toàn bộ hệ thống (backend + frontend).
+# Yêu cầu TRƯỚC KHI chạy: saved_models/*.pth và data/raw/physionet_mitdb/ đã có sẵn ở host
+# (gitignored, không nằm trong image - xem backend.Dockerfile). Nếu thiếu, backend container
+# vẫn khởi động được nhưng AI service sẽ báo "Không tìm thấy model".
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    ports:
+      - "8000:8000"  # publish ra host vì frontend hiện hardcode gọi http://localhost:8000 (xem nginx.conf)
+    volumes:
+      - ./saved_models:/app/saved_models
+      - ./data/raw:/app/data/raw
+      - ./backend/db:/app/backend/db  # giữ dữ liệu SQLite qua các lần container restart/recreate
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

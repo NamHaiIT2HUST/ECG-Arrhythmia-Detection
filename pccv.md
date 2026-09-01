@@ -139,10 +139,18 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **✅ Đã báo**: 26/26 test xanh (`pytest`, chạy dưới 4 giây), có `conftest.py` dùng DB test cô lập hoàn toàn (SQLite in-memory) — chạy `pytest` không đụng gì tới DB dev thật.
 - **Nhắc Track A**: tự bổ sung Vitest cho phần Frontend khi tới lượt (`frontend/src/**/*.test.jsx`), không cần đợi Track B, không ai viết test hộ ai.
 
-### B7. CP 6.3 — Dockerization
+### B7. CP 6.3 — Dockerization — 🟡 Build xong 2026-08-31, cần bạn tự chạy `docker compose up -d` xác nhận
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.3.
-- **Lưu ý cần Track A hỗ trợ 1 việc nhỏ**: `frontend.Dockerfile` cần `npm run build` chạy sạch — nếu lúc này Frontend có lỗi build (vd thiếu dependency chưa commit `package-lock.json`), cần Track A xử lý nhanh, không phải việc của Track B.
-- **✅ Khi xong, báo**: "CP6.3 xong — `docker compose up -d` chạy được, PR #___".
+- **`docker compose build` đã chạy thành công** (cả 2 image build xong, không lỗi) — nhưng CHƯA chạy `docker compose up -d` thật để xác nhận containers khởi động đúng, backend nạp model, frontend/WS hoạt động. Cách tự test:
+  ```bash
+  docker compose up -d
+  docker compose ps        # ca 2 service phai o trang thai "running"/"healthy"
+  docker compose logs backend --tail 30   # phai thay dong "AI Model & Grad-CAM da san sang"
+  ```
+  Sau đó mở `http://localhost` trên trình duyệt — phải thấy Dashboard, biểu đồ ECG chạy real-time (WS vẫn nối `ws://localhost:8000/ws/ecg` trực tiếp, xem lưu ý bên dưới). Dừng lại: `docker compose down`.
+- **Lưu ý quan trọng cho Track A**: frontend hiện hardcode gọi thẳng `http://localhost:8000` (`axios.js`, `DashboardPage.jsx`), CHƯA qua reverse proxy `/api`/`/ws` của `nginx.conf` — vì vậy `docker-compose.yml` vẫn publish port 8000 ra host để code hiện tại chạy đúng không cần sửa gì. Khi làm CP3.6 (đổi URL WS để thêm `?record=`), nếu tiện thì đổi luôn sang gọi đường dẫn tương đối (`/api/...`, `/ws/...`) — `nginx.conf` đã có sẵn proxy, không cần báo Track B sửa lại.
+- **Đã dọn `requirements.txt`** (ảnh hưởng CẢ 2 track, không chỉ Docker): xoá `tensorflow`/`keras`/`h5py`/`protobuf` — xác nhận qua grep toàn repo, không ai import các gói này ở đâu cả, đây là rác cài thừa. Nếu máy bạn `pip install -r requirements.txt` lại thì sẽ cài nhanh hơn hẳn (nhẹ hơn ~700MB).
+- **Khi bạn test xong, báo lại kết quả** (2 câu lệnh trên có ra đúng như mô tả không) để chốt DoD CP6.3 — chưa tự đánh dấu "hoàn thành" khi chưa có xác nhận chạy thật.
 
 ### B8. CP 6.4 — CI/CD Pipeline
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4.
