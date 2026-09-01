@@ -480,32 +480,42 @@ POST /api/anomalies/{id}/verify
 **Quy ước**: mỗi người viết test cho phần mình phụ trách (Backend viết `tests/*.py`, Frontend viết `*.test.jsx`) — không ai phải hiểu sâu code của người kia để viết test.
 **DoD**: `pytest` xanh hết (✅ đã đạt phần backend), `npm run test` (Vitest) xanh hết (Track A).
 
-#### 6.3. CP 6.3 — Dockerization
-**File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml` (đặt ở gốc repo).
-- `backend.Dockerfile`: base `python:3.12-slim`, copy `requirements.txt` cài trước (tận dụng layer cache), copy code, `CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]`. **Lưu ý**: image sẽ KHÔNG có `saved_models/*.pth` và `data/raw/` (gitignored) — cần mount volume hoặc copy thủ công lúc build, ghi rõ trong `docs/deployment_guide.md` (CP6.5).
-- `frontend.Dockerfile`: multi-stage — stage 1 `node:20` build `npm run build`, stage 2 `nginx:alpine` copy `dist/` + `nginx.conf` (reverse proxy `/api` và `/ws` sang service backend).
-- `docker-compose.yml`: service `backend` (port 8000), `frontend` (port 80, phụ thuộc `backend`), volume mount `./saved_models` và `./data/raw` vào container backend (thay vì bake vào image, vì các file này không nằm trong git).
-- **DoD**: `docker compose up -d` từ máy sạch (đã có sẵn `saved_models/` và `data/raw/` ở host) chạy được cả hệ thống, truy cập frontend qua `http://localhost`.
+#### 6.3. CP 6.3 — Dockerization — ✅ Hoàn thành 2026-08-31
+**File**: `backend.Dockerfile`, `frontend.Dockerfile`, `nginx.conf`, `docker-compose.yml`, `.dockerignore` (đặt ở gốc repo).
+- `backend.Dockerfile`: base `python:3.12-slim`, copy `requirements.txt` cài trước (tận dụng layer cache), copy code, chạy `alembic upgrade head` (tự tạo schema DB nếu chưa có) rồi mới `uvicorn backend.main:app --host 0.0.0.0 --port 8000`. **Lưu ý**: image KHÔNG có `saved_models/*.pth` và `data/raw/` (gitignored) — bắt buộc mount volume, xem `docker-compose.yml`.
+- `frontend.Dockerfile`: multi-stage — stage 1 `node:20-alpine` build `npm run build`, stage 2 `nginx:alpine` copy `dist/` + `nginx.conf`.
+- `docker-compose.yml`: service `backend` (port 8000), `frontend` (port 80, phụ thuộc `backend`), volume mount `./saved_models`, `./data/raw`, và `./backend/db` (giữ DB SQLite qua các lần container restart) vào container backend.
+- **⚠️ Frontend hiện hardcode gọi thẳng `http://localhost:8000`** (`frontend/src/api/axios.js`, `DashboardPage.jsx`) — CHƯA dùng đường dẫn tương đối qua `nginx.conf`'s reverse proxy `/api`/`/ws`. Vì vậy `docker-compose.yml` vẫn publish port 8000 ra host để code hiện tại chạy đúng không cần sửa. `nginx.conf` đã cấu hình sẵn proxy `/api`, `/ws` — khi Track A đổi frontend sang gọi đường dẫn tương đối (tiện thể lúc làm CP3.6 sửa URL WS), không cần sửa lại `nginx.conf`.
+- **Phát hiện quan trọng lúc build — dọn `requirements.txt` (cả 2 loại lỗi này CHỈ lộ ra khi build container sạch, venv dev đã tích luỹ gói ngoài file này từ trước nên che mất cả 2 phía)**:
+  1. *Thừa, chưa bao giờ dùng*: `tensorflow==2.20.0` + `keras==3.13.2` (620MB+) và `fastapi-cors` **chưa từng được import ở bất kỳ đâu trong code** (grep toàn repo, 0 kết quả — CORS thực tế chạy bằng `fastapi.middleware.cors.CORSMiddleware` có sẵn trong lõi FastAPI). Xoá cả 4 gói (`h5py`, `protobuf` ăn theo tensorflow cũng xoá luôn). `torch` không ghim rõ nguồn nên trên Linux pip mặc định tải kèm toàn bộ CUDA/GPU toolkit (nvidia-*, triton...) dù service chỉ chạy CPU — sửa `backend.Dockerfile` cài `torch` từ index CPU-only riêng (`--index-url https://download.pytorch.org/whl/cpu`) trước, giảm từ hàng GB xuống còn 191.8MB.
+  2. *Thiếu, chưa từng khai báo*: `pydantic-settings` (`backend/core/config.py` luôn import nhưng chưa bao giờ có trong file) và `python-multipart` (FastAPI cần ngầm cho `UploadFile`/form-data ở `/api/diagnosis/upload-ecg`, chỉ báo lỗi đúng lúc route đó được đăng ký lúc khởi động, không có dòng `import` nào để rà bằng grep) — cả 2 đã thêm.
+- **Phát hiện thêm lúc chạy thật**: `docker compose logs` ban đầu thiếu hẳn dòng banner khởi động + log nạp model — do container stdout không phải TTY nên Python mặc định block-buffering, giữ `print()` lại rất lâu thay vì flush ngay. Thêm `ENV PYTHONUNBUFFERED=1` vào `backend.Dockerfile` (đặt SAU các bước `pip install` nặng để không làm mất cache, không đặt ở đầu file) — xác nhận log hiện đủ ngay lập tức sau khi sửa.
+- **DoD đã đạt**: `docker compose up -d --build` từ máy có sẵn `saved_models/` và `data/raw/` chạy đúng cả 2 container; xác nhận `MODEL READY: True` (model nạp thành công qua volume mount), `GET /api/records` trả đúng 48 bản ghi qua `curl http://localhost:8000/api/records`, log khởi động hiện đầy đủ ngay lập tức.
 
-#### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions)
-**File**: `.github/workflows/ci-cd.yml`.
-- Job `lint`: `flake8`/`ruff` cho backend, `oxlint` cho frontend (đã có `frontend/.oxlintrc.json`).
-- Job `test`: chạy `pytest` (backend) + `npm run test` (frontend) — **chạy trên GitHub-hosted runner nên KHÔNG có `saved_models/`/`data/raw/`**: cần skip hoặc mock các test phụ thuộc model thật (đánh dấu `@pytest.mark.skipif` nếu file không tồn tại), chỉ chạy được các test thuần logic (DSP, HRV, schema).
-- Job `build`: dựng Docker image (không push, trừ khi có yêu cầu deploy thật).
-- **DoD**: PR mới tự động chạy lint+test, hiện trạng thái pass/fail trên GitHub.
+#### 6.4. CP 6.4 — CI/CD Pipeline (GitHub Actions) — ✅ Hoàn thành 2026-08-31
+**File**: `.github/workflows/ci-cd.yml`, `ruff.toml` (mới).
+- 5 job chạy trên mọi PR/push vào `main`: `lint-backend`, `lint-frontend`, `test-backend`, `test-frontend`, `build-docker` (phụ thuộc 4 job trước, chỉ chạy nếu tất cả pass).
+- **`lint-backend`**: `ruff check backend/ src/ tests/`. Đã thử chạy ruff với rule mặc định trước khi đưa vào CI — phát hiện 104 lỗi, phần lớn là style thuần tuý (thứ tự import, `Optional[X]` vs `X | None`...) và **1 rule (`B008`) báo sai**: coi `Depends(...)` làm giá trị mặc định của FastAPI là anti-pattern, trong khi đó CHÍNH LÀ cách dùng chuẩn của framework. Giới hạn `ruff.toml` chỉ bật nhóm `F` (pyflakes: import/biến thật sự không dùng, lỗi cú pháp) — còn đúng 11 lỗi, đều là phát hiện thật (import thừa, tiền tố `f` thừa), đã tự sửa (`ruff check --fix`) để CI khởi động sạch, chạy lại toàn bộ 26 test xác nhận không có gì hỏng.
+- **`lint-frontend`**: `npm run lint` (oxlint có sẵn từ trước) — hiện chỉ có warning (unused var, missing hook dep...), không có lỗi, không làm CI đỏ; đây là code Track A, không tự sửa.
+- **`test-backend`**: cài `torch` từ index CPU-only trước `requirements.txt` (giống `backend.Dockerfile`, tránh kéo cả bộ CUDA trên Linux runner) rồi chạy `pytest tests/ -v` — các test cần `data/raw/`/`saved_models/`/ONNX tự skip qua marker đã có sẵn từ CP6.2, không cần sửa gì thêm.
+- **`test-frontend`**: kiểm tra `package.json` có script `test` chưa (Track A chưa thêm Vitest) trước khi chạy — chưa có thì in thông báo bỏ qua thay vì làm CI đỏ vì lý do "chưa tới lượt", tự động chạy thật khi Track A thêm Vitest mà không cần sửa lại workflow.
+- **`build-docker`**: build cả 2 Dockerfile, quét lỗ hổng bảo mật ảnh backend bằng `aquasecurity/trivy-action` (chỉ báo cáo, `exit-code: "0"` — không làm CI đỏ vì CVE của image nền ngoài tầm kiểm soát của repo; ghim `@master` thay vì 1 tag cụ thể vì không xác minh được tag chính xác lúc viết workflow, không có mạng truy cập GitHub), rồi chạy `docker compose up -d` thật + `curl` xác nhận cả 2 service phản hồi (không kiểm tra kết quả AI đúng/sai vì CI không có `saved_models/`/`data/raw/` thật — chỉ xác nhận container không crash).
+- Đã thêm `ruff==0.16.5` vào `requirements.txt` (đồng bộ version với CI) theo đúng tiền lệ đã có với `pytest` ở CP6.2 (dự án không tách dev-requirements riêng).
+- **DoD đã đạt**: cấu hình đầy đủ 5 job, đã kiểm chứng cục bộ từng phần (ruff sạch, oxlint sạch/chỉ warning, 26 test pytest xanh, YAML hợp lệ) — chưa kiểm chứng được bằng 1 lần chạy Actions thật (cần push lên GitHub mới thấy), nhưng mọi thành phần đã tự chạy đúng cục bộ với đúng lệnh workflow sẽ gọi.
 
-#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật
-- Cập nhật `README.md` (đã có phần lớn, bổ sung sau khi CP4-6 xong).
-- `docs/api_reference.md`: liệt kê toàn bộ endpoint (WS + REST) — có thể sinh 1 phần tự động từ OpenAPI của FastAPI (`http://localhost:8000/docs`) rồi biên tập lại.
-- `docs/deployment_guide.md`: hướng dẫn Docker Compose, biến môi trường, cách chuẩn bị `saved_models/`/`data/raw/` trước khi build.
-- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch.
+#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật — 🟡 2/3 phần xong (2026-09-02), phần còn lại chờ Track A
+- ✅ `docs/api_reference.md`: liệt kê đầy đủ mọi endpoint hiện có (WS `/ws/ecg`, `GET /api/records`, `POST /api/diagnosis/upload-ecg`, `POST/GET /api/auth/*`, `GET /api/anomalies`, `POST /api/anomalies/{id}/verify`) kèm request/response mẫu, mã lỗi, 3 tài khoản test.
+- ✅ `docs/deployment_guide.md`: hướng dẫn cả 2 cách chạy (Docker Compose và thủ công), bảng biến môi trường override được, và mục riêng ghi lại **các lỗi thực tế đã gặp lúc làm CP6.3** (thiếu `pydantic-settings`/`python-multipart`, buffering log, torch kéo theo CUDA) kèm cách xử lý — tránh người sau lặp lại đúng những lỗi đã tốn công tìm ra.
+- ✅ Cập nhật `README.md`: thêm link tới 2 file trên, thêm lựa chọn chạy bằng Docker Compose.
+- ⏳ **Còn lại — cần Track A xong CP3.6/CP4 trước mới viết được**: hướng dẫn demo trực quan cho buổi bảo vệ đồ án (kịch bản click-through đủ tính năng frontend+backend).
+- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch — **đã đạt** cho phần backend/Docker; phần kịch bản demo đầy đủ tính năng chờ Track A.
 
 #### 6.6. Sub-checkpoints
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
-- [ ] **CP 6.3** Dockerization
-- [ ] **CP 6.4** CI/CD GitHub Actions Workflow
-- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide
+- [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
+- [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31 (chờ lần push đầu để xác nhận chạy thật trên GitHub)
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — 2/3 xong (api_reference.md, deployment_guide.md), còn kịch bản demo chờ Track A
 
 ---
 
@@ -520,7 +530,7 @@ POST /api/anomalies/{id}/verify
 | **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
 | **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
 | **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.2(backend) xong, 6.3-6.5 chưa làm | Track B (Backend) | Cao |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong, CP6.5 backend xong 2/3 — chỉ còn kịch bản demo chờ Track A | Track B (Backend) | Cao |
 
 ---
 

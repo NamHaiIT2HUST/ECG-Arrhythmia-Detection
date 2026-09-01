@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from models import CNN1D_LSTM, TemporalConvNet, ResNet1D, Transformer1D, Mamba1D
 
@@ -50,9 +50,9 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def train_and_eval_model(model_name, model, train_loader, test_loader, num_classes=5):
-    print(f"\n==================================================")
+    print("\n==================================================")
     print(f" 🚀 ĐANG TRAIN & BÁO CÁO: {model_name}")
-    print(f"==================================================")
+    print("==================================================")
     print(f"[i] Thiết bị: {DEVICE} | Số lượng tham số: {count_parameters(model):,}")
     
     model = model.to(DEVICE)

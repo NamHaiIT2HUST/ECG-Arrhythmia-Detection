@@ -1,0 +1,11 @@
+# CP6.4: Cau hinh ruff cho backend/src/tests. Chi bat nhom rule "F" (pyflakes: import/bien
+# khong dung, loi cu phap ro rang) - CO CHU DICH khong bat cac nhom rule khac (I=isort,
+# UP=pyupgrade, B=bugbear, PLR=pylint...) vi da thu chay tren toan bo code hien tai va thay:
+# (a) phan lon la sua doi phong cach thuan tuy (thu tu import, Optional[X] vs X | None...),
+# khong lien quan dung/sai; (b) rule B008 (function-call-in-default-argument) bao sai cho
+# `Depends(...)` cua FastAPI - do CHINH LA cach dung dung chuan cua framework nay, khong phai
+# loi. Bat het cac rule do se khien CI do ngay tu dau vi hang tram phat hien khong that su la
+# van de, lam mat niem tin vao pipeline. Neu sau nay muon lint chat hon, mo rong `select` va
+# sua dan tung nhom.
+[lint]
+select = ["F"]

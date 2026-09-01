@@ -139,19 +139,31 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **✅ Đã báo**: 26/26 test xanh (`pytest`, chạy dưới 4 giây), có `conftest.py` dùng DB test cô lập hoàn toàn (SQLite in-memory) — chạy `pytest` không đụng gì tới DB dev thật.
 - **Nhắc Track A**: tự bổ sung Vitest cho phần Frontend khi tới lượt (`frontend/src/**/*.test.jsx`), không cần đợi Track B, không ai viết test hộ ai.
 
-### B7. CP 6.3 — Dockerization
+### B7. CP 6.3 — Dockerization — ✅ Hoàn thành 2026-08-31
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.3.
-- **Lưu ý cần Track A hỗ trợ 1 việc nhỏ**: `frontend.Dockerfile` cần `npm run build` chạy sạch — nếu lúc này Frontend có lỗi build (vd thiếu dependency chưa commit `package-lock.json`), cần Track A xử lý nhanh, không phải việc của Track B.
-- **✅ Khi xong, báo**: "CP6.3 xong — `docker compose up -d` chạy được, PR #___".
+- **✅ Đã xác nhận chạy thật** (không chỉ build): `docker compose up -d --build` → `MODEL READY: True`, `curl http://localhost:8000/api/records` trả đúng 48 bản ghi, log khởi động hiện đầy đủ ngay (đã sửa lỗi buffering, xem dưới).
+  ```bash
+  docker compose up -d --build
+  docker compose ps                        # cả 2 service phải "running"
+  docker compose logs backend --tail 30    # phải thấy dòng "AI Model & Grad-CAM đã sẵn sàng"
+  ```
+  Dừng lại: `docker compose down`.
+- **Lưu ý quan trọng cho Track A**: frontend hiện hardcode gọi thẳng `http://localhost:8000` (`axios.js`, `DashboardPage.jsx`), CHƯA qua reverse proxy `/api`/`/ws` của `nginx.conf` — vì vậy `docker-compose.yml` vẫn publish port 8000 ra host để code hiện tại chạy đúng không cần sửa gì. Khi làm CP3.6 (đổi URL WS để thêm `?record=`), nếu tiện thì đổi luôn sang gọi đường dẫn tương đối (`/api/...`, `/ws/...`) — `nginx.conf` đã có sẵn proxy, không cần báo Track B sửa lại.
+- **Đã dọn `requirements.txt`** (ảnh hưởng CẢ 2 track, không chỉ Docker) — chỉ lộ ra khi build container sạch, venv dev cả 2 phía đều đã có sẵn/thiếu mà không ai để ý:
+  - Xoá `tensorflow`/`keras`/`h5py`/`protobuf` (620MB+) và `fastapi-cors` — grep toàn repo xác nhận không ai import, rác cài thừa. `pip install -r requirements.txt` lại sẽ nhanh hơn hẳn.
+  - Thêm `pydantic-settings` và `python-multipart` — 2 gói này CODE ĐÃ CẦN TỪ LÂU (config.py và upload-ecg endpoint) nhưng chưa từng khai báo, chỉ "chạy được" trên máy dev vì lỡ có sẵn ngoài ý muốn. Nếu máy bạn từng gặp lỗi lạ liên quan 2 thứ này mà không hiểu vì sao — giờ đã rõ nguyên nhân.
+- **Khi bạn `pull` code mới, nhớ `pip install -r requirements.txt` lại** để đồng bộ đúng danh sách trên.
 
-### B8. CP 6.4 — CI/CD Pipeline
+### B8. CP 6.4 — CI/CD Pipeline — ✅ Hoàn thành 2026-08-31
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4.
-- **Phụ thuộc**: B6 (cần test suite tồn tại để CI có gì mà chạy).
-- **✅ Khi xong, báo**: "CP6.4 xong — PR mới tự chạy lint+test, PR #___".
+- **✅ Đã báo**: `.github/workflows/ci-cd.yml` có 5 job (lint-backend, lint-frontend, test-backend, test-frontend, build-docker) chạy trên mọi PR/push vào `main`. Đã kiểm chứng từng phần cục bộ (ruff/oxlint sạch, 26 test pytest xanh, YAML hợp lệ) — **chưa thấy chạy thật trên GitHub Actions** vì chưa push, sẽ biết ngay khi bạn push/mở PR (tab Actions).
+- **Lưu ý cho Track A**: job `test-frontend` tự kiểm tra `package.json` có script `test` chưa trước khi chạy — hiện tại (chưa có Vitest) sẽ tự in "bỏ qua" chứ không làm CI đỏ. Khi bạn thêm Vitest (đặt tên script đúng là `"test"` trong `package.json`), CI sẽ tự động chạy thật mà không cần ai sửa lại file workflow.
+- **Toàn bộ Track B (B1→B8) đã xong.** Chỉ còn CP 6.5 (tài liệu + demo cuối) làm chung với Track A sau khi cả 2 bên hoàn thành.
 
-### Cuối cùng (chung, ai rảnh trước làm) — CP 6.5, Tài liệu & Demo
-- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.4 (đoạn `docs/api_reference.md`, `docs/deployment_guide.md`).
-- Làm sau khi cả 2 track xong (cần biết toàn bộ API + cách chạy Docker thật để viết hướng dẫn đúng).
+### Cuối cùng (chung) — CP 6.5, Tài liệu & Demo — 🟡 Track B đã xong phần của mình
+- **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.5.
+- **✅ Track B đã làm xong**: `docs/api_reference.md` (toàn bộ endpoint hiện có), `docs/deployment_guide.md` (Docker Compose + chạy thủ công + các lỗi thực tế đã gặp), cập nhật link trong `README.md`.
+- **⏳ Còn lại, cần Track A**: kịch bản demo trực quan cho buổi bảo vệ — chỉ viết được sau khi CP3.6/CP4 (frontend) xong, vì cần đi qua đủ tính năng cả 2 phía mới lên được kịch bản click-through hoàn chỉnh.
 
 ---
 
@@ -199,8 +211,8 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] B4 — CP 5.4 Human-in-the-loop API
 - [x] B5 — CP 6.1 ONNX Export
 - [x] B6 — CP 6.2 Test Suite (backend)
-- [ ] B7 — CP 6.3 Docker
-- [ ] B8 — CP 6.4 CI/CD
+- [x] B7 — CP 6.3 Docker
+- [x] B8 — CP 6.4 CI/CD
 
 **Yêu cầu chéo track**
 - [x] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)

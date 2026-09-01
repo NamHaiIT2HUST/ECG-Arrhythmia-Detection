@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-fastapi-cors
 websockets
 pydantic-settings
 numpy==2.0.2
@@ -27,3 +26,4 @@ onnxruntime==1.20.1
 pytest==8.3.4
 pydantic-settings
 python-multipart
+ruff==0.16.5
