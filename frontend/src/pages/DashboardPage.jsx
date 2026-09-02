@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
 import LoadingSpinner from '../components/dashboard/LoadingSpinner';
+import RecordSelector from '../components/dashboard/RecordSelector';
+import UploadDiagnosisModal from '../components/dashboard/UploadDiagnosisModal';
 import { useAnomaly } from '../context/AnomalyContext';
 
 const MAX_POINTS = 1000;
@@ -16,6 +18,12 @@ const DashboardPage = () => {
   
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
   const [latency, setLatency] = useState(0);
+  const [bpm, setBpm] = useState(null);
+  const [hrvSdnn, setHrvSdnn] = useState(null);
+  const [confidence, setConfidence] = useState(null);
+
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { addAnomaly } = useAnomaly();
 
@@ -24,10 +32,13 @@ const DashboardPage = () => {
     let reconnectTimeout = null;
 
     const handleNewData = (data) => {
-      const { chunk, prediction, latency_ms, heatmap } = data;
+      const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence } = data;
       
       setLatency(latency_ms);
       setLatestPrediction(prediction);
+      if (bpm !== undefined) setBpm(bpm);
+      if (hrv_sdnn !== undefined) setHrvSdnn(hrv_sdnn);
+      if (confidence !== undefined) setConfidence(confidence);
       
       if (heatmap) {
         setCurrentHeatmap(heatmap);
@@ -71,7 +82,9 @@ const DashboardPage = () => {
         try { ws.close(); } catch (e) {}
       }
 
-      ws = new WebSocket('ws://localhost:8000/ws/ecg');
+      // Khởi tạo WS URL, nếu có selectedRecord thì truyền vào query
+      const wsUrl = `ws://localhost:8000/ws/ecg${selectedRecord ? `?record=${selectedRecord}` : ''}`;
+      ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         setConnectionStatus('Đã kết nối');
@@ -89,7 +102,11 @@ const DashboardPage = () => {
 
       ws.onclose = () => {
         setConnectionStatus('Đang kết nối lại...');
-        setIsInitialLoading(false);
+        // Reset buffers
+        setXData([]);
+        setYData([]);
+        setCurrentHeatmap(null);
+        
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
@@ -105,17 +122,51 @@ const DashboardPage = () => {
       if (ws) ws.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, []);
+  }, [selectedRecord]); // Chạy lại hiệu ứng khi bản ghi được chọn thay đổi
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+      
+      {/* Thanh công cụ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <RecordSelector selectedRecord={selectedRecord} onSelectRecord={setSelectedRecord} />
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
+            ● {connectionStatus}
+          </span>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Chẩn đoán offline (CSV)
+          </button>
+        </div>
+      </div>
+
+      <UploadDiagnosisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
       {isInitialLoading ? (
         <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LoadingSpinner />
         </div>
       ) : (
         <>
-          <StatCards latestPrediction={latestPrediction} latency={latency} />
+          <StatCards 
+            latestPrediction={latestPrediction} 
+            latency={latency} 
+            bpm={bpm}
+            hrv_sdnn={hrvSdnn}
+            confidence={confidence}
+          />
           <div style={{ display: 'flex', flex: 1, minHeight: '0' }}>
             <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />
           </div>
