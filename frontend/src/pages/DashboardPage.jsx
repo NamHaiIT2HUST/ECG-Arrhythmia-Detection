@@ -30,6 +30,7 @@ const DashboardPage = () => {
   useEffect(() => {
     let ws = null;
     let reconnectTimeout = null;
+    let cancelled = false; // true khi effect này bị cleanup (đổi bản ghi/unmount) - chặn onclose cũ tự reconnect lại bản ghi cũ
 
     const handleNewData = (data) => {
       const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence } = data;
@@ -87,11 +88,13 @@ const DashboardPage = () => {
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        if (cancelled) return;
         setConnectionStatus('Đã kết nối');
         setIsInitialLoading(false);
       };
 
       ws.onmessage = (event) => {
+        if (cancelled) return;
         try {
           const data = JSON.parse(event.data);
           handleNewData(data);
@@ -101,12 +104,13 @@ const DashboardPage = () => {
       };
 
       ws.onclose = () => {
+        if (cancelled) return; // effect đã bị cleanup (vd đổi bản ghi) - đây không phải mất kết nối thật, đừng tự reconnect lại bản ghi cũ
         setConnectionStatus('Đang kết nối lại...');
         // Reset buffers
         setXData([]);
         setYData([]);
         setCurrentHeatmap(null);
-        
+
         reconnectTimeout = setTimeout(connect, 3000);
       };
 
@@ -119,6 +123,7 @@ const DashboardPage = () => {
     connect();
 
     return () => {
+      cancelled = true;
       if (ws) ws.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
