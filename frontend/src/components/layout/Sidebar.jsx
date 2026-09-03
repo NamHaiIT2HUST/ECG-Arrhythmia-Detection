@@ -36,8 +36,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               gap: '12px',
               cursor: 'pointer', 
               borderRadius: '6px',
-              backgroundColor: activeTab === item.id ? 'var(--sidebar-active)' : 'transparent',
-              color: activeTab === item.id ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+              backgroundColor: activeTab === item.id ? 'var(--primary-bg)' : 'transparent',
+              color: activeTab === item.id ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
               fontWeight: activeTab === item.id ? '600' : '500',
               transition: 'all 0.15s ease'
             }}
@@ -67,8 +67,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           gap: '12px',
           cursor: 'pointer', 
           borderRadius: '6px',
-          backgroundColor: activeTab === 'settings' ? 'var(--sidebar-active)' : 'transparent',
-          color: activeTab === 'settings' ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+          backgroundColor: activeTab === 'settings' ? 'var(--primary-bg)' : 'transparent',
+          color: activeTab === 'settings' ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
           fontWeight: activeTab === 'settings' ? '600' : '500',
           transition: 'all 0.15s ease'
         }}

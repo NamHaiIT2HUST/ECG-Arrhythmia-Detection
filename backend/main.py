@@ -10,6 +10,8 @@ from backend.api.anomalies import router as anomalies_router
 from backend.core.config import settings
 from backend.service.inference_service import ai_service
 import os
+from backend.db.session import engine
+from backend.db.base import Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +23,15 @@ async def lifespan(app: FastAPI):
     # Nạp model ResNet1D vào RAM
     model_path = os.path.join("saved_models", "resnet1d.pth")
     ai_service.load_model(model_path)
+
+    # Ensure DB tables exist for development/demo (create missing tables).
+    # Import models so they are registered on Base.metadata before create_all
+    try:
+        import backend.db.models  # noqa: F401 (register models)
+        Base.metadata.create_all(bind=engine)
+        print('[DB] Đã kiểm tra/khởi tạo schema (nếu cần).')
+    except Exception as e:
+        print(f"[DB] Không thể tạo bảng: {e}")
     
     yield
     
