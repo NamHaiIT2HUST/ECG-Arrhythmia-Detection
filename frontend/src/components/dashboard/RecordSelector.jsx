@@ -12,8 +12,10 @@ const RecordSelector = ({ selectedRecord, onSelectRecord }) => {
         // Use current settings to derive REST base (convert ws:// -> http://)
         const settings = loadSettings();
         const base = settings?.wsUrl ? settings.wsUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:') : 'http://localhost:8001';
+        console.debug('[RecordSelector] using base URL:', base);
         const resp = await fetch(`${base}/api/records`);
         const response = await resp.json();
+        console.debug('[RecordSelector] /api/records response', response && { count: response.count });
         if (response && response.records) {
           setRecords(response.records);
           if (!selectedRecord && response.default_record) onSelectRecord(response.default_record);

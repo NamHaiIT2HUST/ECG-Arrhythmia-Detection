@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAlarm } from '../../context/AlarmContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
   return (
@@ -29,11 +30,10 @@ const Header = () => {
         </span>
       </div>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>BS. Nguyễn Văn B</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Khoa Tim Mạch</div>
+            <UserBadge />
           </div>
           <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'var(--primary-bg)', color: 'var(--primary)', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
             NB
@@ -73,3 +73,13 @@ const Header = () => {
     };
 
 export default Header;
+
+const UserBadge = () => {
+  const { user, logout } = useAuth();
+  return (
+    <div>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>{user?.username || 'Người dùng'}</div>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user?.role || ''} <button onClick={logout} style={{ marginLeft: 8, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer' }}>Đăng xuất</button></div>
+    </div>
+  );
+};
