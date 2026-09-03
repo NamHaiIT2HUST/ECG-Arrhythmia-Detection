@@ -120,7 +120,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <div style={{ padding: '25px', maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ padding: '25px', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
         <h2 style={{ margin: '0 0 4px', color: 'var(--text-main)', fontSize: '22px', fontWeight: '700' }}>
           ⚙️ Cài Đặt Hệ Thống
@@ -131,7 +131,7 @@ const SettingsPage = () => {
       </div>
 
       {/* Section 1: Kết nối */}
-      <div style={sectionStyle}>
+      <div style={{ ...sectionStyle, width: '100%' }}>
         <h3 style={{ margin: '0 0 4px', fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>
           🔌 Kết nối Backend
         </h3>
@@ -152,7 +152,7 @@ const SettingsPage = () => {
       </div>
 
       {/* Section 2: Giao diện */}
-      <div style={sectionStyle}>
+      <div style={{ ...sectionStyle, width: '100%' }}>
         <h3 style={{ margin: '0 0 4px', fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>
           🎨 Giao diện
         </h3>
@@ -189,7 +189,7 @@ const SettingsPage = () => {
       </div>
 
       {/* Section 3: Cảnh báo AI */}
-      <div style={sectionStyle}>
+      <div style={{ ...sectionStyle, width: '100%' }}>
         <h3 style={{ margin: '0 0 4px', fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>
           🎯 Độ nhạy cảnh báo AI
         </h3>
@@ -257,7 +257,7 @@ const SettingsPage = () => {
       </div>
 
       {/* Section 4: Thông báo */}
-      <div style={sectionStyle}>
+      <div style={{ ...sectionStyle, width: '100%' }}>
         <h3 style={{ margin: '0 0 4px', fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>
           🔔 Thông báo đẩy (Browser Push)
         </h3>

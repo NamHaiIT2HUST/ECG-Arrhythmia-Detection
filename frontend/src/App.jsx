@@ -1,6 +1,7 @@
 import React, { useState, Suspense } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import XAIPage from './pages/XAIPage';
+import ReportExporter from './pages/ReportExporter';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import { AnomalyProvider } from './context/AnomalyContext';
@@ -42,14 +43,8 @@ function App() {
                 </div>
               )}
               {activeTab === 'xai' && <XAIPage />}
-              {activeTab === 'settings' && (
-                <div style={{ padding: '25px' }}>
-                  <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-                    <h2 style={{ color: 'var(--text-main)' }}>Cài Đặt Hệ Thống</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Cấu hình API Endpoint và phân quyền truy cập đang được phát triển.</p>
-                  </div>
-                </div>
-              )}
+              {activeTab === 'reports' && <ReportExporter />}
+              {activeTab === 'settings' && <SettingsPage />}
             </main>
           </div>
           </div>

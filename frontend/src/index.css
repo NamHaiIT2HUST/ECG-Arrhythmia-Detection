@@ -10,7 +10,8 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-sidebar: #cbd5e1;
-  --text-sidebar-active: #ffffff;
+  --text-sidebar-active: #f59e0b;
+  --text-sidebar: #f59e0b;
   
   --border-color: #e2e8f0;
   
@@ -35,8 +36,8 @@
   
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --text-sidebar: #94a3b8;
-  --text-sidebar-active: #ffffff;
+  --text-sidebar: #f59e0b;
+  --text-sidebar-active: #f59e0b;
   
   --border-color: #334155;
   

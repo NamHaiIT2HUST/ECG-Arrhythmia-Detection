@@ -10,6 +10,7 @@
 let audioCtx = null;
 let alarmInterval = null;
 let currentLevel = 0;
+let globallyMuted = false;
 
 const getAudioContext = () => {
   if (!audioCtx || audioCtx.state === 'closed') {
@@ -72,6 +73,7 @@ const playAlarmPattern = (level) => {
  * @param {number} level - 2 hoặc 3
  */
 export const startAlarm = (level) => {
+  if (globallyMuted) return;
   if (level < 2) return; // Mức 1 không cần âm thanh
   if (currentLevel === level && alarmInterval) return; // Đã đang chạy đúng mức
 
@@ -93,4 +95,9 @@ export const stopAlarm = () => {
     alarmInterval = null;
   }
   currentLevel = 0;
+};
+
+export const setMuted = (v) => {
+  globallyMuted = !!v;
+  if (globallyMuted) stopAlarm();
 };

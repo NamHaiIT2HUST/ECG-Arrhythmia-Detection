@@ -5,6 +5,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', icon: '📊', label: 'Theo Dõi Trực Tuyến' },
     { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
     { id: 'xai', icon: '🧠', label: 'Phân Tích XAI Chuyên Sâu' },
+    { id: 'reports', icon: '📄', label: 'Xuất Báo Cáo (PDF/CSV)' },
   ];
 
   return (

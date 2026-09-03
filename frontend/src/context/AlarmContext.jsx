@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useRef, useCallback, useEffect } from 'react';
 import { getAlarmLevel } from '../constants/alarmLevels';
-import { startAlarm, stopAlarm } from '../utils/alarmAudio';
+import { startAlarm, stopAlarm, setMuted } from '../utils/alarmAudio';
 
 const AlarmContext = createContext();
 
@@ -26,6 +26,7 @@ export const AlarmProvider = ({ children }) => {
   const muteAlarm = useCallback(() => {
     clearMuteTimers();
     setIsMuted(true);
+    setMuted(true);
     stopAlarm();
     let remaining = Math.floor(MUTE_DURATION_MS / 1000);
     setSnoozeCountdown(remaining);
@@ -46,6 +47,7 @@ export const AlarmProvider = ({ children }) => {
     clearMuteTimers();
     setIsMuted(false);
     setSnoozeCountdown(0);
+    setMuted(false);
   }, []);
 
   /**
