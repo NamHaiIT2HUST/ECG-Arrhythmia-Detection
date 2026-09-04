@@ -111,7 +111,12 @@ const DashboardPage = () => {
       const base = `${settings.wsUrl}/ws/ecg`;
       let qs = '';
       if (selectedRecord) qs += `?record=${selectedRecord}`;
-      if (selectedPatient) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId ?? selectedPatient.id}`;
+      // Backend yêu cầu patient_id là số nguyên (id thật trong bảng `patients`). Bệnh nhân chỉ
+      // lưu localStorage (chưa có API /api/patients thật) có `id` là UUID (crypto.randomUUID())
+      // - gửi UUID này sẽ làm FastAPI từ chối handshake WS ngay lúc validate query param. Chỉ
+      // truyền patient_id khi đã có remoteId (số nguyên, đồng bộ từ backend thật); nếu chưa có,
+      // bỏ qua tham số này - backend tự dùng "bệnh nhân mặc định" (xem plan.md mục 5.4).
+      if (selectedPatient?.remoteId) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId}`;
       const wsUrl = base + qs;
       ws = new WebSocket(wsUrl);
 

@@ -4,7 +4,7 @@ import { useAlarm } from '../context/AlarmContext';
 const SETTINGS_KEY = 'ecg_settings';
 
 const defaultSettings = {
-  wsUrl: 'ws://localhost:8001',
+  wsUrl: 'ws://localhost:8000',
   theme: 'auto', // 'auto' | 'light' | 'dark'
   confidenceThreshold: 0, // 0-1 (0 = không lọc)
   notificationEnabled: false,

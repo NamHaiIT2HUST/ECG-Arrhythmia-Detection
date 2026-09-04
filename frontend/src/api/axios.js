@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Derive REST base URL from saved settings (wsUrl) when possible.
-// If user configured wsUrl like `ws://localhost:8001`, convert to `http://localhost:8001`.
+// If user configured wsUrl like `ws://localhost:8000`, convert to `http://localhost:8000`.
 const getDefaultBase = () => {
   try {
     const raw = localStorage.getItem('ecg_settings');
@@ -13,7 +13,7 @@ const getDefaultBase = () => {
   } catch (e) {
     // ignore
   }
-  return 'http://localhost:8001';
+  return 'http://localhost:8000';
 };
 
 const api = axios.create({
