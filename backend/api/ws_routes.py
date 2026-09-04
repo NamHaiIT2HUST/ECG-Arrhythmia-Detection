@@ -22,22 +22,14 @@ async def ecg_stream_endpoint(
     db: Session = Depends(get_db),
 ):
     global active_connections
-    try:
-        print(f"[WebSocket] Incoming connection: headers={dict(websocket.headers)} client={websocket.client}")
-        # CP3.4: cho phép chọn bản ghi PhysioNet muốn phát qua query param, vd:
-        # ws://localhost:8000/ws/ecg?record=100  (mặc định 208 nếu không truyền)
-        if not record_exists(record):
-            print(f"[WebSocket] Record '{record}' không tồn tại, dùng mặc định '{DEFAULT_RECORD}'.")
-            record = DEFAULT_RECORD
 
-        await websocket.accept()
-    except Exception as e:
-        print(f"[WebSocket] Exception during accept/init: {e}")
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-        return
+    # CP3.4: cho phép chọn bản ghi PhysioNet muốn phát qua query param, vd:
+    # ws://localhost:8000/ws/ecg?record=100  (mặc định 208 nếu không truyền)
+    if not record_exists(record):
+        print(f"[WebSocket] Record '{record}' không tồn tại, dùng mặc định '{DEFAULT_RECORD}'.")
+        record = DEFAULT_RECORD
+
+    await websocket.accept()
     active_connections += 1
 
     # CP5.3: gắn phiên stream này với 1 bệnh nhân trong DB để log được sự kiện bất thường.
