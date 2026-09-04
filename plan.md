@@ -24,9 +24,9 @@ flowchart TD
     CP1["<b>Checkpoint 1 (HOÀN THÀNH)</b><br/>Dữ liệu & Mô hình AI Cốt lõi & XAI"]
     CP2["<b>Checkpoint 2 (HOÀN THÀNH)</b><br/>Hạ tầng Real-time WebSocket & Dashboard MVP"]
     CP3["<b>Checkpoint 3 (HOÀN THÀNH — backend)</b><br/>Xử lý Tín hiệu Số (DSP) & Phân đoạn Nhịp Động"]
-    CP4["<b>Checkpoint 4 (TIẾP THEO)</b><br/>Nghiệp vụ Y tế Lâm sàng & Báo cáo Thông minh (AI Report)"]
-    CP5["<b>Checkpoint 5</b><br/>Cơ sở Dữ liệu, Xác thực & Phân quyền (Auth & Database)"]
-    CP6["<b>Checkpoint 6</b><br/>Tối ưu Edge AI, Đóng gói Docker & Kiểm thử Toàn diện"]
+    CP4["<b>Checkpoint 4 (HOÀN THÀNH)</b><br/>Nghiệp vụ Y tế Lâm sàng & Báo cáo Thông minh (AI Report)"]
+    CP5["<b>Checkpoint 5 (HOÀN THÀNH)</b><br/>Cơ sở Dữ liệu, Xác thực & Phân quyền (Auth & Database)"]
+    CP6["<b>Checkpoint 6 (còn CP6.5 demo)</b><br/>Tối ưu Edge AI, Đóng gói Docker & Kiểm thử Toàn diện"]
 
     CP1 --> CP2
     CP2 --> CP3
@@ -170,7 +170,7 @@ frontend/src/
 
 ### 🟢 CHECKPOINT 3: XỬ LÝ TÍN HIỆU SỐ (DSP) NÂNG CAO & CẮT PHỨC BỘ R-PEAK ĐỘNG
 > **Trọng tâm**: Chuyển từ việc cắt cửa sổ tĩnh 187 điểm sang xử lý tín hiệu thực tế: lọc nhiễu y tế và tự động nhận diện đỉnh R (Pan-Tompkins), tính BPM/HRV thật, cho phép chọn bản ghi và chẩn đoán offline từ file upload.
-> **Trạng thái**: ✅ 100% hoàn thành ở backend (2026-08-30, nhánh `feat/dsp-and-beat-segmentation` đã merge `main`). ⚠️ Frontend CHƯA nối (CP 3.6, xem [pccv.md](pccv.md)).
+> **Trạng thái**: ✅ 100% hoàn thành (2026-08-30, nhánh `feat/dsp-and-beat-segmentation` đã merge `main`; CP 3.6 nối Frontend cũng đã xong 2026-09-02, xem [pccv.md](pccv.md)).
 
 #### 3.0. 🔴 CHẨN ĐOÁN GỐC RỄ: Vì sao kết quả real-time từng có vẻ "kém" dù benchmark cao?
 **Không cần train lại 5 model.** Benchmark (`docs/benchmark_results.md`) hợp lệ, không data leakage. ResNet1D 98.57% Acc / 92.16% F1-macro là số thật.
@@ -245,13 +245,8 @@ Quy tắc đúng đã áp dụng: **resample được phép áp dụng cho TOÀN
 
 **Dùng 2 script `validate_*` sau MỌI thay đổi ở `qrs_detector.py`/`signal_processing.py`/`inference_service.py`/`data_streamer.py`** — đây là cách duy nhất để biết pipeline có còn đúng hay không, đừng chỉ test bằng mắt qua vài gói WebSocket (bài học từ mục 3.1).
 
-#### 3.6. ⏳ CP 3.6 — Nối Frontend với API mới của CP3 (CHƯA LÀM — phần dễ nhất để bắt đầu track Frontend)
-Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn toàn chưa biết** đến `bpm`, `hrv_sdnn`, `hrv_rmssd`, `is_new_beat`, `GET /api/records`, hay `POST /api/diagnosis/upload-ecg`. Cần:
-- `StatCards.jsx`: thêm 1-2 ô hiển thị BPM tức thời + HRV (SDNN), đọc trực tiếp từ payload WS đã có sẵn field này — **không cần sửa backend gì thêm**.
-- Dropdown chọn bản ghi (component mới, vd `RecordSelector.jsx`): gọi `GET /api/records` lúc mount, khi user chọn → đóng WS cũ, mở `ws://.../ws/ecg?record=<id>` mới (sửa `DashboardPage.jsx`'s `connect()` để nhận `record` từ state thay vì hardcode).
-- Form upload (trang mới hoặc modal): gọi `POST /api/diagnosis/upload-ecg` bằng `FormData`, hiển thị báo cáo trả về (bảng `class_counts`, `bpm`, `hrv`, danh sách `anomalies`).
-
-Đây là task **độc lập, không phụ thuộc ai khác**, nên làm đầu tiên khi bắt đầu track Frontend (xem [pccv.md](pccv.md) — Track A, Sprint 2 tuần 1).
+#### 3.6. ✅ CP 3.6 — Nối Frontend với API mới của CP3 — Hoàn thành 2026-09-02
+`StatCards.jsx` đã hiển thị BPM/HRV(SDNN)/độ tin cậy đọc trực tiếp từ payload WS; `RecordSelector.jsx` gọi `GET /api/records` và đổi query `?record=<id>` khi mở lại WS (đã vá thêm race condition reconnect khi đổi bản ghi, xem `fix(CP3.6)` trên `main`); `UploadDiagnosisModal.jsx` gọi `POST /api/diagnosis/upload-ecg` bằng `FormData` và hiển thị đủ báo cáo trả về.
 
 #### 3.7. Sub-checkpoints
 - [x] **CP 3.1** DSP Preprocessing Module (`signal_processing.py`)
@@ -263,15 +258,16 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 
 ---
 
-### 🟡 CHECKPOINT 4: NGHIỆP VỤ Y TẾ LÂM SÀNG, BÁO CÁO THÔNG MINH (AI REPORT) & HỆ THỐNG CẢNH BÁO
+### 🟢 CHECKPOINT 4: NGHIỆP VỤ Y TẾ LÂM SÀNG, BÁO CÁO THÔNG MINH (AI REPORT) & HỆ THỐNG CẢNH BÁO
 > **Trọng tâm**: Nâng cấp giao diện người dùng thành phần mềm trạm điều dưỡng/bác sĩ thực thụ. **Toàn bộ Checkpoint này là Frontend** (trừ 1 API nhỏ tuỳ chọn ở CP4.5), không phụ thuộc Checkpoint 5 — có thể làm song song.
-> **Quyết định phạm vi quan trọng** (đọc trước khi làm): để giữ mọi sub-checkpoint độc lập và không phải chờ CP5 (database), **toàn bộ dữ liệu Bệnh nhân/Cài đặt ở Checkpoint này lưu tạm ở `localStorage`** giống cách `AnomalyContext` đang làm — KHÔNG chờ database thật. Khi CP5.1 xong, sẽ có 1 task nhỏ riêng để "di cư" localStorage → API thật (không nằm trong CP4).
+> **Trạng thái**: ✅ 100% hoàn thành (2026-09-04, PR #16 `feat/CP4.3,4,5` đã merge `main`, gộp chung với CP4.1/4.2 đã merge trước đó).
+> **Quyết định phạm vi quan trọng** (đã áp dụng): để giữ mọi sub-checkpoint độc lập và không phải chờ CP5 (database), **toàn bộ dữ liệu Bệnh nhân/Cài đặt ở Checkpoint này lưu tạm ở `localStorage`** giống cách `AnomalyContext` đang làm — chưa di cư sang database thật (không nằm trong phạm vi CP4).
 
-#### 4.1. Hiện trạng & hạn chế
-- Tab "Hồ sơ bệnh nhân" (`patient`) và "Cài đặt" (`settings`) trong `App.jsx` hiện chỉ render 1 `<div>` tĩnh ghi "tính năng đang được phát triển".
-- Cảnh báo hiện chỉ có highlight màu trên `StatCards`/`ECGChart` (`isDanger`, dải đỏ mờ) — chưa có âm thanh, chưa phân cấp mức độ nguy hiểm.
-- Chưa có xuất báo cáo (PDF/CSV).
-- `AnomalyContext` giới hạn 20 sự kiện gần nhất, mất khi F5 (chấp nhận được cho tới khi có CP5 database).
+#### 4.1. Hiện trạng & hạn chế (trước khi làm CP4)
+- Tab "Hồ sơ bệnh nhân" (`patient`) và "Cài đặt" (`settings`) trong `App.jsx` trước đây chỉ render 1 `<div>` tĩnh ghi "tính năng đang được phát triển" — nay đã có `PatientPage.jsx`/`SettingsPage.jsx` thật.
+- Cảnh báo trước đây chỉ có highlight màu trên `StatCards`/`ECGChart` — nay có `alarmAudio.js`/`AlarmContext.jsx` (âm thanh + mute + phân cấp mức độ).
+- Trước đây chưa có xuất báo cáo (PDF/CSV) — nay có `reportGenerator.js` + `ReportExporter.jsx`.
+- `AnomalyContext` vẫn giới hạn 20 sự kiện gần nhất, mất khi F5 (chấp nhận được, chưa nằm trong phạm vi CP4/CP5).
 
 #### 4.2. CP 4.1 — Patient Management UI
 **File**: `frontend/src/pages/PatientPage.jsx` (thay div placeholder trong `App.jsx`), `frontend/src/context/PatientContext.jsx` (mới, cùng pattern với `AnomalyContext.jsx`), `frontend/src/components/patient/PatientForm.jsx`, `PatientCard.jsx`.
@@ -330,14 +326,15 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 #### 4.7. Sub-checkpoints
 - [x] **CP 4.1** Patient Management UI & Form Validation (`PatientPage.jsx`, `PatientContext.jsx`)
 - [x] **CP 4.2** Medical Audio & Visual Alarm System (`alarmAudio.js`, `alarmLevels.js`)
-- [ ] **CP 4.3** Automated Medical Report Generator (PDF/CSV, frontend-only)
-- [ ] **CP 4.4** AI Diagnostic Explainer — bản rút gọn (bảng tra cứu tĩnh, không đo PR/QRS/ST thật)
-- [ ] **CP 4.5** Settings & Calibration Page (+ yêu cầu chéo track: thêm `confidence` vào backend)
+- [x] **CP 4.3** Automated Medical Report Generator (PDF/CSV, frontend-only) — `reportGenerator.js`, `ReportExporter.jsx`
+- [x] **CP 4.4** AI Diagnostic Explainer — bản rút gọn (`clinicalExplanations.js`, không đo PR/QRS/ST thật)
+- [x] **CP 4.5** Settings & Calibration Page (`SettingsPage.jsx`) — ngưỡng nhạy AI dùng field `confidence` đã có từ CP5.3
 
 ---
 
-### 🟡 CHECKPOINT 5: HỆ THỐNG CƠ SỞ DỮ LIỆU, XÁC THỰC BẢO MẬT & PHÂN QUYỀN (RBAC)
+### 🟢 CHECKPOINT 5: HỆ THỐNG CƠ SỞ DỮ LIỆU, XÁC THỰC BẢO MẬT & PHÂN QUYỀN (RBAC)
 > **Trọng tâm**: Chuyển từ Demo bộ nhớ tạm (In-Memory/LocalStorage) sang hệ thống có cơ sở dữ liệu bền vững + bảo mật. **Toàn bộ Checkpoint này là Backend** (trừ CP5.5 là điểm nối với Frontend), độc lập với Checkpoint 4 — có thể làm song song.
+> **Trạng thái**: ✅ 100% hoàn thành (2026-09-04, PR #17 `feat/cp5.5` đã merge `main`).
 
 #### 5.1. Hiện trạng & hạn chế
 - Mọi sự kiện bất thường chỉ lưu tạm ở `AnomalyContext` (React, mất khi F5, không chia sẻ giữa nhiều máy/nhiều người xem).
@@ -431,20 +428,21 @@ POST /api/anomalies/{id}/verify
 - **`backend/scripts/validate_review.py`** (mới): tạo 1 `anomaly_events` test trực tiếp qua ORM (không cần mở WS thật — đường ghi log đã được `validate_anomalies.py` kiểm chứng riêng), rồi kiểm tra 16 assertion: nurse bị từ chối (403), thiếu token (401), doctor/admin verify được (200, `review_status`/`reviewed_by`/`corrected_label` đúng), thiếu/sai `corrected_label` bị từ chối (422), id không tồn tại (404), và `audit_trails` ghi đủ đúng 3 lần verify thành công (2 lần thất bại do 403/401/422 KHÔNG được ghi audit).
 - **DoD đã đạt**: toàn bộ 16 assertion trong `validate_review.py` xanh; chạy lại `validate_anomalies.py` không hồi quy.
 
-#### 5.6. CP 5.5 — Frontend Auth Guard & Role-based UI (ĐIỂM NỐI 2 TRACK)
-**File**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/context/AuthContext.jsx`, `frontend/src/components/AuthGuard.jsx`.
-- Trang đăng nhập gọi `POST /api/auth/login`, lưu token (khuyến nghị: `localStorage` cho đơn giản ở giai đoạn demo — ghi rõ đây KHÔNG phải best practice bảo mật production, httpOnly cookie mới chuẩn, nhưng đủ cho đồ án).
-- `AuthGuard`: bọc quanh `App.jsx`, chưa có token hợp lệ → chỉ render `LoginPage`.
-- Ẩn/hiện tab theo role (vd tab "Cài Đặt Hệ Thống" chỉ `admin` mới thấy, nút "Sửa nhãn" ở XAIPage chỉ `doctor` mới thấy).
-- **Đây là task DUY NHẤT bắt buộc chờ người kia** — người làm Frontend (CP4) làm task này **sau khi** CP5.2 xong (hoặc build song song bằng cách mock đúng response shape ở mục 5.3 rồi cắm API thật vào sau — khuyến khích làm cách này để không bị block, chi tiết ở `pccv.md`).
-- **DoD**: chưa login không vào được app, login đúng role thấy đúng menu, token hết hạn tự về LoginPage.
+#### 5.6. CP 5.5 — Frontend Auth Guard & Role-based UI — ✅ Hoàn thành 2026-09-04
+**File**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/context/AuthContext.jsx`, gate trong `App.jsx`/`Sidebar.jsx`.
+- Trang đăng nhập gọi `POST /api/auth/login` thật, lưu `access_token`/`refresh_token` vào `localStorage` (đã ghi rõ trong code đây KHÔNG phải best practice bảo mật production, httpOnly cookie mới chuẩn, nhưng đủ cho đồ án).
+- `AuthContext` xác thực lại token đã lưu qua `GET /api/auth/me` lúc mở app, và tự động gọi `POST /api/auth/refresh` đúng 1 lần khi gặp 401 (qua axios interceptor) trước khi đá về `LoginPage`.
+- Ẩn tab "Cài Đặt Hệ Thống" khỏi role khác `admin` (ở cả `Sidebar.jsx` lẫn tầng render trong `App.jsx`, không chỉ ẩn ở giao diện).
+- **⚠️ Lưu ý cho ai đọc lại sau này**: PR đầu tiên nộp cho checkpoint này (PR #17) chỉ là 1 form UI cho phép **tự chọn role** (admin/doctor/nurse) không mật khẩu, không hề gọi `POST /api/auth/login` — tác giả tự đặt tên "Đăng nhập (mock)". Đã viết lại hoàn toàn trước khi merge để dùng đúng API thật. Bài học: PR "xong CP5.5" cần kiểm tra kỹ có thực sự gọi backend hay chỉ giả lập UI.
+- Ví dụ "nút Sửa nhãn ở XAIPage chỉ doctor mới thấy" trong DoD gốc **chưa áp dụng được** — tính năng gọi `POST /api/anomalies/{id}/verify` từ frontend (human-in-the-loop, CP5.4) chưa có UI nào cả, không riêng ở CP5.5. Đây là 1 gap chưa được giao việc rõ ràng ở `pccv.md`, cần bổ sung nếu muốn demo tính năng doctor duyệt/sửa nhãn.
+- **DoD**: chưa login không vào được app ✅, login đúng role thấy đúng menu (Settings ẩn với non-admin) ✅, token hết hạn tự refresh hoặc về LoginPage ✅.
 
 #### 5.7. Sub-checkpoints
 - [x] **CP 5.1** Database Schema & SQLAlchemy ORM (`backend/db/`) — Hoàn thành 2026-08-30
 - [x] **CP 5.2** Authentication & Authorization APIs (`backend/api/auth.py`) — Hoàn thành 2026-08-30
 - [x] **CP 5.3** Historical Anomaly Query & Pagination APIs (+ ghi anomaly vào DB từ `ws_routes.py`) — Hoàn thành 2026-08-30
 - [x] **CP 5.4** Doctor Feedback & Human-in-the-Loop API — Hoàn thành 2026-08-30
-- [ ] **CP 5.5** Frontend Auth Guard & Role-based UI *(điểm nối 2 track — xem `pccv.md`)*
+- [x] **CP 5.5** Frontend Auth Guard & Role-based UI — Hoàn thành 2026-09-04
 
 ---
 
@@ -503,19 +501,19 @@ POST /api/anomalies/{id}/verify
 - Đã thêm `ruff==0.16.5` vào `requirements.txt` (đồng bộ version với CI) theo đúng tiền lệ đã có với `pytest` ở CP6.2 (dự án không tách dev-requirements riêng).
 - **DoD đã đạt**: cấu hình đầy đủ 5 job, đã kiểm chứng cục bộ từng phần (ruff sạch, oxlint sạch/chỉ warning, 26 test pytest xanh, YAML hợp lệ) — chưa kiểm chứng được bằng 1 lần chạy Actions thật (cần push lên GitHub mới thấy), nhưng mọi thành phần đã tự chạy đúng cục bộ với đúng lệnh workflow sẽ gọi.
 
-#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật — 🟡 2/3 phần xong (2026-09-02), phần còn lại chờ Track A
+#### 6.5. CP 6.5 — Hoàn thiện Tài liệu Kỹ thuật — 🟡 2/3 phần xong (2026-09-02), phần còn lại đã hết chặn (Track A xong hết 2026-09-04)
 - ✅ `docs/api_reference.md`: liệt kê đầy đủ mọi endpoint hiện có (WS `/ws/ecg`, `GET /api/records`, `POST /api/diagnosis/upload-ecg`, `POST/GET /api/auth/*`, `GET /api/anomalies`, `POST /api/anomalies/{id}/verify`) kèm request/response mẫu, mã lỗi, 3 tài khoản test.
 - ✅ `docs/deployment_guide.md`: hướng dẫn cả 2 cách chạy (Docker Compose và thủ công), bảng biến môi trường override được, và mục riêng ghi lại **các lỗi thực tế đã gặp lúc làm CP6.3** (thiếu `pydantic-settings`/`python-multipart`, buffering log, torch kéo theo CUDA) kèm cách xử lý — tránh người sau lặp lại đúng những lỗi đã tốn công tìm ra.
 - ✅ Cập nhật `README.md`: thêm link tới 2 file trên, thêm lựa chọn chạy bằng Docker Compose.
-- ⏳ **Còn lại — cần Track A xong CP3.6/CP4 trước mới viết được**: hướng dẫn demo trực quan cho buổi bảo vệ đồ án (kịch bản click-through đủ tính năng frontend+backend).
-- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch — **đã đạt** cho phần backend/Docker; phần kịch bản demo đầy đủ tính năng chờ Track A.
+- ⏳ **Còn lại**: hướng dẫn demo trực quan cho buổi bảo vệ đồ án (kịch bản click-through đủ tính năng frontend+backend) — không còn bị chặn vì CP3.6/CP4/CP5.5 (Track A) đã xong hết, chỉ còn việc ngồi viết kịch bản.
+- **DoD**: người ngoài dự án đọc `README.md` + `docs/deployment_guide.md` là chạy được toàn bộ hệ thống từ máy sạch — **đã đạt** cho phần backend/Docker; phần kịch bản demo đầy đủ tính năng là việc duy nhất còn lại của toàn bộ kế hoạch.
 
 #### 6.6. Sub-checkpoints
 - [x] **CP 6.1** PyTorch → ONNX & Quantization Pipeline — Hoàn thành 2026-08-30
-- [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) là việc Track A
+- [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) mới có 1 test (`ReportExporter.test.jsx`), chưa phủ hết `PatientForm`/`alarmAudio`/`reportGenerator` như gợi ý ban đầu
 - [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
-- [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31 (chờ lần push đầu để xác nhận chạy thật trên GitHub)
-- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — 2/3 xong (api_reference.md, deployment_guide.md), còn kịch bản demo chờ Track A
+- [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31, đã xác nhận chạy thật xanh trên GitHub Actions qua các PR #14-17
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — 2/3 xong (api_reference.md, deployment_guide.md), còn kịch bản demo (không còn ai/gì chặn)
 
 ---
 
@@ -525,12 +523,12 @@ POST /api/anomalies/{id}/verify
 |:---|:---|:---:|:---:|:---:|
 | **CP 1** | Tiền xử lý dữ liệu MIT-BIH, SMOTE, 5 Models, Benchmark, Grad-CAM | ✅ 100% | — | Cao |
 | **CP 2** | FastAPI WebSocket, Singleton Inference, React Plotly Dashboard, XAI Page | ✅ 100% | — | Trung bình |
-| **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% (backend) | — | Trung bình |
-| **CP 3.6** | Nối Frontend với API CP3 | ⏳ Chưa làm | Track A (Frontend) | Thấp |
-| **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ⏳ Chưa làm | Track A (Frontend) | Trung bình |
-| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ CP5.1-5.4 xong (backend) — 5.5 là việc Track A | Track B (Backend) | Cao |
-| **CP 5.5** | Frontend Auth Guard | ⏳ Chưa làm | Track A (chờ CP5.2 hoặc mock) | Thấp |
-| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong, CP6.5 backend xong 2/3 — chỉ còn kịch bản demo chờ Track A | Track B (Backend) | Cao |
+| **CP 3** | DSP, Pan-Tompkins R-peak, BPM/HRV, record switcher, upload chẩn đoán | ✅ 100% | — | Trung bình |
+| **CP 3.6** | Nối Frontend với API CP3 | ✅ 100% | Track A (Frontend) | Thấp |
+| **CP 4** | Patient Management, Alarm System, Report Exporter, XAI Explainer, Settings | ✅ 100% | Track A (Frontend) | Trung bình |
+| **CP 5** | Database, Auth JWT, RBAC, Human-in-the-loop | ✅ 100% | Track B (Backend) | Cao |
+| **CP 5.5** | Frontend Auth Guard | ✅ 100% | Track A (Frontend) | Thấp |
+| **CP 6** | ONNX, Test Suite, Docker, CI/CD, Docs | 🟡 CP6.1-6.4 xong, CP6.5 còn đúng 1 việc: kịch bản demo (không còn ai chặn) | Track B (Backend) | Cao |
 
 ---
 
@@ -539,4 +537,5 @@ POST /api/anomalies/{id}/verify
 1. ~~Đồng bộ hoá Git, merge về `main`~~ ✅ Xong.
 2. ~~Vá lỗi lệch miền dữ liệu train/serving~~ ✅ Xong.
 3. ~~Hoàn thiện Checkpoint 3 (backend)~~ ✅ Xong — Accuracy end-to-end 94.33%, không cần train lại model.
-4. **Chia việc cho 2 người, bắt đầu Checkpoint 3.6 + 4 (Track A) và Checkpoint 5 + 6 (Track B) song song** — xem chi tiết phân công, thứ tự làm, và giao thức đồng bộ giữa 2 người tại **[pccv.md](pccv.md)**.
+4. ~~Chia việc cho 2 người, Checkpoint 3.6 + 4 + 5.5 (Track A) và Checkpoint 5 + 6 (Track B) song song~~ ✅ Xong — cả 2 track đã hoàn thành toàn bộ checklist của mình (chi tiết phân công tại [pccv.md](pccv.md)).
+5. **Việc duy nhất còn lại của toàn bộ kế hoạch**: viết kịch bản demo trực quan cho buổi bảo vệ (CP 6.5, mục 6.5) — không còn phụ thuộc gì nữa, chỉ cần ngồi viết.
