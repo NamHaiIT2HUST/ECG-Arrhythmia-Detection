@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 
 from backend.service.diagnosis_service import parse_ecg_csv, run_offline_diagnosis
 from backend.service.inference_service import ai_service
@@ -6,6 +7,9 @@ from backend.service.inference_service import ai_service
 router = APIRouter()
 
 MIN_DURATION_SECONDS = 2.0
+# bandpass_filter() dùng highcut=45.0Hz mặc định - Nyquist (fs/2) phải lớn hơn 45Hz để
+# scipy.signal.butter nhận tần số cắt hợp lệ (0 < Wn < 1), nên fs tối thiểu là 91Hz.
+MIN_VALID_FS = 91
 
 
 @router.post("/api/diagnosis/upload-ecg")
@@ -18,6 +22,12 @@ async def upload_ecg_diagnosis(
     trên TOÀN BỘ các nhịp phát hiện được, trả về báo cáo tổng hợp (chẩn đoán offline,
     không phải luồng real-time).
     """
+    if fs < MIN_VALID_FS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"fs={fs}Hz quá thấp, cần tối thiểu {MIN_VALID_FS}Hz để lọc nhiễu đúng (bộ lọc thông dải cắt tại 45Hz).",
+        )
+
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="File rỗng.")
@@ -41,4 +51,7 @@ async def upload_ecg_diagnosis(
     if not ai_service.is_ready:
         raise HTTPException(status_code=503, detail="Model AI chưa sẵn sàng, thử lại sau.")
 
-    return run_offline_diagnosis(signal, fs=fs)
+    # run_offline_diagnosis là vòng lặp CPU-bound đồng bộ (forward + Grad-CAM cho từng nhịp),
+    # có thể chạy hàng giây với file dài - chạy trong threadpool để không chặn event loop
+    # dùng chung với mọi kết nối WS /ws/ecg đang stream real-time cho bệnh nhân khác.
+    return await run_in_threadpool(run_offline_diagnosis, signal, fs=fs)

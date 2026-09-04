@@ -58,9 +58,12 @@ class GradCAM1D:
         cam = F.interpolate(cam, size=input_tensor.size(-1), mode='linear', align_corners=False)
         cam = cam.squeeze().cpu().numpy()
         
-        # Chuẩn hóa về dải [0, 1]
-        if np.max(cam) - np.min(cam) != 0:
-            cam = (cam - np.min(cam)) / (np.max(cam) - np.min(cam))
+        # Chuẩn hóa về dải [0, 1] - dùng ngưỡng epsilon (không so sánh != 0 tuyệt đối, cùng lý
+        # do với signal_processing.normalize_window) để tránh khuếch đại nhiễu dấu phẩy động
+        # thành heatmap dao động toàn dải [0,1] khi vùng activation gần như đồng đều.
+        cam_range = np.max(cam) - np.min(cam)
+        if cam_range > 1e-8:
+            cam = (cam - np.min(cam)) / cam_range
         else:
             cam = np.zeros_like(cam)
             
@@ -99,9 +102,10 @@ class Saliency1D:
         # Gradient x Input
         saliency = gradients * input_data
         
-        # Chuẩn hóa về dải [0, 1]
-        if np.max(saliency) - np.min(saliency) != 0:
-            saliency = (saliency - np.min(saliency)) / (np.max(saliency) - np.min(saliency))
+        # Chuẩn hóa về dải [0, 1] - epsilon thay vì != 0 tuyệt đối, cùng lý do như GradCAM1D ở trên.
+        saliency_range = np.max(saliency) - np.min(saliency)
+        if saliency_range > 1e-8:
+            saliency = (saliency - np.min(saliency)) / saliency_range
         else:
             saliency = np.zeros_like(saliency)
             

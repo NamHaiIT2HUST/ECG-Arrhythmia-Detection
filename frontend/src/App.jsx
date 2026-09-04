@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import XAIPage from './pages/XAIPage';
 import ReportExporter from './pages/ReportExporter';
@@ -11,8 +11,6 @@ import PatientPage from './pages/PatientPage';
 import SettingsPage from './pages/SettingsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
-
-const PatientList = React.lazy(() => import('./components/patients/PatientList'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -49,24 +47,7 @@ const InnerApp = ({ activeTab, setActiveTab }) => {
         <Header />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'dashboard' && <DashboardPage />}
-          {activeTab === 'patient' && (
-            <div style={{ padding: '25px' }}>
-              <div className="card" style={{ padding: '20px' }}>
-                <h2 style={{ color: 'var(--text-main)' }}>Hồ Sơ Bệnh Nhân</h2>
-                <p style={{ color: 'var(--text-muted)' }}>Quản lý bệnh nhân (localStorage) — thêm/sửa/chọn để gán phiên stream.</p>
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                        {/* PatientList component lazy-loaded to avoid bumping initial bundle */}
-                        <Suspense fallback={<div>Đang tải...</div>}>
-                          <PatientList />
-                        </Suspense>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'patient' && <PatientPage />}
           {activeTab === 'xai' && <XAIPage />}
           {activeTab === 'reports' && <ReportExporter />}
           {activeTab === 'settings' && isAdmin && <SettingsPage />}

@@ -64,8 +64,11 @@ export const AuthProvider = ({ children }) => {
       (res) => res,
       async (error) => {
         const original = error.config;
-        const isAuthEndpoint = original?.url?.startsWith('/api/auth/');
-        if (error.response?.status === 401 && original && !original._retry && !isAuthEndpoint && getRefreshToken()) {
+        // Chỉ loại trừ chính /login và /refresh (retry 2 endpoint này sẽ vô nghĩa/lặp vô hạn).
+        // /api/auth/me PHẢI được retry bình thường - đây chính là request verify() gọi lúc mở
+        // app, và access token hết hạn sau 30 phút là tình huống rất thường gặp cần refresh.
+        const isNonRetryableAuthEndpoint = original?.url === '/api/auth/login' || original?.url === '/api/auth/refresh';
+        if (error.response?.status === 401 && original && !original._retry && !isNonRetryableAuthEndpoint && getRefreshToken()) {
           original._retry = true;
           try {
             const newToken = await refreshAccessToken();

@@ -13,7 +13,7 @@ export const generateCSV = (anomalyHistory, patient = null) => {
   const rows = anomalyHistory.map(item => [
     item.time || '',
     item.prediction || '',
-    item.confidence ? (item.confidence * 100).toFixed(1) : '',
+    item.confidence != null ? (item.confidence * 100).toFixed(1) : '',
     item.latency?.toFixed(1) || '',
   ]);
 
@@ -194,8 +194,8 @@ export const generatePDF = async ({ anomalyHistory, patient, chartElement }) => 
       doc.text(item.time || '—', margin, y);
       doc.text(item.prediction?.slice(0, 42) || '—', margin + 25, y);
       doc.setTextColor(71, 85, 105);
-      doc.text(item.confidence ? `${(item.confidence * 100).toFixed(1)}%` : '—', margin + 105, y);
-      doc.text(item.latency ? `${item.latency.toFixed(1)}` : '—', margin + 130, y);
+      doc.text(item.confidence != null ? `${(item.confidence * 100).toFixed(1)}%` : '—', margin + 105, y);
+      doc.text(item.latency != null ? `${item.latency.toFixed(1)}` : '—', margin + 130, y);
       y += 5;
     });
   }

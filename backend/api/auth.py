@@ -48,8 +48,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(username=payload.username).one_or_none()
     # Cố tình dùng CHUNG 1 thông báo lỗi cho "sai username" và "sai password" (không tiết lộ
     # username có tồn tại hay không - tránh dò tài khoản qua thông báo lỗi khác nhau).
-    if user is None or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai tài khoản hoặc mật khẩu")
+    unauthorized = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai tài khoản hoặc mật khẩu")
+    if user is None:
+        raise unauthorized
+    try:
+        password_ok = verify_password(payload.password, user.hashed_password)
+    except ValueError:
+        # bcrypt ném ValueError cho mật khẩu > 72 byte - vẫn là "sai mật khẩu", không phải lỗi server.
+        raise unauthorized
+    if not password_ok:
+        raise unauthorized
 
     return LoginResponse(
         access_token=create_access_token(user),
@@ -70,7 +78,10 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
         raise unauthorized
 
     user_id = claims.get("sub")
-    user = db.get(User, int(user_id)) if user_id is not None else None
+    try:
+        user = db.get(User, int(user_id)) if user_id is not None else None
+    except (ValueError, TypeError):
+        raise unauthorized
     if user is None:
         raise unauthorized
 

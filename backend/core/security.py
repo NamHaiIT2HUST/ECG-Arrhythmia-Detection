@@ -77,7 +77,10 @@ def get_current_user(
         raise unauthorized
 
     user_id = payload.get("sub")
-    user = db.get(User, int(user_id)) if user_id is not None else None
+    try:
+        user = db.get(User, int(user_id)) if user_id is not None else None
+    except (ValueError, TypeError):
+        raise unauthorized
     if user is None:
         raise unauthorized
 

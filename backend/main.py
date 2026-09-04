@@ -7,7 +7,7 @@ from backend.api.records_routes import router as records_router
 from backend.api.diagnosis_routes import router as diagnosis_router
 from backend.api.auth import router as auth_router
 from backend.api.anomalies import router as anomalies_router
-from backend.core.config import settings
+from backend.core.config import settings, DEFAULT_JWT_SECRET_KEY
 from backend.service.inference_service import ai_service
 import os
 
@@ -17,7 +17,13 @@ async def lifespan(app: FastAPI):
     print("===========================================")
     print("🚀 BẮT ĐẦU KHỞI ĐỘNG HỆ THỐNG ECG BACKEND 🚀")
     print("===========================================")
-    
+
+    if settings.JWT_SECRET_KEY == DEFAULT_JWT_SECRET_KEY:
+        print("⚠️  [CẢNH BÁO BẢO MẬT] JWT_SECRET_KEY đang dùng giá trị mặc định (dev-only, "
+              "công khai trong source code) - ai đọc được repo đều có thể tự ký token giả mạo "
+              "bất kỳ quyền nào. Đặt biến môi trường JWT_SECRET_KEY thật trước khi triển khai "
+              "ngoài máy cá nhân, xem docs/deployment_guide.md.")
+
     # Nạp model ResNet1D vào RAM
     model_path = os.path.join("saved_models", "resnet1d.pth")
     ai_service.load_model(model_path)

@@ -31,7 +31,19 @@ const DashboardPage = () => {
   const { addAnomaly } = useAnomaly();
   const { selectedPatient } = usePatient();
   const { triggerAlarm } = useAlarm();
-  
+
+  // handleNewData sống bên trong 1 useEffect hiếm khi chạy lại (chỉ khi đổi record/bệnh
+  // nhân/wsUrl) - nếu gọi thẳng triggerAlarm/addAnomaly, closure sẽ đóng băng bản cũ mãi mãi
+  // (vd sau khi bấm Mute, AlarmContext tạo lại triggerAlarm mới nhưng handleNewData vẫn gọi
+  // bản cũ tưởng chưa mute). Dùng ref để luôn lấy đúng bản mới nhất mà không phải thêm vào
+  // dependency array của effect (thêm vào sẽ làm WS bị đóng/mở lại mỗi lần trạng thái mute đổi).
+  const triggerAlarmRef = React.useRef(triggerAlarm);
+  const addAnomalyRef = React.useRef(addAnomaly);
+  useEffect(() => {
+    triggerAlarmRef.current = triggerAlarm;
+    addAnomalyRef.current = addAnomaly;
+  }, [triggerAlarm, addAnomaly]);
+
   // Đọc settings để lấy wsUrl và confidenceThreshold
   const [settings, setSettings] = useState(loadSettings());
   useEffect(() => {
@@ -62,18 +74,18 @@ const DashboardPage = () => {
       
       if (heatmap) {
         setCurrentHeatmap(heatmap);
-        
+
         // Gọi trigger alarm cho tất cả các bản tin có prediction (kể cả bình thường để tắt alarm)
-        triggerAlarm(prediction, settings.confidenceThreshold, confidence);
-        
+        triggerAlarmRef.current(prediction, settings.confidenceThreshold, confidence);
+
         if (prediction && prediction.includes('CẢNH BÁO')) {
           // Lưu lại chính xác 187 điểm cuối cùng của yData (và thêm chunk) để XAI phân tích
           setYData(prevY => {
             const tempY = [...prevY, ...chunk];
             const recent187 = tempY.slice(-187);
-            
+
             // Đẩy vào context
-            addAnomaly({
+            addAnomalyRef.current({
               prediction,
               latency: latency_ms,
               heatmap: heatmap,

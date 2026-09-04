@@ -1,7 +1,8 @@
 import React from 'react';
+import { getAlarmLevel } from '../../constants/alarmLevels';
 
 const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence }) => {
-  const isDanger = latestPrediction && latestPrediction.includes('CẢNH BÁO');
+  const isDanger = getAlarmLevel(latestPrediction).level === 3;
   
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
@@ -60,7 +61,7 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence }) => 
         </h3>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
           <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: 'var(--text-main)' }}>
-            {hrv_sdnn ? hrv_sdnn.toFixed(1) : '--'}
+            {hrv_sdnn != null ? hrv_sdnn.toFixed(1) : '--'}
           </p>
           <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>ms</span>
         </div>
@@ -79,7 +80,7 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence }) => 
         </h3>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
           <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: 'var(--text-main)' }}>
-            {confidence ? (confidence * 100).toFixed(1) : '--'}
+            {confidence != null ? (confidence * 100).toFixed(1) : '--'}
           </p>
           <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>%</span>
         </div>

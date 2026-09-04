@@ -1,20 +1,22 @@
 import React from 'react';
 import { usePatient } from '../../context/PatientContext';
+import { getAlarmLevel } from '../../constants/alarmLevels';
 
 const GENDER_LABEL = { M: 'Nam', F: 'Nữ', Other: 'Khác' };
 
 const PatientCard = ({ patient, isActive, onSelect, onEdit, onDelete, latestPrediction }) => {
-  const isDanger = latestPrediction && latestPrediction.includes('CẢNH BÁO');
-  const isWarning = latestPrediction && latestPrediction.includes('CẢNH BÁO') && !isDanger;
+  const alarmLevel = getAlarmLevel(latestPrediction).level;
+  const isDanger = alarmLevel === 3;
+  const isWarning = alarmLevel === 2;
 
   const statusColor = isActive
-    ? (isDanger ? '#ef4444' : '#10b981')
+    ? (isDanger ? '#ef4444' : isWarning ? '#f59e0b' : '#10b981')
     : '#475569';
 
   return (
     <div style={{
       backgroundColor: '#ffffff',
-      border: `2px solid ${isActive ? (isDanger ? '#ef4444' : 'var(--primary)') : '#e2e8f0'}`,
+      border: `2px solid ${isActive ? (isDanger ? '#ef4444' : isWarning ? '#f59e0b' : 'var(--primary)') : '#e2e8f0'}`,
       borderRadius: '10px',
       padding: '18px 20px',
       cursor: 'pointer',
@@ -93,12 +95,12 @@ const PatientCard = ({ patient, isActive, onSelect, onEdit, onDelete, latestPred
         }}>
           <span style={{
             fontSize: '12px', fontWeight: '700',
-            color: isDanger ? '#ef4444' : '#10b981',
-            backgroundColor: isDanger ? '#fef2f2' : '#ecfdf5',
+            color: isDanger ? '#ef4444' : isWarning ? '#f59e0b' : '#10b981',
+            backgroundColor: isDanger ? '#fef2f2' : isWarning ? '#fffbeb' : '#ecfdf5',
             padding: '3px 9px', borderRadius: '5px',
             display: 'inline-block'
           }}>
-            {isDanger ? '🔴' : '🟢'} {latestPrediction}
+            {isDanger ? '🔴' : isWarning ? '🟡' : '🟢'} {latestPrediction}
           </span>
         </div>
       )}

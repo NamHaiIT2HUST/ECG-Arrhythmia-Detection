@@ -58,8 +58,12 @@ const PatientForm = ({ patient, onClose, records = [] }) => {
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'Tên bắt buộc';
-    const age = Number(form.age);
-    if (isNaN(age) || age < 0 || age > 120) errs.age = 'Tuổi phải từ 0-120';
+    if (form.age === '' || form.age === null || form.age === undefined) {
+      errs.age = 'Tuổi bắt buộc';
+    } else {
+      const age = Number(form.age);
+      if (isNaN(age) || age < 0 || age > 120) errs.age = 'Tuổi phải từ 0-120';
+    }
     if (!form.bedNumber.trim()) errs.bedNumber = 'Số giường bắt buộc';
     else {
       const dup = patients.find(

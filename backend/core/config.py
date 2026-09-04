@@ -1,5 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Tách riêng thành hằng số (thay vì string literal trong Settings) để main.py có thể so sánh
+# lúc khởi động và cảnh báo nếu chưa ai override qua biến môi trường JWT_SECRET_KEY.
+DEFAULT_JWT_SECRET_KEY = "dev-only-doi-bien-moi-truong-truoc-khi-trien-khai-that-8f3a1c9e2b7d"
+
+
 class Settings(BaseSettings):
     # Thông tin dự án
     PROJECT_NAME: str = "ECG Real-time Backend"
@@ -25,7 +30,7 @@ class Settings(BaseSettings):
     # Cấu hình JWT (CP5.2). ⚠️ JWT_SECRET_KEY mặc định CHỈ dùng cho dev/demo local —
     # bắt buộc override bằng biến môi trường JWT_SECRET_KEY thật trước khi triển khai
     # ngoài máy cá nhân (đổi secret sẽ làm mọi token cũ hết hiệu lực, không có tác dụng phụ nguy hiểm).
-    JWT_SECRET_KEY: str = "dev-only-doi-bien-moi-truong-truoc-khi-trien-khai-that-8f3a1c9e2b7d"
+    JWT_SECRET_KEY: str = DEFAULT_JWT_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

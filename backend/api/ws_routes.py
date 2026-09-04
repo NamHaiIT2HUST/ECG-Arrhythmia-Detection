@@ -31,30 +31,33 @@ async def ecg_stream_endpoint(
 
     await websocket.accept()
     active_connections += 1
-
-    # CP5.3: gắn phiên stream này với 1 bệnh nhân trong DB để log được sự kiện bất thường.
-    # patient_id là TUỲ CHỌN (CP4.1 - quản lý bệnh nhân thật - chưa nối vào đây) — không
-    # truyền hoặc truyền id không tồn tại sẽ tự dùng 1 bệnh nhân mặc định (xem anomaly_log_service.py).
-    patient = resolve_patient(db, patient_id)
-    ecg_record = start_ecg_record(db, patient.id, record)
-
-    print(f"[WebSocket] Client mới đã kết nối (record={record}, patient_id={patient.id}). "
-          f"Tổng số: {active_connections}")
-
-    filepath = f"data/raw/physionet_mitdb/{record}"
-    ecg_stream = ecg_file_reader(filepath=filepath, chunk_size=10, fps=36)
-
-    # CP3.2/3.3: AI + BPM/HRV giờ chỉ được tính LẠI mỗi khi có 1 nhịp tim mới (đỉnh R),
-    # không còn chạy trên mọi gói tin. Giữ nguyên giá trị gần nhất (sample-and-hold)
-    # giữa 2 nhịp để Dashboard luôn có dữ liệu hiển thị, không bị chớp về rỗng.
-    last_prediction = "CHỜ DỮ LIỆU"
-    last_latency_ms = 0.0
-    last_confidence = 0.0
-    last_bpm = 0.0
-    last_hrv_sdnn = 0.0
-    last_hrv_rmssd = 0.0
+    # None cho tới khi start_ecg_record() thành công - finally bên dưới cần biết có nên
+    # gọi end_ecg_record() hay không nếu setup bệnh nhân/bản ghi thất bại giữa chừng.
+    ecg_record = None
 
     try:
+        # CP5.3: gắn phiên stream này với 1 bệnh nhân trong DB để log được sự kiện bất thường.
+        # patient_id là TUỲ CHỌN (CP4.1 - quản lý bệnh nhân thật - chưa nối vào đây) — không
+        # truyền hoặc truyền id không tồn tại sẽ tự dùng 1 bệnh nhân mặc định (xem anomaly_log_service.py).
+        patient = resolve_patient(db, patient_id)
+        ecg_record = start_ecg_record(db, patient.id, record)
+
+        print(f"[WebSocket] Client mới đã kết nối (record={record}, patient_id={patient.id}). "
+              f"Tổng số: {active_connections}")
+
+        filepath = f"data/raw/physionet_mitdb/{record}"
+        ecg_stream = ecg_file_reader(filepath=filepath, chunk_size=10, fps=36)
+
+        # CP3.2/3.3: AI + BPM/HRV giờ chỉ được tính LẠI mỗi khi có 1 nhịp tim mới (đỉnh R),
+        # không còn chạy trên mọi gói tin. Giữ nguyên giá trị gần nhất (sample-and-hold)
+        # giữa 2 nhịp để Dashboard luôn có dữ liệu hiển thị, không bị chớp về rỗng.
+        last_prediction = "CHỜ DỮ LIỆU"
+        last_latency_ms = 0.0
+        last_confidence = 0.0
+        last_bpm = 0.0
+        last_hrv_sdnn = 0.0
+        last_hrv_rmssd = 0.0
+
         async for chunk_values, beat_info in ecg_stream:
             heatmap = None
 
@@ -104,4 +107,5 @@ async def ecg_stream_endpoint(
         # không bị lệch tăng dần nếu kết nối kết thúc do lỗi khác (bug nhỏ có sẵn từ trước CP5.3).
         active_connections -= 1
         print(f"[WebSocket] Còn lại: {active_connections}")
-        end_ecg_record(db, ecg_record)
+        if ecg_record is not None:
+            end_ecg_record(db, ecg_record)

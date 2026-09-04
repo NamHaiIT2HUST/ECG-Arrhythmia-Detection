@@ -28,7 +28,7 @@ const saveSettings = (settings) => {
 
 // Apply theme to <html> element
 const applyTheme = (theme) => {
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
   const isDark = theme === 'dark' || (theme === 'auto' && prefersDark);
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 };
@@ -72,7 +72,7 @@ const inputStyle = {
 const SettingsPage = () => {
   const [settings, setSettings] = useState(loadSettings);
   const [saved, setSaved] = useState(false);
-  const [notifStatus, setNotifStatus] = useState(Notification.permission);
+  const [notifStatus, setNotifStatus] = useState(() => (typeof Notification !== 'undefined' ? Notification.permission : 'default'));
   const { muteAlarm, unmuteAlarm, isMuted, snoozeCountdown } = useAlarm();
 
   // Apply theme khi settings thay đổi
@@ -83,7 +83,8 @@ const SettingsPage = () => {
   // Theo dõi theme auto theo system preference
   useEffect(() => {
     if (settings.theme !== 'auto') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
     const handler = () => applyTheme('auto');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
