@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     # Nạp model ResNet1D vào RAM
     model_path = os.path.join("saved_models", "resnet1d.pth")
     ai_service.load_model(model_path)
-    
+
     yield
     
     # Tắt máy (Shutdown)

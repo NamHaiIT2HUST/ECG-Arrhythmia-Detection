@@ -259,7 +259,7 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 - [x] **CP 3.3** HRV & Exact BPM Engine (`hrv.py`) + wiring — Accuracy end-to-end 94.33%
 - [x] **CP 3.4** Patient Record Switcher API (`records_routes.py`)
 - [x] **CP 3.5** File Upload & Offline Diagnosis API (`diagnosis_routes.py`, `diagnosis_service.py`)
-- [ ] **CP 3.6** Nối Frontend với API CP3 (`RecordSelector.jsx`, cập nhật `StatCards.jsx`/`DashboardPage.jsx`, form upload)
+- [x] **CP 3.6** Nối Frontend với API CP3 (`RecordSelector.jsx`, cập nhật `StatCards.jsx`/`DashboardPage.jsx`, form upload)
 
 ---
 
@@ -328,8 +328,8 @@ Frontend hiện tại (`StatCards.jsx`, `DashboardPage.jsx`, `App.jsx`) **hoàn 
 - **DoD**: đổi setting → dashboard áp dụng ngay (vd đổi dark/light), Notification permission xin được, setting còn sau F5.
 
 #### 4.7. Sub-checkpoints
-- [ ] **CP 4.1** Patient Management UI & Form Validation (`PatientPage.jsx`, `PatientContext.jsx`)
-- [ ] **CP 4.2** Medical Audio & Visual Alarm System (`alarmAudio.js`, `alarmLevels.js`)
+- [x] **CP 4.1** Patient Management UI & Form Validation (`PatientPage.jsx`, `PatientContext.jsx`)
+- [x] **CP 4.2** Medical Audio & Visual Alarm System (`alarmAudio.js`, `alarmLevels.js`)
 - [ ] **CP 4.3** Automated Medical Report Generator (PDF/CSV, frontend-only)
 - [ ] **CP 4.4** AI Diagnostic Explainer — bản rút gọn (bảng tra cứu tĩnh, không đo PR/QRS/ST thật)
 - [ ] **CP 4.5** Settings & Calibration Page (+ yêu cầu chéo track: thêm `confidence` vào backend)

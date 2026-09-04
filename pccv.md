@@ -196,7 +196,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 ## 6. CHECKLIST TỔNG HỢP (tick song song với `plan.md`)
 
 **Track A**
-- [ ] A1 — CP 3.6 Nối Frontend với API CP3
+- [x] A1 — CP 3.6 Nối Frontend với API CP3
 - [ ] A2 — CP 4.1 Patient Management UI
 - [ ] A3 — CP 4.2 Alarm System
 - [ ] A4 — CP 4.3 Report Exporter

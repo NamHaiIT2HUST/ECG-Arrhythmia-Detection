@@ -1,41 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import XAIPage from './pages/XAIPage';
+import ReportExporter from './pages/ReportExporter';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import { AnomalyProvider } from './context/AnomalyContext';
+import { PatientProvider } from './context/PatientContext';
+import { AlarmProvider } from './context/AlarmContext';
+import PatientPage from './pages/PatientPage';
+import SettingsPage from './pages/SettingsPage';
+const PatientList = React.lazy(() => import('./components/patients/PatientList'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   
   return (
     <AnomalyProvider>
-      <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--bg-color)' }}>
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Header />
-          <main style={{ flex: 1, overflowY: 'auto' }}>
-            {activeTab === 'dashboard' && <DashboardPage />}
-            {activeTab === 'patient' && (
-              <div style={{ padding: '25px' }}>
-                <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2 style={{ color: 'var(--text-main)' }}>Hồ Sơ Bệnh Nhân</h2>
-                  <p style={{ color: 'var(--text-muted)' }}>Tính năng quản lý hàng loạt hồ sơ bệnh nhân đang được phát triển.</p>
+      <PatientProvider>
+        <AlarmProvider>
+          <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--bg-color)' }}>
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Header />
+            <main style={{ flex: 1, overflowY: 'auto' }}>
+              {activeTab === 'dashboard' && <DashboardPage />}
+              {activeTab === 'patient' && (
+                <div style={{ padding: '25px' }}>
+                  <div className="card" style={{ padding: '20px' }}>
+                    <h2 style={{ color: 'var(--text-main)' }}>Hồ Sơ Bệnh Nhân</h2>
+                    <p style={{ color: 'var(--text-muted)' }}>Quản lý bệnh nhân (localStorage) — thêm/sửa/chọn để gán phiên stream.</p>
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                            {/* PatientList component lazy-loaded to avoid bumping initial bundle */}
+                            <Suspense fallback={<div>Đang tải...</div>}>
+                              <PatientList />
+                            </Suspense>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-            {activeTab === 'xai' && <XAIPage />}
-            {activeTab === 'settings' && (
-              <div style={{ padding: '25px' }}>
-                <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2 style={{ color: 'var(--text-main)' }}>Cài Đặt Hệ Thống</h2>
-                  <p style={{ color: 'var(--text-muted)' }}>Cấu hình API Endpoint và phân quyền truy cập đang được phát triển.</p>
-                </div>
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
+              )}
+              {activeTab === 'xai' && <XAIPage />}
+              {activeTab === 'reports' && <ReportExporter />}
+              {activeTab === 'settings' && <SettingsPage />}
+            </main>
+          </div>
+          </div>
+        </AlarmProvider>
+      </PatientProvider>
     </AnomalyProvider>
   );
 }

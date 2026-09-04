@@ -1,33 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* Color Variables - Light Mode (Default) */
 :root {
-  /* V3: Professional Analytics Theme */
   --bg-color: #f1f5f9;
+  --sidebar-bg: #1e293b;
+  --header-bg: #ffffff;
   --card-bg: #ffffff;
-  --border-color: #e2e8f0;
   
   --text-main: #0f172a;
   --text-muted: #64748b;
+  --text-sidebar: #cbd5e1;
+  --text-sidebar-active: #f59e0b;
+  --text-sidebar: #f59e0b;
   
-  /* Accents */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  --border-color: #e2e8f0;
+  
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
   --primary-bg: #eff6ff;
   
   --success: #10b981;
-  --success-bg: #ecfdf5;
-  
+  --warning: #f59e0b;
   --danger: #ef4444;
-  --danger-bg: #fef2f2;
-  
-  /* Sidebar Navy */
-  --sidebar-bg: #0f172a;
-  --sidebar-active: #1e293b;
-  --sidebar-text: #94a3b8;
-  --sidebar-active-text: #f8fafc;
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Color Variables - Dark Mode */
+:root[data-theme='dark'] {
+  --bg-color: #0f172a;
+  --sidebar-bg: #020617;
+  --header-bg: #1e293b;
+  --card-bg: #1e293b;
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-sidebar: #f59e0b;
+  --text-sidebar-active: #f59e0b;
+  
+  --border-color: #334155;
+  
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-bg: #1e3a8a;
 }
 
 * {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAlarm } from '../../context/AlarmContext';
 
 const Header = () => {
   return (
@@ -29,7 +30,7 @@ const Header = () => {
       </div>
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>BS. Nguyễn Văn B</div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Khoa Tim Mạch</div>
@@ -38,9 +39,37 @@ const Header = () => {
             NB
           </div>
         </div>
+            <AlarmControls />
       </div>
     </header>
   );
 };
+
+    const AlarmControls = () => {
+      const { isMuted, snoozeCountdown, currentAlarmLevel, muteAlarm, unmuteAlarm } = useAlarm();
+
+      const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
+      const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
+
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 18 }}>{levelIcon}</div>
+            <div style={{ fontSize: 12, color: currentAlarmLevel >=3 ? '#ef4444' : (currentAlarmLevel===2 ? '#f59e0b' : '#10b981'), fontWeight: 700 }}>{levelText}</div>
+          </div>
+          <div>
+            {isMuted ? (
+              <button onClick={unmuteAlarm} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
+                Bật âm {snoozeCountdown > 0 ? `(${snoozeCountdown}s)` : ''}
+              </button>
+            ) : (
+              <button onClick={muteAlarm} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
+                Tắt âm 2 phút
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
 
 export default Header;

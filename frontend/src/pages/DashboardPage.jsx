@@ -5,6 +5,9 @@ import LoadingSpinner from '../components/dashboard/LoadingSpinner';
 import RecordSelector from '../components/dashboard/RecordSelector';
 import UploadDiagnosisModal from '../components/dashboard/UploadDiagnosisModal';
 import { useAnomaly } from '../context/AnomalyContext';
+import { usePatient } from '../context/PatientContext';
+import { useAlarm } from '../context/AlarmContext';
+import { loadSettings } from './SettingsPage';
 
 const MAX_POINTS = 1000;
 
@@ -22,10 +25,26 @@ const DashboardPage = () => {
   const [hrvSdnn, setHrvSdnn] = useState(null);
   const [confidence, setConfidence] = useState(null);
 
-  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [localSelectedRecord, setLocalSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { addAnomaly } = useAnomaly();
+  const { selectedPatient } = usePatient();
+  const { triggerAlarm } = useAlarm();
+  
+  // Đọc settings để lấy wsUrl và confidenceThreshold
+  const [settings, setSettings] = useState(loadSettings());
+  useEffect(() => {
+    // Để ý nếu localStorage thay đổi thì update
+    const interval = setInterval(() => setSettings(loadSettings()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Ưu tiên bản ghi của bệnh nhân active
+  const selectedRecord = selectedPatient ? selectedPatient.activeRecordId : localSelectedRecord;
+  
+  // Ref cho báo cáo PDF
+  const chartRef = React.useRef(null);
 
   useEffect(() => {
     let ws = null;
@@ -43,6 +62,10 @@ const DashboardPage = () => {
       
       if (heatmap) {
         setCurrentHeatmap(heatmap);
+        
+        // Gọi trigger alarm cho tất cả các bản tin có prediction (kể cả bình thường để tắt alarm)
+        triggerAlarm(prediction, settings.confidenceThreshold, confidence);
+        
         if (prediction && prediction.includes('CẢNH BÁO')) {
           // Lưu lại chính xác 187 điểm cuối cùng của yData (và thêm chunk) để XAI phân tích
           setYData(prevY => {
@@ -54,6 +77,7 @@ const DashboardPage = () => {
               prediction,
               latency: latency_ms,
               heatmap: heatmap,
+              confidence: confidence, // Lưu thêm confidence
               signal: recent187.length === 187 ? recent187 : null // Chỉ lấy khi đủ 187
             });
             
@@ -83,8 +107,17 @@ const DashboardPage = () => {
         try { ws.close(); } catch (e) {}
       }
 
-      // Khởi tạo WS URL, nếu có selectedRecord thì truyền vào query
-      const wsUrl = `ws://localhost:8000/ws/ecg${selectedRecord ? `?record=${selectedRecord}` : ''}`;
+      // Khởi tạo WS URL từ settings, nếu có selectedRecord thì truyền vào query
+      const base = `${settings.wsUrl}/ws/ecg`;
+      let qs = '';
+      if (selectedRecord) qs += `?record=${selectedRecord}`;
+      // Backend yêu cầu patient_id là số nguyên (id thật trong bảng `patients`). Bệnh nhân chỉ
+      // lưu localStorage (chưa có API /api/patients thật) có `id` là UUID (crypto.randomUUID())
+      // - gửi UUID này sẽ làm FastAPI từ chối handshake WS ngay lúc validate query param. Chỉ
+      // truyền patient_id khi đã có remoteId (số nguyên, đồng bộ từ backend thật); nếu chưa có,
+      // bỏ qua tham số này - backend tự dùng "bệnh nhân mặc định" (xem plan.md mục 5.4).
+      if (selectedPatient?.remoteId) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId}`;
+      const wsUrl = base + qs;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -127,14 +160,24 @@ const DashboardPage = () => {
       if (ws) ws.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, [selectedRecord]); // Chạy lại hiệu ứng khi bản ghi được chọn thay đổi
+  }, [selectedRecord, selectedPatient, settings.wsUrl]); // Chạy lại hiệu ứng khi bản ghi, bệnh nhân hoặc wsUrl thay đổi
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
       
       {/* Thanh công cụ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <RecordSelector selectedRecord={selectedRecord} onSelectRecord={setSelectedRecord} />
+        <div style={{ flex: 1 }}>
+          <RecordSelector 
+            selectedRecord={localSelectedRecord} 
+            onSelectRecord={setLocalSelectedRecord} 
+          />
+          {selectedPatient && (
+            <div style={{ fontSize: '13px', color: '#f59e0b', marginTop: '6px' }}>
+              ⚠️ Đang khóa ở bản ghi của bệnh nhân: <strong>{selectedPatient.name}</strong>
+            </div>
+          )}
+        </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
@@ -172,7 +215,7 @@ const DashboardPage = () => {
             hrv_sdnn={hrvSdnn}
             confidence={confidence}
           />
-          <div style={{ display: 'flex', flex: 1, minHeight: '0' }}>
+          <div ref={chartRef} style={{ display: 'flex', flex: 1, minHeight: '0', position: 'relative' }}>
             <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />
           </div>
         </>

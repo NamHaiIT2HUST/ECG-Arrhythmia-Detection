@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "1.0.0"
     
     # Cấu hình mạng & CORS
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    BACKEND_CORS_ORIGINS: list = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174"]
     
     # Đường dẫn file dữ liệu
     MOCK_DATA_PATH: str = "data/mock_ecg.csv"

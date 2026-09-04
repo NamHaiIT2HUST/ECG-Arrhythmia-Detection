@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
+import { loadSettings } from '../../pages/SettingsPage';
 
 const RecordSelector = ({ selectedRecord, onSelectRecord }) => {
   const [records, setRecords] = useState([]);
@@ -8,16 +9,17 @@ const RecordSelector = ({ selectedRecord, onSelectRecord }) => {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const response = await api.get('/api/records');
-        if (response.data && response.data.records) {
-          setRecords(response.data.records);
-          // If no record is selected yet, select the default one
-          if (!selectedRecord && response.data.default_record) {
-            onSelectRecord(response.data.default_record);
-          }
+        // Use current settings to derive REST base (convert ws:// -> http://)
+        const settings = loadSettings();
+        const base = settings?.wsUrl ? settings.wsUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:') : 'http://localhost:8001';
+        const resp = await fetch(`${base}/api/records`);
+        const response = await resp.json();
+        if (response && response.records) {
+          setRecords(response.records);
+          if (!selectedRecord && response.default_record) onSelectRecord(response.default_record);
         }
       } catch (error) {
-        console.error("Lỗi lấy danh sách bản ghi:", error);
+        console.error('Lỗi lấy danh sách bản ghi:', error);
       } finally {
         setLoading(false);
       }
