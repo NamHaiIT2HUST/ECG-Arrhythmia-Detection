@@ -5,7 +5,7 @@ import axios from 'axios';
 const getDefaultBase = () => {
   try {
     const raw = localStorage.getItem('ecg_settings');
-    if (!raw) return 'http://localhost:8001';
+    if (!raw) return 'http://localhost:8000';
     const settings = JSON.parse(raw);
     if (settings.wsUrl) {
       return settings.wsUrl.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:');

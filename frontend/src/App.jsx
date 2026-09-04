@@ -31,7 +31,15 @@ function App() {
 }
 
 const InnerApp = ({ activeTab, setActiveTab }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        Đang xác thực phiên đăng nhập...
+      </div>
+    );
+  }
   if (!isAuthenticated) return <LoginPage />;
 
   return (
@@ -61,7 +69,7 @@ const InnerApp = ({ activeTab, setActiveTab }) => {
           )}
           {activeTab === 'xai' && <XAIPage />}
           {activeTab === 'reports' && <ReportExporter />}
-          {activeTab === 'settings' && <SettingsPage />}
+          {activeTab === 'settings' && isAdmin && <SettingsPage />}
         </main>
       </div>
     </div>

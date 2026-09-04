@@ -1,6 +1,8 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
+  const { isAdmin } = useAuth();
   const menuItems = [
     { id: 'dashboard', icon: '📊', label: 'Theo Dõi Trực Tuyến' },
     { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
@@ -58,34 +60,36 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         ))}
       </div>
 
-      <div 
-        onClick={() => setActiveTab('settings')}
-        style={{ 
-          margin: 'auto 15px 0',
-          padding: '12px 15px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          cursor: 'pointer', 
-          borderRadius: '6px',
-          backgroundColor: activeTab === 'settings' ? 'var(--primary-bg)' : 'transparent',
-          color: activeTab === 'settings' ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
-          fontWeight: activeTab === 'settings' ? '600' : '500',
-          transition: 'all 0.15s ease'
-        }}
-        onMouseEnter={(e) => {
-          if (activeTab !== 'settings') {
-            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (activeTab !== 'settings') {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }
-        }}
-      >
-        <span>⚙️</span> Cài Đặt Hệ Thống
-      </div>
+      {isAdmin && (
+        <div
+          onClick={() => setActiveTab('settings')}
+          style={{
+            margin: 'auto 15px 0',
+            padding: '12px 15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer',
+            borderRadius: '6px',
+            backgroundColor: activeTab === 'settings' ? 'var(--primary-bg)' : 'transparent',
+            color: activeTab === 'settings' ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
+            fontWeight: activeTab === 'settings' ? '600' : '500',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'settings') {
+              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'settings') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <span>⚙️</span> Cài Đặt Hệ Thống
+        </div>
+      )}
     </nav>
   );
 };
