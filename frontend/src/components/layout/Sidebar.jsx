@@ -21,10 +21,24 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       zIndex: 10
     }}>
       <div style={{ padding: '0 25px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '15px' }}>
-        <h2 style={{ margin: 0, color: '#ffffff', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700' }}>
-          <span style={{ fontSize: '22px' }}>🫀</span> NEURO-ECG
-        </h2>
-        <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#94a3b8' }}>Cloud Medical Platform</p>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: '#ffffff',
+          color: '#000000',
+          borderRadius: '12px',
+          padding: '10px 12px',
+          boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <span style={{ fontSize: '22px' }}>🫀</span>
+          <h2 style={{ margin: 0, color: '#000000', fontSize: '18px', fontWeight: '800', letterSpacing: '-0.04em' }}>
+            NEURO-ECG
+          </h2>
+        </div>
+        <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#94a3b8' }}>Cloud Medical Platform</p>
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '0 15px' }}>

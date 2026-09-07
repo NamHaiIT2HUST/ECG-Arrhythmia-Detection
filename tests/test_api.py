@@ -80,6 +80,22 @@ def test_refresh_rejects_access_token_used_as_refresh_token(client, auth_headers
     assert res.status_code == 401
 
 
+def test_register_creates_user_and_allows_login(client):
+    username = "new_doctor_001"
+    res = client.post(
+        "/api/auth/register",
+        json={"username": username, "password": "Doctor@456", "role": "doctor"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["username"] == username
+    assert body["role"] == "doctor"
+
+    login = client.post("/api/auth/login", json={"username": username, "password": "Doctor@456"})
+    assert login.status_code == 200
+    assert login.json()["role"] == "doctor"
+
+
 # ---------------------------------------------------------------------------
 # GET /api/anomalies, POST /api/anomalies/{id}/verify
 # ---------------------------------------------------------------------------
