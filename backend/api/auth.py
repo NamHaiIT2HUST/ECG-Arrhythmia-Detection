@@ -8,9 +8,10 @@ from backend.core.security import (
     create_refresh_token,
     decode_token,
     get_current_user,
+    hash_password,
     verify_password,
 )
-from backend.db.models import User
+from backend.db.models import User, UserRole
 from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -19,6 +20,12 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    role: str | None = None
 
 
 class LoginResponse(BaseModel):
@@ -41,6 +48,31 @@ class MeResponse(BaseModel):
     id: int
     username: str
     role: str
+
+
+@router.post("/register", response_model=MeResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    username = payload.username.strip()
+
+    if not username:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập không được để trống")
+    if len(username) < 3:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập phải có ít nhất 3 ký tự")
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu phải có ít nhất 6 ký tự")
+
+    existing = db.query(User).filter_by(username=username).one_or_none()
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên đăng nhập đã tồn tại")
+
+    # Ignore any role provided by the client. Public registrations must always be low-privilege
+    # nurse accounts. Higher-privilege accounts are created via backend scripts or admin-only flows.
+    user = User(username=username, hashed_password=hash_password(payload.password), role=UserRole.NURSE)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return MeResponse(id=user.id, username=user.username, role=user.role.value)
 
 
 @router.post("/login", response_model=LoginResponse)
