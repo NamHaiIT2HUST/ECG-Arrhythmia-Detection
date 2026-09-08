@@ -13,25 +13,18 @@ const steps = [
   'Hiển thị cảnh báo và báo cáo cho nhân sự y tế',
 ];
 
-const roleOptions = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'doctor', label: 'Bác sĩ' },
-  { value: 'nurse', label: 'Y tá' },
-];
 
 const LoginPage = () => {
   const { login, register } = useAuth();
   const [view, setView] = useState('landing');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('doctor');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const resetForm = () => {
     setUsername('');
     setPassword('');
-    setRole('doctor');
     setError(null);
   };
 
@@ -53,7 +46,7 @@ const LoginPage = () => {
     setError(null);
     setLoading(true);
     try {
-      await register({ username, password, role });
+      await register({ username, password });
       await login(username, password);
     } catch (err) {
       setError(err.response?.data?.detail || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -89,18 +82,7 @@ const LoginPage = () => {
         </div>
 
         <form className="auth-form" onSubmit={isLogin ? handleLogin : handleRegister}>
-          {isRegister && (
-            <label>
-              <span>Vai trò</span>
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          {/* Role selection removed: public registrations are always created as nurse on the server. */}
 
           <label>
             <span>Tên đăng nhập</span>

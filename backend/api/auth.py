@@ -25,7 +25,7 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    role: str
+    role: str | None = None
 
 
 class LoginResponse(BaseModel):
@@ -50,10 +50,9 @@ class MeResponse(BaseModel):
     role: str
 
 
-@router.post("/register", response_model=MeResponse)
+@router.post("/register", response_model=MeResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     username = payload.username.strip()
-    role_name = payload.role.strip().lower()
 
     if not username:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập không được để trống")
@@ -61,19 +60,14 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập phải có ít nhất 3 ký tự")
     if len(payload.password) < 6:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu phải có ít nhất 6 ký tự")
-    try:
-        role = UserRole(role_name)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Vai trò không hợp lệ. Chọn admin, doctor hoặc nurse",
-        ) from exc
 
     existing = db.query(User).filter_by(username=username).one_or_none()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên đăng nhập đã tồn tại")
 
-    user = User(username=username, hashed_password=hash_password(payload.password), role=role)
+    # Ignore any role provided by the client. Public registrations must always be low-privilege
+    # nurse accounts. Higher-privilege accounts are created via backend scripts or admin-only flows.
+    user = User(username=username, hashed_password=hash_password(payload.password), role=UserRole.NURSE)
     db.add(user)
     db.commit()
     db.refresh(user)
