@@ -82,18 +82,29 @@ def test_refresh_rejects_access_token_used_as_refresh_token(client, auth_headers
 
 def test_register_creates_user_and_allows_login(client):
     username = "new_doctor_001"
+    # Cố tình gửi role="doctor" - server PHẢI bỏ qua giá trị này, tự đăng ký chỉ được tạo
+    # tài khoản nurse (thấp quyền nhất). Đây là kiểm tra chống leo quyền (xem backend/api/auth.py).
     res = client.post(
         "/api/auth/register",
         json={"username": username, "password": "Doctor@456", "role": "doctor"},
     )
-    assert res.status_code == 200
+    assert res.status_code == 201
     body = res.json()
     assert body["username"] == username
-    assert body["role"] == "doctor"
+    assert body["role"] == "nurse"
 
     login = client.post("/api/auth/login", json={"username": username, "password": "Doctor@456"})
     assert login.status_code == 200
-    assert login.json()["role"] == "doctor"
+    assert login.json()["role"] == "nurse"
+
+
+def test_register_rejects_duplicate_username(client):
+    username = "dup_user_001"
+    res = client.post("/api/auth/register", json={"username": username, "password": "Password@123"})
+    assert res.status_code == 201
+
+    res2 = client.post("/api/auth/register", json={"username": username, "password": "Password@123"})
+    assert res2.status_code == 409
 
 
 # ---------------------------------------------------------------------------
