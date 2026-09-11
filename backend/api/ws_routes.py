@@ -57,6 +57,7 @@ async def ecg_stream_endpoint(
         last_bpm = 0.0
         last_hrv_sdnn = 0.0
         last_hrv_rmssd = 0.0
+        last_latency_e2e_ms = 0.0
 
         async for chunk_values, beat_info in ecg_stream:
             heatmap = None
@@ -68,6 +69,9 @@ async def ecg_stream_endpoint(
                 last_bpm = beat_info["bpm"]
                 last_hrv_sdnn = beat_info["hrv_sdnn"]
                 last_hrv_rmssd = beat_info["hrv_rmssd"]
+                # End-to-End Latency: tu luc phat hien dinh R (data_streamer.py) den ngay truoc
+                # khi gui payload nay qua WebSocket - xem backend/scripts/benchmark_e2e_latency.py.
+                last_latency_e2e_ms = (time.time() - beat_info["detected_at"]) * 1000.0
 
                 # CP5.3: chỉ ghi vào DB đúng lúc phát hiện bất thường (heatmap khác None),
                 # giữ đúng ngữ nghĩa cũ "heatmap khác null = có sự kiện mới cần log"
@@ -93,6 +97,7 @@ async def ecg_stream_endpoint(
                 "bpm": last_bpm,                # Nhịp tim tức thời (BPM) theo khoảng RR thực tế
                 "hrv_sdnn": last_hrv_sdnn,      # HRV - SDNN (ms), cửa sổ trượt tối đa 50 nhịp gần nhất
                 "hrv_rmssd": last_hrv_rmssd,    # HRV - RMSSD (ms)
+                "latency_e2e_ms": round(last_latency_e2e_ms, 2),  # Độ trễ tổng (phát hiện đỉnh R -> gửi WS)
                 "is_new_beat": beat_info is not None,  # true đúng lúc vừa chẩn đoán 1 nhịp mới
             }
 

@@ -2,7 +2,7 @@ from tests.conftest import requires_physionet_data, requires_saved_model
 
 EXPECTED_PAYLOAD_KEYS = {
     "chunk", "prediction", "heatmap", "latency_ms", "confidence",
-    "bpm", "hrv_sdnn", "hrv_rmssd", "is_new_beat",
+    "bpm", "hrv_sdnn", "hrv_rmssd", "latency_e2e_ms", "is_new_beat",
 }
 
 
