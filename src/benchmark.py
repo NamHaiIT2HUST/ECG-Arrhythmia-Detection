@@ -24,32 +24,38 @@ EPOCHS = 10
 LEARNING_RATE = 1e-3
 
 def load_data(dataset_type="kaggle"):
-    """Nạp dữ liệu đã xử lý từ data/processed/"""
-    if dataset_type == "kaggle":
-        x_tr_path = os.path.join(PROCESSED_DIR, "X_train_kaggle.npy")
-        y_tr_path = os.path.join(PROCESSED_DIR, "y_train_kaggle.npy")
-        x_te_path = os.path.join(PROCESSED_DIR, "X_test_kaggle.npy")
-        y_te_path = os.path.join(PROCESSED_DIR, "y_test_kaggle.npy")
-    else:
-        x_tr_path = os.path.join(PROCESSED_DIR, "X_train_physio.npy")
-        y_tr_path = os.path.join(PROCESSED_DIR, "y_train_physio.npy")
-        x_te_path = os.path.join(PROCESSED_DIR, "X_test_physio.npy")
-        y_te_path = os.path.join(PROCESSED_DIR, "y_test_physio.npy")
-        
+    """Nạp dữ liệu đã xử lý từ data/processed/.
+
+    Trả về (X_train, y_train, X_test, y_test, X_val, y_val). X_val/y_val là None nếu chưa
+    chạy lại `data/preprocess.py` bản có tách Validation (tương thích ngược với dữ liệu
+    processed cũ, hoặc nhánh "physio" hiện chưa tách Validation - xem preprocess.py mục 5).
+    Validation được tách TRƯỚC SMOTE ở preprocess.py nên giữ đúng phân phối thật, không bị
+    thổi phồng bởi mẫu tổng hợp như khi tách sau SMOTE (bài học thực tế đã gặp).
+    """
+    prefix = "kaggle" if dataset_type == "kaggle" else "physio"
+    x_tr_path = os.path.join(PROCESSED_DIR, f"X_train_{prefix}.npy")
+    y_tr_path = os.path.join(PROCESSED_DIR, f"y_train_{prefix}.npy")
+    x_te_path = os.path.join(PROCESSED_DIR, f"X_test_{prefix}.npy")
+    y_te_path = os.path.join(PROCESSED_DIR, f"y_test_{prefix}.npy")
+    x_val_path = os.path.join(PROCESSED_DIR, f"X_val_{prefix}.npy")
+    y_val_path = os.path.join(PROCESSED_DIR, f"y_val_{prefix}.npy")
+
     if not os.path.exists(x_tr_path):
         raise FileNotFoundError(f"Chưa tìm thấy dữ liệu {x_tr_path}! Hãy chạy 'python data/preprocess.py' trước.")
-        
+
     X_train = np.load(x_tr_path)
     y_train = np.load(y_tr_path)
     X_test = np.load(x_te_path)
     y_test = np.load(y_te_path)
+    X_val = np.load(x_val_path) if os.path.exists(x_val_path) else None
+    y_val = np.load(y_val_path) if os.path.exists(y_val_path) else None
 
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_test, y_test, X_val, y_val
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def train_and_eval_model(model_name, model, train_loader, test_loader, num_classes=5):
+def train_and_eval_model(model_name, model, train_loader, test_loader, num_classes=5, val_loader=None):
     print("\n==================================================")
     print(f" 🚀 ĐANG TRAIN & BÁO CÁO: {model_name}")
     print("==================================================")
@@ -62,6 +68,7 @@ def train_and_eval_model(model_name, model, train_loader, test_loader, num_class
     # Quá trình Huấn Luyện
     model.train()
     start_train_time = time.time()
+    val_acc, val_loss_avg = None, None  # giu lai gia tri epoch cuoi cung de dua vao ket qua tra ve
     for epoch in range(EPOCHS):
         total_loss = 0.0
         for i, (batch_x, batch_y) in enumerate(train_loader):
@@ -78,7 +85,25 @@ def train_and_eval_model(model_name, model, train_loader, test_loader, num_class
                 print(f"   [Epoch {epoch+1}/{EPOCHS}] Batch {i+1}/{len(train_loader)} - Loss: {loss.item():.4f}", end='\r')
                 
         print(f"\n[✓] Epoch [{epoch+1}/{EPOCHS}] Hoàn thành - Avg Loss: {total_loss/len(train_loader):.4f}")
-        
+
+        # Danh gia Validation cuoi moi epoch (chi khi co val_loader duoc truyen vao) - de theo
+        # doi overfitting va co so lieu Validation dung nhu de cuong yeu cau (Train/Val/Test).
+        if val_loader is not None:
+            model.eval()
+            val_loss_total = 0.0
+            val_preds, val_targets = [], []
+            with torch.no_grad():
+                for val_x, val_y in val_loader:
+                    val_x, val_y = val_x.to(DEVICE), val_y.to(DEVICE)
+                    val_out = model(val_x)
+                    val_loss_total += criterion(val_out, val_y).item()
+                    val_preds.extend(torch.argmax(val_out, dim=1).cpu().numpy())
+                    val_targets.extend(val_y.cpu().numpy())
+            val_acc = accuracy_score(val_targets, val_preds)
+            val_loss_avg = val_loss_total / len(val_loader)
+            print(f"    Validation - Loss: {val_loss_avg:.4f} | Accuracy: {val_acc*100:.2f}%")
+            model.train()  # bat lai train mode truoc khi tiep tuc epoch sau
+
     train_duration = time.time() - start_train_time
     print(f"[✓] Hoàn thành huấn luyện trong: {train_duration:.2f}s")
     
@@ -134,7 +159,9 @@ def train_and_eval_model(model_name, model, train_loader, test_loader, num_class
         "Inference Latency (ms)": round(avg_latency, 4),
         "Throughput (samples/s)": round(throughput, 0),
         "Parameters": count_parameters(model),
-        "Train Duration (s)": round(train_duration, 2)
+        "Train Duration (s)": round(train_duration, 2),
+        "Val Accuracy (%)": round(val_acc * 100, 2) if val_acc is not None else None,
+        "Val Loss": round(val_loss_avg, 4) if val_loss_avg is not None else None,
     }
 
 def save_benchmark_reports(results):
@@ -193,10 +220,14 @@ if __name__ == "__main__":
 
     # Nếu không phải aggregate thì load data để train
     try:
-        X_tr, y_tr, X_te, y_te = load_data("kaggle")
+        X_tr, y_tr, X_te, y_te, X_val, y_val = load_data("kaggle")
     except Exception as e:
         print(f"[!] {e}")
         sys.exit(1)
+
+    if X_val is None:
+        print("[!] Chưa có Validation set (X_val_kaggle.npy) - hãy chạy lại 'python data/preprocess.py' "
+              "bản mới nhất trước. Tạm thời chạy KHÔNG có Validation.")
         
     train_dataset = TensorDataset(torch.tensor(X_tr, dtype=torch.float32), torch.tensor(y_tr, dtype=torch.long))
     test_dataset = TensorDataset(torch.tensor(X_te, dtype=torch.float32), torch.tensor(y_te, dtype=torch.long))
@@ -218,8 +249,20 @@ if __name__ == "__main__":
             sys.exit(1)
             
         print(f"[+] Bắt đầu train duy nhất model: {args.model}")
+
+        # Validation set THẬT (tách trước SMOTE ở data/preprocess.py, xem load_data()) - KHÔNG
+        # tự tách từ X_tr ở đây nữa (X_tr đã qua SMOTE, tách sau SMOTE sẽ làm Val bị thổi phồng
+        # bởi mẫu tổng hợp gần trùng Train - bài học thực tế đã gặp, xem completion_plan.md).
+        val_loader = None
+        if X_val is not None:
+            print(f"[i] Train (đã SMOTE)={len(X_tr)}, Validation (thật, trước SMOTE)={len(X_val)}, Test={len(X_te)}")
+            val_loader = DataLoader(
+                TensorDataset(torch.tensor(X_val, dtype=torch.float32), torch.tensor(y_val, dtype=torch.long)),
+                batch_size=BATCH_SIZE, shuffle=False,
+            )
+
         model_instance = candidate_models[args.model]()
-        res = train_and_eval_model(args.model, model_instance, train_loader, test_loader)
+        res = train_and_eval_model(args.model, model_instance, train_loader, test_loader, val_loader=val_loader)
         
         # Lưu kết quả tạm thời
         os.makedirs(DOCS_DIR, exist_ok=True)

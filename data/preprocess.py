@@ -153,19 +153,31 @@ if __name__ == "__main__":
     if X_tr_k is not None:
         print(f"[✓] Kaggle CSV: Đã nạp {len(X_tr_k)} mẫu train và {len(X_te_k)} mẫu test.")
         print(f"    Phân phối tập train Kaggle: {np.bincount(y_tr_k)}")
-        
-        # Cân bằng dữ liệu Kaggle bằng SMOTE
+
+        # Tách Validation (10%, stratified) TỪ DỮ LIỆU THẬT (trước SMOTE) - áp dụng đúng
+        # nguyên tắc "tách trước khi cân bằng" đã dùng cho Test ở nhánh PhysioNet phía trên.
+        # Tách SAU SMOTE (như thử nghiệm ban đầu) làm Validation lẫn mẫu tổng hợp gần trùng
+        # với Train, khiến Val accuracy bị thổi phồng giả tạo so với Test thật - xem
+        # completion_plan.md / bài học thực tế lúc retrain ResNet1D lần đầu.
+        X_tr_k_final, X_val_k, y_tr_k_final, y_val_k = train_test_split(
+            X_tr_k, y_tr_k, test_size=0.1, random_state=42, stratify=y_tr_k
+        )
+        print(f"    Tách Validation (trước SMOTE): Train={len(X_tr_k_final)}, Val={len(X_val_k)}")
+
+        # Cân bằng dữ liệu Kaggle bằng SMOTE - CHỈ áp dụng cho phần Train còn lại
         print("[+] Đang thực hiện cân bằng dữ liệu (SMOTE) cho Kaggle CSV...")
         smote_k = SMOTE(random_state=42)
-        X_tr_k_res, y_tr_k_res = smote_k.fit_resample(X_tr_k, y_tr_k)
+        X_tr_k_res, y_tr_k_res = smote_k.fit_resample(X_tr_k_final, y_tr_k_final)
         print(f"    Phân phối sau SMOTE: {np.bincount(y_tr_k_res)}")
-        
-        # Lưu file Kaggle CSV
+
+        # Lưu file Kaggle CSV (Train đã SMOTE, Val + Test giữ nguyên phân phối thật)
         np.save(os.path.join(OUTPUT_DIR, 'X_train_kaggle.npy'), X_tr_k_res)
         np.save(os.path.join(OUTPUT_DIR, 'y_train_kaggle.npy'), y_tr_k_res)
+        np.save(os.path.join(OUTPUT_DIR, 'X_val_kaggle.npy'), X_val_k)
+        np.save(os.path.join(OUTPUT_DIR, 'y_val_kaggle.npy'), y_val_k)
         np.save(os.path.join(OUTPUT_DIR, 'X_test_kaggle.npy'), X_te_k)
         np.save(os.path.join(OUTPUT_DIR, 'y_test_kaggle.npy'), y_te_k)
-        print("[✓] Đã lưu dữ liệu Kaggle CSV đã xử lý vào data/processed/")
+        print("[✓] Đã lưu dữ liệu Kaggle CSV đã xử lý vào data/processed/ (Train/Validation/Test)")
         
     print("==================================================")
     print("  HOÀN THÀNH BƯỚC 1: DỮ LIỆU ĐÃ SẴN SÀNG TRAIN!")
