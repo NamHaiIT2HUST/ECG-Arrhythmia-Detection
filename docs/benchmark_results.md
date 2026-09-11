@@ -64,6 +64,32 @@ chứng rõ ràng cho thấy Validation đã "sạch" thật sự (so với chê
 tách sau SMOTE). Val loss dao động nhẹ trong khoảng 0.070-0.078 từ epoch 3 trở đi (không tăng
 phân kỳ), Val Accuracy giữ ổn định ~98.6-98.7% từ epoch 7 — không có dấu hiệu overfitting.
 
+![So sánh Validation trước/sau khi sửa lỗi tách sau SMOTE](c2_validation_leak_comparison.png)
+
+*Biểu đồ trên minh hoạ đúng quá trình debug thật: đường đỏ (tách Validation sau SMOTE) leo
+dần lên 99.78% — cao hơn hẳn đường Test Accuracy tương ứng (nét đứt đỏ, 98.56%), dấu hiệu rõ
+ràng của rò rỉ dữ liệu. Đường xanh (đã sửa, tách trước SMOTE) hội tụ đúng sát đường Test
+Accuracy của chính nó (nét đứt xanh, 98.51%) — khớp nhau vì Validation giờ phản ánh đúng
+phân phối thật, không còn bị mẫu tổng hợp SMOTE làm lệch. Script tái tạo:
+`python -m backend.scripts.plot_c2_diagnostics`.*
+
+### Kiểm chứng Overfitting: so sánh Train / Validation / Test trên cùng 1 model
+
+Đo trực tiếp accuracy của `saved_models/resnet1d.pth` (sau khi sửa) trên cả 3 tập:
+
+| Tập | N mẫu | Accuracy |
+|---|---:|---:|
+| Train (đã SMOTE) | 326.115 | 99.94% |
+| Validation (thật) | 8.756 | 98.62% |
+| Test (thật) | 21.892 | 98.51% |
+
+Chênh lệch Train→Val/Test chỉ **1.3-1.4 điểm %** — quá nhỏ để coi là overfitting (overfitting
+kinh điển thường chênh vài chục điểm %). Train Accuracy cao gần tuyệt đối (99.94%) là bình
+thường vì Train đã qua SMOTE (nhiều mẫu tổng hợp nội suy gần giống nhau, "dễ" đạt gần tuyệt
+đối). Bằng chứng generalization tốt nhất: **2 tập hoàn toàn độc lập nhau (Validation và Test)
+chỉ lệch 0.11 điểm %** — nếu model học vẹt đặc điểm riêng của Train, 2 tập độc lập này sẽ
+không thể tự nhiên khớp sát nhau đến vậy.
+
 ### Kiểm chứng lại Accuracy End-to-End (dữ liệu PhysioNet thật, `validate_classification.py`)
 
 | Record | N nhịp | Accuracy | F1 (macro) |
@@ -84,6 +110,14 @@ mẫu tổng hợp khác nhau mỗi lần, không phải lỗi). F1-macro (67.44
 Accuracy là do lớp **Q gần như không có mẫu thật** trong 8 bản ghi này (chỉ 3/20.546 mẫu) —
 đặc điểm vốn có của dữ liệu AAMI (Q là lớp hiếm nhất), không phải vấn đề phát sinh từ lần
 retrain này.
+
+![Confusion matrix end-to-end 8 bản ghi PhysioNet](c2_confusion_matrix.png)
+
+*Chi tiết đáng chú ý từ ma trận nhầm lẫn: lớp **F (Hợp nhất) chỉ đạt recall 56.1%** (412/735
+nhịp F thật) — gần 36% nhịp F thật bị nhầm thành N (264/735), phản ánh đúng thực tế lâm sàng
+là nhịp Hợp nhất có hình dạng lai giữa nhịp bình thường và nhịp thất, dễ gây nhầm lẫn kể cả
+với bác sĩ. Lớp V (Thất) — quan trọng nhất lâm sàng vì liên quan PVC — đạt recall 96.5%, tốt.
+Script tái tạo: `python -m backend.scripts.plot_c2_diagnostics`.*
 
 **Lưu ý kỹ thuật nợ lại**: `saved_models/resnet1d.onnx`/`resnet1d_int8.onnx` (CP6.1) chưa
 được xuất lại sau lần retrain này — vẫn phản ánh trọng số CŨ, cần chạy lại
