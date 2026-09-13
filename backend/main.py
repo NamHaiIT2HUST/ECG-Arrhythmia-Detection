@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from backend.api.ws_routes import router as ws_router
 from backend.api.records_routes import router as records_router
 from backend.api.diagnosis_routes import router as diagnosis_router
+from backend.api.afib_routes import router as afib_router
 from backend.api.auth import router as auth_router
 from backend.api.anomalies import router as anomalies_router
 from backend.core.config import settings, DEFAULT_JWT_SECRET_KEY
@@ -59,6 +60,7 @@ async def root():
 app.include_router(ws_router)
 app.include_router(records_router)
 app.include_router(diagnosis_router)
+app.include_router(afib_router)
 app.include_router(auth_router)
 app.include_router(anomalies_router)
 

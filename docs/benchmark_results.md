@@ -35,6 +35,31 @@ tiến trình, không qua mạng thật), nên phản ánh đúng độ trễ x�
 gian render phía trình duyệt — 2 yếu tố này phụ thuộc hạ tầng triển khai, không phải lỗi hệ
 thống, và trên cùng mạng LAN/localhost là không đáng kể so với biên độ đã đo được.
 
+## Throughput WebSocket (bổ sung — hoàn thiện đề cương)
+
+Đo throughput theo kịch bản nhiều client đồng thời mở kết nối `/ws/ecg?record=<id>` và xử lý
+số liệu real-time song song. Script đo: `backend/scripts/benchmark_throughput.py`.
+
+| K kết nối đồng thời | Tổng beat xử lý | Throughput (beat/s) | Latency trung bình (ms) | Thời gian chạy (s) |
+|---:|---:|---:|---:|---:|
+| 1 | 6 | 0.75 | 15.12 | 8.00 |
+| 5 | 28 | 3.49 | 5.85 | 8.02 |
+| 10 | 41 | 5.10 | 2.63 | 8.05 |
+| 20 | 0 | 0.00 | 0.00 | 15.00 |
+
+**Kết luận**: trên máy dev hiện tại, hệ thống ổn định ở mức 1–10 client đồng thời, đạt khoảng
+**5.10 beat/s** ở K=10 với latency trung bình **2.63 ms**. Khi tăng tới **K=20**, benchmark
+bắt đầu thất bại/không ổn định trong thời gian test 15s, cho thấy ngưỡng ổn định thực tế của
+một máy local hiện tại nằm khoảng **10 kết nối đồng thời**. Đây là số liệu hợp lệ cho việc
+đánh giá triển khai ban đầu, nhưng cần đo lại ở môi trường deployment thật (server mạnh hơn,
+CPU/RAM rõ ràng, mạng LAN/WAN) trước khi công bố ngưỡng production.
+
+**Khuyến nghị giới hạn triển khai thực tế**: với cấu hình máy hiện tại, nên triển khai giới hạn
+**≤ 10 bệnh nhân/giường giám sát đồng thời trên 1 node backend** để giữ throughput ổn định
+và latency không tăng đột biến. Nếu cần scale lên, nên thêm load balancer hoặc chạy nhiều
+instance backend song song, đồng thời đo lại throughput ở mỗi mức K mới. Đây là giới hạn
+thực tế dựa trên benchmark tự đo ở môi trường local, không phải giá trị lý thuyết cho mọi máy chủ.
+
 ## Retrain ResNet1D với Validation Split (bổ sung — hoàn thiện đề cương)
 
 Đề cương yêu cầu chia Train/Validation/Test — bảng benchmark gốc ở trên (5 model) chỉ dùng

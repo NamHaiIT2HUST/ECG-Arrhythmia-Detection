@@ -8,6 +8,7 @@ from backend.service.inference_service import ai_service
 from backend.service.anomaly_log_service import end_ecg_record, log_anomaly, resolve_patient, start_ecg_record
 from backend.api.records_routes import record_exists, DEFAULT_RECORD
 from backend.db.session import get_db
+from backend.core.afib_screener import AfibScreener
 
 router = APIRouter()
 
@@ -58,6 +59,8 @@ async def ecg_stream_endpoint(
         last_hrv_sdnn = 0.0
         last_hrv_rmssd = 0.0
         last_latency_e2e_ms = 0.0
+        afib_screener = AfibScreener(fs=360)
+        last_afib = {"afib_suspected": False, "afib_score": 0.0}
 
         async for chunk_values, beat_info in ecg_stream:
             heatmap = None
@@ -69,6 +72,11 @@ async def ecg_stream_endpoint(
                 last_bpm = beat_info["bpm"]
                 last_hrv_sdnn = beat_info["hrv_sdnn"]
                 last_hrv_rmssd = beat_info["hrv_rmssd"]
+                afib_metrics = afib_screener.update(beat_info.get("r_peak_sample"))
+                last_afib = {
+                    "afib_suspected": afib_metrics["afib_suspected"],
+                    "afib_score": afib_metrics["afib_score"],
+                }
                 # End-to-End Latency: tu luc phat hien dinh R (data_streamer.py) den ngay truoc
                 # khi gui payload nay qua WebSocket - xem backend/scripts/benchmark_e2e_latency.py.
                 last_latency_e2e_ms = (time.time() - beat_info["detected_at"]) * 1000.0
@@ -99,6 +107,8 @@ async def ecg_stream_endpoint(
                 "hrv_rmssd": last_hrv_rmssd,    # HRV - RMSSD (ms)
                 "latency_e2e_ms": round(last_latency_e2e_ms, 2),  # Độ trễ tổng (phát hiện đỉnh R -> gửi WS)
                 "is_new_beat": beat_info is not None,  # true đúng lúc vừa chẩn đoán 1 nhịp mới
+                "afib_suspected": last_afib["afib_suspected"],
+                "afib_score": last_afib["afib_score"],
             }
 
             await websocket.send_json(payload)

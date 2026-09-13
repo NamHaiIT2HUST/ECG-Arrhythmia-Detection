@@ -178,3 +178,20 @@ def test_verify_unknown_anomaly_returns_404(client, auth_headers):
     res = client.post("/api/anomalies/999999999/verify", json={"status": "approved"},
                        headers=auth_headers["admin"])
     assert res.status_code == 404
+
+
+def test_afib_screening_status_shape(client):
+    fs = 360
+    t = np.linspace(0, 8, int(fs * 8), endpoint=False)
+    signal = np.sin(2 * np.pi * 1.2 * t) + 0.05 * np.sin(2 * np.pi * 20 * t)
+    csv_bytes = io.BytesIO(("\n".join(f"{v:.6f}" for v in signal)).encode("utf-8"))
+
+    res = client.post(
+        "/api/screening/afib?fs=360",
+        files={"file": ("sample.csv", csv_bytes, "text/csv")},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    for key in ("status", "confidence", "bpm", "rr_irregularity", "rr_rmssd_ms", "thresholds_used", "recommendation"):
+        assert key in body
+    assert body["status"] in {"negative", "indeterminate", "positive"}
