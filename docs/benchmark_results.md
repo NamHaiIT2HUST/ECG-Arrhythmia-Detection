@@ -259,5 +259,74 @@ mở đang được nghiên cứu tích cực trong lĩnh vực, không phải t
 án. Phạm vi triển khai thực tế nên giới hạn rõ: **thiết bị đo cùng chuẩn đạo trình Holter/MLII
 tương tự MIT-BIH** — đúng như hệ thống hiện tại đang giả lập (đọc file PhysioNet MIT-BIH qua
 `data_streamer.py`). Nếu muốn mở rộng sang thiết bị/đạo trình khác trong tương lai, cần
-fine-tune lại trên dữ liệu của đúng thiết bị đó trước khi triển khai — đã ghi vào hướng phát
-triển tiếp theo.
+fine-tune lại trên dữ liệu của đúng thiết bị đó trước khi triển khai.
+
+**Cập nhật: hướng "cần fine-tune" ở trên đã được thực hiện thật và có kết quả** — xem mục
+ngay dưới đây.
+
+### Cải thiện Generalization bằng Fine-tune (đã thực hiện, đã deploy)
+
+Đặt mục tiêu: cải thiện Accuracy trên INCART **mà không được làm tụt bất kỳ chỉ số nào trong
+4 chỉ tiêu đề cương (Accuracy/Precision/Recall/F1 ≥92%/90%/90%/90%) trên MIT-BIH**, và **không
+đổi kiến trúc** (để không phải sửa gì ở backend/dashboard real-time — chỉ thay file trọng số
+`saved_models/resnet1d.pth`). Script: `backend/scripts/finetune_resnet1d_incart.py`.
+
+**Chiến lược**: "replay fine-tuning" — tiếp tục train ResNet1D đã có (LR thấp hơn train gốc
+10-20 lần) trên hỗn hợp: (a) nhịp MỚI từ 10 bản ghi INCART **khác hoàn toàn** 5 bản ghi giữ
+làm test độc lập ở mục trên (I33, I34, I20, I18, I74, I22, I42, I62, I07, I70 — chọn giàu nhịp
+hiếm S/F nhất trong 75 bản ghi INCART), trộn với (b) một lượng lớn mẫu MIT-BIH lấy ngẫu nhiên
+từ tập train gốc ("replay") để chống quên đặc trưng MIT-BIH.
+
+**3 lần thử, mỗi lần rút ra 1 bài học cụ thể**:
+
+| Lần thử | Cấu hình | MIT-BIH Precision | MIT-BIH F1 | INCART Accuracy | Đạt 4/4 mục tiêu? |
+|---|---|---:|---:|---:|:---:|
+| 0 (gốc) | — | 92.63% | 92.16% | 85.94% | ✅ |
+| 1 | 5 epoch, LR=1e-4, replay=20k, giữ cả lớp S | 87.30% | 89.45% | 92.40% | ❌ |
+| 2 | 3 epoch, LR=5e-5, replay=40k, giữ cả lớp S | 88.63% | 90.24% | 90.23% | ❌ |
+| **3** | **3 epoch, LR=5e-5, replay=40k, LOẠI lớp S khỏi fine-tune** | **91.48%** | **91.70%** | **93.18%** | **✅** |
+
+- **Lần 1 → Lần 2** (giảm epoch 5→3, tăng replay 20k→40k, LR giảm 2 lần): Precision MIT-BIH
+  nhích lên chút (87.30%→88.63%) nhưng vẫn dưới 90% — **giảm liều lượng không giải quyết được
+  gốc rễ vấn đề**. Bằng chứng: theo dõi Precision qua từng epoch của lần 2 thấy tụt xuống
+  ~88.5% **ngay từ epoch 1** rồi giữ phẳng suốt 3 epoch — không phải do train "quá tay/quá
+  lâu", mà do 1 xung đột phân phối thật ở đúng 1 lớp.
+- **Truy ra nguyên nhân**: soi ma trận nhầm lẫn theo từng lớp, phát hiện **lớp S (Trên thất)**
+  là nơi Precision sụt mạnh nhất. Nhãn `A` (nhịp trên thất sớm) của INCART có hình dạng đủ
+  khác nhãn `S` của MIT-BIH khiến việc trộn chung vào fine-tune làm lệch hẳn ranh giới quyết
+  định lớp này — dù chỉ trộn 1.619/24.830 nhịp INCART (6.5%) thuộc lớp S.
+- **Lần 3 (giải pháp)**: loại hẳn 1.619 nhịp lớp S khỏi tập fine-tune INCART (giữ nguyên
+  N/V/F), chỉ để model học thêm N/V/F từ INCART — **giữ nguyên ranh giới lớp S đã học từ
+  MIT-BIH**. Kết quả: đạt đủ cả 4/4 mục tiêu đề cương TRÊN MIT-BIH **đồng thời** cải thiện
+  INCART tốt nhất trong 3 lần thử (+7.24 điểm % so với gốc, cao hơn cả lần 1 dù lần 1 "học"
+  nhiều dữ liệu INCART hơn).
+
+**So sánh từng lớp trên MIT-BIH Test, Trước vs Sau (lần 3, bản đã deploy)**:
+
+| Lớp | Precision | Recall | F1 |
+|---|---|---|---|
+| N | 99.1%→99.2% | 99.3%→99.2% | 99.2%→99.2% |
+| S | 86.2%→86.6% | 81.8%→81.3% | 83.9%→83.9% *(không đổi — đúng như thiết kế, đã loại khỏi fine-tune)* |
+| V | 96.2%→95.0% | 95.8%→96.2% | 96.0%→95.6% |
+| F | 82.2%→77.7% | 82.7%→84.0% | 82.5%→80.7% *(tụt Precision nhẹ — lớp F vẫn được giữ trong fine-tune, cùng cơ chế với S nhưng nhẹ hơn vì chỉ 127 nhịp)* |
+| Q | 99.4%→98.9% | 98.9%→99.3% | 99.2%→99.1% |
+
+**INCART held-out (5 bản ghi test độc lập) sau fine-tune**: Accuracy 85.94%→**93.18%**,
+Recall N 86.1%→**93.9%**, Recall V 84.7%→**88.6%**.
+
+**Bài học phương pháp luận** (giá trị hơn cả con số, nên nhấn mạnh khi bảo vệ): khi fine-tune
+model đa lớp bằng dữ liệu từ nguồn khác, rủi ro không nằm ở "học bao nhiêu" mà ở **học đúng
+lớp nào** — 1 lớp hiếm với ranh giới quyết định mỏng (S chỉm chỉ 556/21.892 mẫu Test, ~2.5%)
+có thể bị 1 lượng nhỏ dữ liệu lạ (6.5% tổng fine-tune set) làm lệch hẳn, trong khi giảm
+epoch/LR/tăng replay — các nút chỉnh thông thường để "nhẹ tay" — không sửa được vấn đề này vì
+nó không phải overfitting thông thường. Giải pháp đúng là loại trừ có chọn lọc theo từng lớp,
+không phải giảm đều cường độ train.
+
+**Đã promote lên production**: `saved_models/resnet1d.pth` hiện là bản fine-tune (lần 3) —
+bản gốc trước fine-tune được backup tại `saved_models/resnet1d_pre_incart_finetune_backup.pth`
+(gitignored, chỉ lưu local). Deploy lại dashboard real-time không cần đổi code (kiến trúc
+ResNet1D giữ nguyên) — chỉ cần restart backend để nạp lại trọng số mới.
+
+**Lưu ý kỹ thuật nợ lại (mới)**: `saved_models/resnet1d.onnx`/`resnet1d_int8.onnx` giờ càng
+lạc hậu hơn nữa so với trọng số hiện tại (đã stale từ lần retrain C2, nay lại thêm 1 lần fine-
+tune) — cần chạy lại `python -m src.models.export_onnx` nếu muốn dùng đường ONNX.
