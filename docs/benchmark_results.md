@@ -177,3 +177,87 @@ Script tái tạo: `python -m backend.scripts.plot_c2_diagnostics`.*
 **Lưu ý kỹ thuật nợ lại**: `saved_models/resnet1d.onnx`/`resnet1d_int8.onnx` (CP6.1) chưa
 được xuất lại sau lần retrain này — vẫn phản ánh trọng số CŨ, cần chạy lại
 `python -m src.models.export_onnx` trước khi dùng bản ONNX cho việc gì khác.
+
+### Kiểm chứng Generalization ngoài MIT-BIH (dữ liệu INCART — bệnh viện/thiết bị/đạo trình khác hẳn)
+
+Toàn bộ Train/Validation/Test ở trên đều lấy từ MIT-BIH — nên số 98.51%/96.62% chỉ chứng
+minh model không rò rỉ dữ liệu **nội bộ** MIT-BIH (Val≈Test), chứ chưa trả lời được câu hỏi
+quan trọng hơn: model có học đúng đặc trưng sinh lý của rối loạn nhịp tim, hay chỉ học vẹt
+đặc điểm riêng của đúng 1 máy Holter/1 bệnh viện đã dùng để tạo MIT-BIH? Để trả lời, đã chạy
+thử model (không train/tinh chỉnh lại gì) trên **St Petersburg INCART Database** (PhysioNet)
+— độc lập hoàn toàn với MIT-BIH: bệnh viện khác (Nga), máy đo khác, 12 đạo trình lâm sàng
+thay vì 2 đạo Holter, tần số lấy mẫu 257Hz thay vì 360Hz. Script: `backend/scripts/download_external_incart.py`
++ `backend/scripts/validate_external_incart.py` (dùng đúng pipeline production: lọc nhiễu →
+Pan-Tompkins → resample 125Hz → ResNet1D, chỉ đổi nguồn dữ liệu).
+
+| Record (INCART) | N nhịp | Accuracy | F1 (macro)* |
+|---|---:|---:|---:|
+| I01 | 2707 | 75.21% | 31.19% |
+| I15 | 2635 | 99.24% | 66.54% |
+| I30 | 2463 | 84.69% | 44.16% |
+| I45 | 1928 | 84.80% | 59.95% |
+| I60 | 2475 | 85.66% | 23.07% |
+| **Tổng hợp (5 bản ghi)** | **12.208** | **85.94%** | 34.98%* |
+
+*\*F1-macro ở đây **không phản ánh đúng năng lực model** — kiểm tra lại nhãn gốc thì 5 bản
+ghi này chỉ có nhịp N và V (không có S/F/Q nào), nên macro-average bị 3 lớp vắng mặt kéo tụt
+giả tạo. Số đáng tin ở đây là recall theo từng lớp thật sự có mặt, xem ma trận nhầm lẫn:*
+
+```
+Ma trận nhầm lẫn (hàng=thật, cột=dự đoán) [N, S, V]:
+Thật N (10.611): 9.140 đúng (86.1%) | 1.154 nhầm S (10.9%) | 298 nhầm V (2.8%)
+Thật V ( 1.597):   202 nhầm N (12.6%) |    40 nhầm S (2.5%) | 1.352 đúng (84.7%)
+```
+
+**Đọc kết quả cho đúng (không tô hồng, cũng không hoảng vì con số Accuracy tổng)**:
+- **Accuracy tổng (85.94%) tụt thật ~11 điểm % so với 96.62% trên MIT-BIH** — đây là mức tụt
+  có thật khi đổi hệ sinh thái dữ liệu, không phải lỗi đo.
+- Nhưng **Accuracy không phải chỉ số đáng tin trong mẫu này**: vì N chiếm 86.9% mẫu
+  (10.611/12.208), 1 baseline "đoán đại luôn là N" đã đạt 86.90% — **còn cao hơn cả model
+  (85.94%)**. Chỉ số đáng nhìn là **recall theo lớp**: N đạt 86.1%, **V (PVC — lớp nguy hiểm
+  lâm sàng nhất) đạt 84.7%** — model vẫn giữ được khả năng phát hiện nhịp thất khá tốt trên
+  dữ liệu hoàn toàn lạ, hơn hẳn baseline ngây thơ (baseline sẽ bỏ sót 100% nhịp V).
+- Đã tách riêng thử nghiệm đổi đạo trình (channel) để xem tụt hiệu năng có phải do chọn sai
+  đạo hay không: **Lead I: 84.57%**, **Lead II: 85.94%** (đã dùng Lead II ở bảng trên, gần
+  MLII của MIT-BIH nhất về mặt giải phẫu) — 2 kết quả gần nhau, cho thấy phần lớn mức tụt đến
+  từ khác biệt bệnh viện/thiết bị/dân số bệnh nhân thật sự, không phải do chọn nhầm đạo trình.
+- **Nguyên nhân tụt chính**: ~10.9% nhịp N thật bị nhận nhầm thành S — hiện tượng **domain
+  shift** kinh điển (khác đạo trình lâm sàng chuẩn vs Holter MLII, khác máy đo, khác dân số
+  bệnh nhân Nga bị bệnh mạch vành/tăng huyết áp) đã được ghi nhận rộng rãi trong y văn ECG
+  Deep Learning — không phải bằng chứng model học vẹt nhiễu ngẫu nhiên của MIT-BIH.
+
+#### So sánh cả 5 kiến trúc trên INCART (không chỉ ResNet1D)
+
+Đặt câu hỏi ngược lại: có kiến trúc nào trong 5 kiến trúc đã benchmark generalize ra ngoài
+MIT-BIH tốt hơn ResNet1D không? Chạy lại đúng 12.208 nhịp INCART ở trên qua cả 5 bộ trọng số
+đã lưu sẵn (không train lại) — script: `backend/scripts/compare_models_incart.py`.
+
+| Model | Accuracy | Recall N | Recall V |
+|---|---:|---:|---:|
+| **ResNet1D** | **85.94%** | **86.1%** | 84.7% |
+| CNN1D_LSTM | 81.40% | 80.9% | 84.8% |
+| Transformer1D | 75.04% | 77.1% | 61.4% |
+| TCN | 62.40% | 59.0% | 85.2% |
+| Mamba1D | 46.50% | 42.6% | 72.2% |
+
+**ResNet1D generalize tốt nhất trong cả 5 model** — không chỉ mạnh nhất ở benchmark nội bộ
+MIT-BIH (bảng đầu file), mà còn là model DUY NHẤT giữ được cả Accuracy lẫn Recall N/V đều
+trên 84% khi ra khỏi phân phối train. Đáng chú ý: **Mamba1D sụp đổ hẳn** (46.50% — Recall N
+chỉ 42.6%, tệ hơn cả baseline "đoán đại là N" ở mục trên) — kiến trúc dựa trên state-space
+có vẻ nhạy cảm hơn hẳn với domain shift so với kiến trúc tích chập (CNN-based). **TCN** dù giữ
+Recall V cao (85.2%) nhưng Recall N tụt mạnh (59.0%) — có xu hướng lệch về phía "nghi ngờ bất
+thường" khi gặp dữ liệu lạ, dễ gây báo động giả (false alarm) nếu triển khai thật. Kết quả này
+củng cố thêm cho lựa chọn ResNet1D làm model triển khai — không chỉ vì nhanh/nhẹ/chính xác
+nhất trên MIT-BIH, mà còn vì **bền vững nhất khi dữ liệu thực tế lệch khỏi phân phối train**.
+
+**Kết luận về phạm vi generalization (quan trọng để không hứa quá tay)**: model đã được
+chứng minh **không overfit trong phạm vi cùng 1 hệ sinh thái dữ liệu** (cùng loại thiết bị/đạo
+trình MLII kiểu Holter — MIT-BIH nội bộ đạt 96-98%). Model **chưa** được chứng minh "chạy tốt
+ở mọi bộ dữ liệu ECG bất kỳ" — không có model ECG nào (kể cả các nghiên cứu SOTA công bố)
+đạt được điều này mà không cần fine-tune/domain adaptation theo từng thiết bị, đây là bài toán
+mở đang được nghiên cứu tích cực trong lĩnh vực, không phải thứ có thể giải trong phạm vi đồ
+án. Phạm vi triển khai thực tế nên giới hạn rõ: **thiết bị đo cùng chuẩn đạo trình Holter/MLII
+tương tự MIT-BIH** — đúng như hệ thống hiện tại đang giả lập (đọc file PhysioNet MIT-BIH qua
+`data_streamer.py`). Nếu muốn mở rộng sang thiết bị/đạo trình khác trong tương lai, cần
+fine-tune lại trên dữ liệu của đúng thiết bị đó trước khi triển khai — đã ghi vào hướng phát
+triển tiếp theo.
