@@ -60,6 +60,36 @@ và latency không tăng đột biến. Nếu cần scale lên, nên thêm load 
 instance backend song song, đồng thời đo lại throughput ở mỗi mức K mới. Đây là giới hạn
 thực tế dựa trên benchmark tự đo ở môi trường local, không phải giá trị lý thuyết cho mọi máy chủ.
 
+## Sàng lọc Rung nhĩ / AFib Screening (bổ sung — hoàn thiện đề cương)
+
+Rung nhĩ là chẩn đoán theo **nhịp điệu kéo dài** (RR "irregularly irregular" + khả năng mất
+sóng P), khác bản chất với phân loại hình dạng từng nhịp đơn lẻ mà ResNet1D đang làm — nên
+được tách thành 1 tầng screening rule-based riêng, không phải thêm 1 lớp vào model 5 lớp AAMI:
+
+- `backend/core/afib_screener.py` (`AfibScreener`) — dùng trong luồng WebSocket thời gian thực,
+  tính điểm AFib tức thời từ cửa sổ trượt tối đa 50 khoảng RR gần nhất (độ không đều RR, pNN50,
+  RMSSD), trả `afib_suspected`/`afib_score` mỗi nhịp mới.
+- `backend/service/afib_screening_service.py` (`screen_afib_signal`) — dùng cho endpoint offline
+  `POST /api/screening/afib` (upload file ECG), phân tích toàn bộ đoạn tín hiệu 1 lần, có thêm
+  ước lượng sự vắng mặt sóng P và tần số tim; trả `status` (negative/indeterminate/positive).
+- `backend/scripts/calibrate_afib_thresholds.py` + `download_afdb_sample.py` — script hiệu
+  chỉnh ngưỡng dựa trên MIT-BIH AFDB.
+
+**Lưu ý kỹ thuật nợ lại (nói thật, không tô hồng)**:
+1. **Chưa có số Sensitivity/Specificity đáng tin cậy.** `calibrate_afib_thresholds.py` hiện
+   giả định *toàn bộ* record AFDB tải về đều là rung nhĩ (không đọc nhãn rhythm annotation
+   `(AFIB`/`(N` thật của AFDB), nên "specificity" tính ra luôn bằng 0 và ngưỡng "tối ưu" tìm
+   được không có ý nghĩa thống kê thật — chỉ nên coi đây là demo cơ chế đo, chưa phải kết quả
+   hiệu chỉnh đã kiểm chứng. Cần đọc annotation thật (`wfdb.rdann(..., 'atr')` trên AFDB có nhãn
+   theo đoạn) rồi tính lại ROC mới dùng được số Sensitivity/Specificity cho báo cáo.
+2. **2 công thức tính điểm khác nhau** giữa `AfibScreener` (streaming) và `screen_afib_signal`
+   (offline) — cùng mục tiêu sàng lọc AFib nhưng trọng số/ngưỡng khác nhau, có thể cho kết quả
+   khác nhau trên cùng 1 tín hiệu tuỳ đi qua đường nào. Việc hợp nhất về 1 công thức chung nên
+   làm ở lần chỉnh sửa tiếp theo, không nằm trong phạm vi merge lần này.
+3. Ngưỡng mặc định (`AfibScreener.threshold = 0.62`, `DEFAULT_THRESHOLDS` trong
+   `afib_screening_service.py`) hiện là **giá trị chọn tay dựa trên trực giác**, chưa qua
+   kiểm chứng bằng dữ liệu nhãn thật — không nên dùng để tuyên bố độ chính xác lâm sàng.
+
 ## Retrain ResNet1D với Validation Split (bổ sung — hoàn thiện đề cương)
 
 Đề cương yêu cầu chia Train/Validation/Test — bảng benchmark gốc ở trên (5 model) chỉ dùng

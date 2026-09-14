@@ -6,7 +6,7 @@
 >
 > Tài liệu này chỉ nói **AI làm gì, theo thứ tự nào, cần báo gì cho người kia, và đang chờ gì**. Chi tiết kỹ thuật (file cụ thể, API contract, schema, DoD) đã có đầy đủ trong [plan.md](plan.md) — tài liệu này luôn dẫn lại đúng mục số của `plan.md`, không lặp lại toàn văn để tránh 2 file lệch nhau theo thời gian.
 >
-> **Cập nhật lần cuối**: 2026-09-13. Trạng thái hiện tại: toàn bộ checkpoint cốt lõi đã hoàn thành trên `main`, bao gồm backend/frontend/integration, CI/CD, throughput benchmark và AFib screening; chỉ còn chuẩn bị demo bảo vệ cuối cùng.
+> **Cập nhật lần cuối**: 2026-09-13. Trạng thái hiện tại: toàn bộ checkpoint cốt lõi đã hoàn thành trên `main`, bao gồm backend/frontend/integration, CI/CD, throughput benchmark và AFib screening; **còn thiếu** kịch bản demo trực quan cho buổi bảo vệ (chưa viết) — xem mục "Cuối cùng (chung)".
 
 ---
 
@@ -218,4 +218,4 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)
 
 **Chung**
-- [x] CP 6.5 — Tài liệu kỹ thuật & Demo cuối
+- [ ] CP 6.5 — Tài liệu kỹ thuật & Demo cuối (docs xong, kịch bản demo trực quan còn thiếu — xem mục "Cuối cùng (chung)")

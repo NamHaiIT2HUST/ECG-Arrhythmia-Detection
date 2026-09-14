@@ -513,7 +513,7 @@ POST /api/anomalies/{id}/verify
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) mới có 1 test (`ReportExporter.test.jsx`), chưa phủ hết `PatientForm`/`alarmAudio`/`reportGenerator` như gợi ý ban đầu
 - [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
 - [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31, đã xác nhận chạy thật xanh trên GitHub Actions qua các PR #14-17
-- [x] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — đã hoàn thành với api_reference.md, deployment_guide.md, README liên kết và kịch bản demo thực tế.
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — `api_reference.md`/`deployment_guide.md`/README đã xong; **kịch bản demo trực quan cho buổi bảo vệ vẫn chưa viết** (xem mục 6.5 phía trên).
 
 ---
 

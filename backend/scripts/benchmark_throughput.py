@@ -15,7 +15,6 @@ import asyncio
 import json
 import statistics
 import time
-from typing import List
 
 import websockets
 

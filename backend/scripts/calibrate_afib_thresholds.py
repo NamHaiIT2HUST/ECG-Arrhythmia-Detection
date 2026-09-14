@@ -19,7 +19,6 @@ from pathlib import Path
 import numpy as np
 import wfdb
 
-from backend.core.afib_screener import AfibScreener
 
 
 def _read_affdb_signal(record_path: Path) -> tuple[np.ndarray, float]:

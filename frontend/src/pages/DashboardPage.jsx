@@ -73,9 +73,8 @@ const DashboardPage = () => {
       if (bpm !== undefined) setBpm(bpm);
       if (hrv_sdnn !== undefined) setHrvSdnn(hrv_sdnn);
       if (confidence !== undefined) setConfidence(confidence);
-      if (afib_suspected !== undefined) {
-        console.log('[AFIB]', { afib_suspected, afib_score });
-      }
+      if (afib_suspected !== undefined) setAfibSuspected(afib_suspected);
+      if (afib_score !== undefined) setAfibScore(afib_score);
       
       if (heatmap) {
         setCurrentHeatmap(heatmap);
