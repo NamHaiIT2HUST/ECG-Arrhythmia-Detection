@@ -1,8 +1,8 @@
 # KẾ HOẠCH PHÁT TRIỂN HỆ THỐNG ECG ARRHYTHMIA DETECTION & EXPLAINABLE AI (XAI)
 > **Tài liệu Kế hoạch Chi tiết & Phân bổ Checkpoint Toàn diện**
 > **Dự án**: Giám sát điện tâm đồ (ECG) thời gian thực & Phát hiện rối loạn nhịp tim ứng dụng Học sâu & XAI
-> **Cập nhật lần cuối**: 2026-08-30
-> **Trạng thái Codebase hiện tại**: Checkpoint 1-3 hoàn thành (Data, 5 Models Benchmark, 1D Grad-CAM, FastAPI WebSocket + DSP/R-peak/HRV backend, React Plotly UI V3). Checkpoint 4-6 chưa bắt đầu.
+> **Cập nhật lần cuối**: 2026-09-13
+> **Trạng thái Codebase hiện tại**: Checkpoint 1-6 đã hoàn thành theo đúng tiến độ phát triển hiện tại, bao gồm backend, frontend, auth, DB, Docker, CI/CD, throughput benchmark và AFib screening. Còn lại chỉ phần tài liệu demo bảo vệ cuối cùng.
 > **Phân công công việc cho 2 người từ đây trở đi**: xem [pccv.md](pccv.md).
 
 ---
@@ -513,7 +513,7 @@ POST /api/anomalies/{id}/verify
 - [x] **CP 6.2** Automated Test Suite — phần backend (pytest) hoàn thành 2026-08-31, 26/26 test xanh; phần frontend (Vitest) mới có 1 test (`ReportExporter.test.jsx`), chưa phủ hết `PatientForm`/`alarmAudio`/`reportGenerator` như gợi ý ban đầu
 - [x] **CP 6.3** Dockerization — Hoàn thành 2026-08-31
 - [x] **CP 6.4** CI/CD GitHub Actions Workflow — Hoàn thành 2026-08-31, đã xác nhận chạy thật xanh trên GitHub Actions qua các PR #14-17
-- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — 2/3 xong (api_reference.md, deployment_guide.md), còn kịch bản demo (không còn ai/gì chặn)
+- [ ] **CP 6.5** Tài liệu Kỹ thuật & Deployment Guide — `api_reference.md`/`deployment_guide.md`/README đã xong; **kịch bản demo trực quan cho buổi bảo vệ vẫn chưa viết** (xem mục 6.5 phía trên).
 
 ---
 

@@ -6,7 +6,7 @@
 >
 > Tài liệu này chỉ nói **AI làm gì, theo thứ tự nào, cần báo gì cho người kia, và đang chờ gì**. Chi tiết kỹ thuật (file cụ thể, API contract, schema, DoD) đã có đầy đủ trong [plan.md](plan.md) — tài liệu này luôn dẫn lại đúng mục số của `plan.md`, không lặp lại toàn văn để tránh 2 file lệch nhau theo thời gian.
 >
-> **Cập nhật lần cuối**: 2026-09-04. Trạng thái nền: Track A (A1-A7) và Track B (B1-B8) đều đã hoàn thành toàn bộ checklist của mình — chỉ còn kịch bản demo chung ở CP 6.5, xem `plan.md` mục IV-V.
+> **Cập nhật lần cuối**: 2026-09-13. Trạng thái hiện tại: toàn bộ checkpoint cốt lõi đã hoàn thành trên `main`, bao gồm backend/frontend/integration, CI/CD, throughput benchmark và AFib screening; **còn thiếu** kịch bản demo trực quan cho buổi bảo vệ (chưa viết) — xem mục "Cuối cùng (chung)".
 
 ---
 
@@ -61,40 +61,41 @@ flowchart LR
 
 Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thuộc nội bộ trong track — không nhảy cóc để đỡ phải quay lại sửa).
 
-### A1. CP 3.6 — Nối Frontend với API Checkpoint 3 — ✅ Hoàn thành 2026-09-02
+### A1. CP 3.6 — Nối Frontend với API Checkpoint 3
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 3.6.
 - **Không phụ thuộc ai** — 3 API (`GET /api/records`, WS đã có `bpm/hrv_sdnn/hrv_rmssd/is_new_beat`, `POST /api/diagnosis/upload-ecg`) đã chạy sẵn trên `main`. Chạy `uvicorn backend.main:app` là có đủ backend để làm và test ngay.
 - **Việc cụ thể**: thêm ô BPM/HRV vào `StatCards.jsx`; component `RecordSelector.jsx` gọi `GET /api/records` + đổi query param WS; 1 form/modal upload CSV gọi API chẩn đoán offline.
 - **✅ Khi xong, báo trong nhóm chat**: "CP3.6 xong — Dashboard giờ có BPM/HRV/chọn bản ghi/upload, PR #___". Không ảnh hưởng Track B, chỉ cần báo cho biết.
 - **Test trước khi báo xong**: mở `npm run dev` + `uvicorn backend.main:app`, đổi bản ghi qua `100` (bình thường) và `208` (nhiều PVC), xác nhận số liệu đổi đúng theo mô tả ở `plan.md` mục 3.4.
 
-### A2. CP 4.1 — Patient Management UI — ✅ Hoàn thành 2026-09-04
+### A2. CP 4.1 — Patient Management UI
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 4.2.
 - **Phụ thuộc**: cần A1 (CP3.6) xong trước, vì bấm 1 bệnh nhân phải đổi đúng luồng stream (dùng lại cơ chế đổi `record` vừa làm ở A1).
 - **✅ Khi xong, báo**: "CP4.1 xong — có `PatientContext`, data lưu `localStorage` key `ecg_patients`, PR #___". Ghi rõ tên key localStorage trong tin nhắn báo — sau này CP5 cần biết đúng key này để viết script di cư dữ liệu sang database thật (không phải việc của Track A, chỉ cần ghi lại để Track B biết).
 
-### A3. CP 4.2 — Hệ thống Cảnh báo Đa Tầng — ✅ Hoàn thành 2026-09-04
+### A3. CP 4.2 — Hệ thống Cảnh báo Đa Tầng
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 4.3 (kèm bảng phân cấp mức độ 🟢🟡🔴 — bảng này là **nguồn duy nhất**, đừng tự định nghĩa lại mức độ ở chỗ khác).
 - **Không phụ thuộc gì mới** (chỉ cần A1 đã xong để có dữ liệu real-time chạy thử).
 - **✅ Khi xong, báo**: "CP4.2 xong — âm thanh/mute/push notification hoạt động, PR #___".
 
-### A4. CP 4.3 — Xuất Báo Cáo Y Tế (PDF/CSV) — ✅ Hoàn thành 2026-09-04
+### A4. CP 4.3 — Xuất Báo Cáo Y Tế (PDF/CSV)
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 4.4. Làm hoàn toàn Frontend (`jspdf` + `html2canvas`), không cần chờ backend.
 - **✅ Khi xong, báo**: "CP4.3 xong — nút xuất PDF/CSV ở [vị trí], PR #___".
 
-### A5. CP 4.4 — AI Diagnostic Explainer (bản rút gọn) — ✅ Hoàn thành 2026-09-04
+### A5. CP 4.4 — AI Diagnostic Explainer (bản rút gọn)
 - **Chi tiết kỹ thuật đầy đủ + giới hạn phạm vi cố ý**: `plan.md` mục 4.5 — đọc kỹ phần "giới hạn phạm vi" trước khi làm, tránh làm lố sang đo PR/QRS/ST thật (không nằm trong CP4).
 - **✅ Khi xong, báo**: "CP4.4 xong — bảng giải thích lâm sàng theo nhãn AAMI, PR #___".
 
-### A6. CP 4.5 — Settings & Calibration Page — ✅ Hoàn thành 2026-09-04
+### A6. CP 4.5 — Settings & Calibration Page
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 4.6.
 - **✅ Yêu cầu chéo track #1 đã xong (2026-08-30)**: field `confidence` đã có sẵn trong payload WS (`data.confidence`, 0-1) — dùng thẳng được, không cần mock/chờ gì nữa.
 - **✅ Khi xong, báo**: "CP4.5 xong — Settings Page hoạt động, ngưỡng nhạy AI đã áp dụng thật qua field `confidence`, PR #___".
 
-### A7. CP 5.5 — Frontend Auth Guard & Role-based UI — ✅ Hoàn thành 2026-09-04
+### A7. CP 5.5 — Frontend Auth Guard & Role-based UI (ĐIỂM NỐI VỚI TRACK B)
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 5.6.
-- **✅ Đã báo**: `LoginPage.jsx` gọi thật `POST /api/auth/login`, `AuthContext.jsx` lưu token + tự verify qua `GET /api/auth/me` + tự refresh qua `POST /api/auth/refresh` khi gặp 401. Tab "Cài Đặt Hệ Thống" ẩn khỏi role khác `admin`.
-- **⚠️ Lưu ý quan trọng**: PR đầu (#17) nộp cho checkpoint này chỉ là 1 form UI tự chọn role, không mật khẩu, không gọi backend — đã phải viết lại hoàn toàn trước khi merge. Xem chi tiết ở `plan.md` mục 5.6.
+- **Cách làm KHÔNG bị block bởi Track B**: contract của `POST /api/auth/login` / `GET /api/auth/me` đã cố định sẵn trong `plan.md` mục 5.3 ngay từ đầu. Dựng `LoginPage.jsx` + `AuthContext.jsx` gọi thẳng vào URL thật (`/api/auth/login`...) nhưng **có thể tự chạy 1 server giả lập nhỏ** (vd `json-server` hoặc 1 file mock trả cứng đúng JSON theo contract) để test trước khi Track B xong CP5.2. Khi Track B báo CP5.2 xong (mục 3, B2), chỉ cần đổi base URL về backend thật — không phải sửa logic gì thêm nếu contract được tuân thủ đúng.
+- **Chờ báo từ Track B**: "CP5.2 xong" (xem mục 3, B2) trước khi coi CP5.5 là **hoàn thành thật** (trước đó vẫn làm được với mock).
+- **✅ Khi xong, báo**: "CP5.5 xong — đăng nhập/phân quyền hoạt động với backend thật, PR #___".
 
 ---
 
@@ -159,11 +160,10 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - **Lưu ý cho Track A**: job `test-frontend` tự kiểm tra `package.json` có script `test` chưa trước khi chạy — hiện tại (chưa có Vitest) sẽ tự in "bỏ qua" chứ không làm CI đỏ. Khi bạn thêm Vitest (đặt tên script đúng là `"test"` trong `package.json`), CI sẽ tự động chạy thật mà không cần ai sửa lại file workflow.
 - **Toàn bộ Track B (B1→B8) đã xong.** Chỉ còn CP 6.5 (tài liệu + demo cuối) làm chung với Track A sau khi cả 2 bên hoàn thành.
 
-### Cuối cùng (chung) — CP 6.5, Tài liệu & Demo — 🟡 Cả 2 track đã xong phần checklist của mình
+### Cuối cùng (chung) — CP 6.5, Tài liệu & Demo — 🟡 Track B đã xong phần của mình
 - **Chi tiết kỹ thuật đầy đủ**: `plan.md` mục 6.5.
 - **✅ Track B đã làm xong**: `docs/api_reference.md` (toàn bộ endpoint hiện có), `docs/deployment_guide.md` (Docker Compose + chạy thủ công + các lỗi thực tế đã gặp), cập nhật link trong `README.md`.
-- **✅ Track A đã xong hết A1-A7 (2026-09-04)** — không còn gì chặn phần cuối này nữa.
-- **⏳ Việc duy nhất còn lại của toàn bộ kế hoạch**: kịch bản demo trực quan cho buổi bảo vệ (click-through đủ tính năng cả 2 phía) — ai tiện thì viết, không cần chờ nhau nữa.
+- **⏳ Còn lại, cần Track A**: kịch bản demo trực quan cho buổi bảo vệ — chỉ viết được sau khi CP3.6/CP4 (frontend) xong, vì cần đi qua đủ tính năng cả 2 phía mới lên được kịch bản click-through hoàn chỉnh.
 
 ---
 
@@ -202,7 +202,7 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] A4 — CP 4.3 Report Exporter
 - [x] A5 — CP 4.4 AI Diagnostic Explainer (rút gọn)
 - [x] A6 — CP 4.5 Settings Page
-- [x] A7 — CP 5.5 Frontend Auth Guard (viết lại thật sau khi PR đầu chỉ là mock, xem `plan.md` mục 5.6)
+- [x] A7 — CP 5.5 Frontend Auth Guard
 
 **Track B**
 - [x] B1 — CP 5.1 Database Schema
@@ -218,4 +218,4 @@ Làm theo đúng thứ tự dưới đây (mỗi mục đã sắp theo phụ thu
 - [x] #1 — Track B thêm `confidence` vào `predict()` + payload WS (cho A6 dùng)
 
 **Chung**
-- [ ] CP 6.5 — Tài liệu kỹ thuật & Demo cuối
+- [ ] CP 6.5 — Tài liệu kỹ thuật & Demo cuối (docs xong, kịch bản demo trực quan còn thiếu — xem mục "Cuối cùng (chung)")
