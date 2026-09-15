@@ -1,8 +1,8 @@
 import React from 'react';
 import { getAlarmLevel } from '../../constants/alarmLevels';
 
-const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibSuspected, afibScore }) => {
-  const isDanger = getAlarmLevel(latestPrediction).level === 3 || Boolean(afibSuspected);
+const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibSuspected, afibScore, tachycardiaSuspected }) => {
+  const isDanger = getAlarmLevel(latestPrediction).level === 3 || Boolean(afibSuspected) || Boolean(tachycardiaSuspected);
   
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
@@ -31,6 +31,11 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibS
         {Boolean(afibSuspected) && (
           <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
             ⚠️ Nghi ngờ Rung Nhĩ (score {Number(afibScore ?? 0).toFixed(2)})
+          </div>
+        )}
+        {Boolean(tachycardiaSuspected) && (
+          <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+            ⚡ Nhịp Tim Nhanh Bất Thường (≥100 bpm)
           </div>
         )}
       </div>

@@ -26,6 +26,7 @@ const DashboardPage = () => {
   const [confidence, setConfidence] = useState(null);
   const [afibSuspected, setAfibSuspected] = useState(false);
   const [afibScore, setAfibScore] = useState(0);
+  const [tachycardiaSuspected, setTachycardiaSuspected] = useState(false);
 
   const [localSelectedRecord, setLocalSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,7 +67,7 @@ const DashboardPage = () => {
     let cancelled = false; // true khi effect này bị cleanup (đổi bản ghi/unmount) - chặn onclose cũ tự reconnect lại bản ghi cũ
 
     const handleNewData = (data) => {
-      const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence, afib_suspected, afib_score } = data;
+      const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected } = data;
       
       setLatency(latency_ms);
       setLatestPrediction(prediction);
@@ -75,6 +76,7 @@ const DashboardPage = () => {
       if (confidence !== undefined) setConfidence(confidence);
       if (afib_suspected !== undefined) setAfibSuspected(afib_suspected);
       if (afib_score !== undefined) setAfibScore(afib_score);
+      if (tachycardia_suspected !== undefined) setTachycardiaSuspected(tachycardia_suspected);
       
       if (heatmap) {
         setCurrentHeatmap(heatmap);
@@ -232,6 +234,7 @@ const DashboardPage = () => {
             confidence={confidence}
             afibSuspected={afibSuspected}
             afibScore={afibScore}
+            tachycardiaSuspected={tachycardiaSuspected}
           />
           <div ref={chartRef} style={{ display: 'flex', flex: 1, minHeight: '0', position: 'relative' }}>
             <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />

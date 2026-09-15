@@ -1,5 +1,11 @@
 import numpy as np
 
+# Nguong nhip nhanh bat thuong (tachycardia) o nguoi lon khi nghi - chuan lam sang pho bien:
+# nhip tim > 100 bpm. Dung trung binh vai nhip gan nhat (khong phai tuc thoi 1 nhip) de tranh
+# bao dong gia tu 1 nhip le/nhieu don le (VD 1 ngoai tam thu lam RR ngan bat thuong).
+TACHYCARDIA_BPM_THRESHOLD = 100.0
+TACHYCARDIA_MIN_BEATS = 3  # can it nhat 3 khoang RR gan nhat de tinh trung binh co y nghia
+
 
 def rr_to_ms(rr_samples, fs=360):
     """Doi 1 khoang RR (so mau) sang mili-giay."""
@@ -34,6 +40,18 @@ def compute_rmssd(rr_intervals_ms):
     return float(np.sqrt(np.mean(diffs ** 2)))
 
 
+def is_tachycardia(rr_samples_history, fs=360, window=5,
+                    threshold_bpm=TACHYCARDIA_BPM_THRESHOLD, min_beats=TACHYCARDIA_MIN_BEATS):
+    """Nghi ngo nhip nhanh bat thuong: BPM trung binh cua `window` khoang RR gan nhat vuot
+    nguong. Dung trung binh (khong phai BPM tuc thoi 1 nhip) de on dinh hon truoc nhieu/
+    ngoai tam thu don le. Can it nhat `min_beats` khoang RR moi bat dau danh gia."""
+    recent = rr_samples_history[-window:]
+    if len(recent) < min_beats:
+        return False
+    avg_bpm = float(np.mean([compute_bpm(rr, fs) for rr in recent]))
+    return avg_bpm >= threshold_bpm
+
+
 class HRVTracker:
     """Theo doi lich su khoang RR gan nhat de tinh BPM tuc thoi + HRV theo cua so truot.
     Moi ket noi WebSocket/stream nen co 1 instance rieng (khong dung chung global state)."""
@@ -56,7 +74,7 @@ class HRVTracker:
         self._last_r_peak = r_peak_idx
 
         if not self._rr_samples_history:
-            return {'bpm': 0.0, 'hrv_sdnn': 0.0, 'hrv_rmssd': 0.0}
+            return {'bpm': 0.0, 'hrv_sdnn': 0.0, 'hrv_rmssd': 0.0, 'tachycardia_suspected': False}
 
         rr_ms_history = [rr_to_ms(rr, self.fs) for rr in self._rr_samples_history]
         bpm = compute_bpm(self._rr_samples_history[-1], self.fs)
@@ -64,4 +82,5 @@ class HRVTracker:
             'bpm': round(bpm, 1),
             'hrv_sdnn': round(compute_sdnn(rr_ms_history), 2),
             'hrv_rmssd': round(compute_rmssd(rr_ms_history), 2),
+            'tachycardia_suspected': is_tachycardia(self._rr_samples_history, self.fs),
         }

@@ -330,3 +330,88 @@ ResNet1D giữ nguyên) — chỉ cần restart backend để nạp lại trọn
 **Lưu ý kỹ thuật nợ lại (mới)**: `saved_models/resnet1d.onnx`/`resnet1d_int8.onnx` giờ càng
 lạc hậu hơn nữa so với trọng số hiện tại (đã stale từ lần retrain C2, nay lại thêm 1 lần fine-
 tune) — cần chạy lại `python -m src.models.export_onnx` nếu muốn dùng đường ONNX.
+
+### Mở rộng kiểm chứng ra 2 bộ dữ liệu PhysioNet độc lập nữa (SVDB, EDB)
+
+Sau khi fine-tune INCART, đặt câu hỏi: model đã fine-tune (bản đang production) có generalize
+tốt sang các bộ dữ liệu khác nữa không, hay chỉ tốt riêng với INCART? Test thêm (không train
+gì) trên 2 bộ hoàn toàn mới: **MIT-BIH Supraventricular Arrhythmia Database (SVDB)** — 6 bản
+ghi, giàu nhịp S nhất trong các lựa chọn có sẵn — và **European ST-T Database (EDB)** — 6 bản
+ghi, dân số/thiết bị châu Âu, kênh MLIII (gần nhất với MLII gốc). Script:
+`backend/scripts/validate_external_db.py --data-dir <dir> --channel <n> --records <ids> --name <tên>`.
+
+| Dataset | Accuracy | Recall N | Recall S | Recall V | Recall F |
+|---|---:|---:|---:|---:|---:|
+| MIT-BIH Test (tham chiếu) | 98.43% | 99.2% | 81.3% | 96.2% | 84.0% |
+| INCART (đã fine-tune riêng) | 93.18% | 93.9% | — | 88.6% | — |
+| **SVDB** (channel 0 — đã xác nhận tốt hơn channel 1: 77.32% vs 39.30%) | 77.32% | 95.1% | **0.4%** | 78.2% | — |
+| **EDB** (channel 1 = MLIII) | 76.85% | 78.1% | **3.6%** | 92.2% | **2.3%** |
+
+**Tin tốt**: lớp N và V (quan trọng lâm sàng nhất — PVC) generalize khá tốt và nhất quán trên
+cả 4 bộ dữ liệu độc lập (V dao động 78-96%, không sụp đổ ở bộ nào).
+
+**Tin cần nói thẳng**: **lớp S sụp đổ gần như hoàn toàn trên cả 2 bộ dữ liệu mới** (SVDB 0.4%,
+EDB 3.6%) — 2 bằng chứng độc lập cùng chỉ về 1 nguyên nhân gốc: đúng vấn đề đã phát hiện lúc
+fine-tune INCART (phải loại lớp S ra khỏi tập fine-tune vì xung đột phân phối). Ranh giới
+quyết định lớp S của model học "quá khít" theo đặc điểm nhịp S riêng của MIT-BIH, không
+transfer sang bất kỳ nguồn dữ liệu nào khác đã thử. Lớp F cũng yếu tương tự trên EDB (2.3%).
+
+### 2 lần thử sửa lớp S bằng SVDB — đều thất bại (ghi nhận trung thực, có giá trị khoa học)
+
+SVDB là nguồn dữ liệu S phong phú nhất hiện có (10.370 nhịp S/78 bản ghi) — thử fine-tune
+tiếp tục TỪ bản production hiện tại (đã fine-tune INCART) bằng 6 bản ghi SVDB mới (869, 881,
+821, 861, 885, 852 — khác hoàn toàn 6 bản ghi giữ làm test), **chỉ lấy N+S** (loại V/F/Q của
+SVDB để tránh xáo trộn lớp V đang tốt), trộn với 40.000 mẫu replay MIT-BIH. Script:
+`backend/scripts/finetune_resnet1d_svdb.py`.
+
+**Lần 1 — fine-tune toàn bộ mạng (giống công thức đã thành công với INCART)**:
+
+| Epoch | MIT-BIH Prec | MIT-BIH F1 | SVDB Recall_S | SVDB Acc | INCART Acc | EDB Recall_S |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 (gốc) | 91.48% | 91.70% | 0.4% | 77.32% | 93.18% | 3.6% |
+| 1 | 89.23% | 90.45% | 17.9% | 74.24% | **83.11%** | 22.0% |
+| 2 | 88.40% | 90.22% | 21.9% | 72.93% | 82.00% | 24.4% |
+| 3 | 87.65% | 89.87% | 25.7% | 72.39% | 81.45% | 26.7% |
+
+Recall_S có cải thiện thật (0.4%→25.7%) và **transfer sang cả EDB** (3.6%→26.7%, bộ hoàn toàn
+không dùng để fine-tune) — chứng tỏ tín hiệu học được là thật, không phải học vẹt riêng SVDB.
+Nhưng cái giá quá lớn: **lớp V sụp đổ trên diện rộng** — không chỉ SVDB (nơi đã loại V khỏi
+fine-tune!) mà lan sang cả INCART (Recall_V 88.6%→51.2%) và EDB (92.2%→67.7%), kéo Accuracy
+tổng INCART từ 93.18% xuống 83.11%. Khác hẳn lần INCART (chỉ cần loại đúng 1 lớp xung đột là
+đủ), lần này dù đã loại V khỏi dữ liệu SVDB, việc học N+S từ SVDB vẫn gây nhiễu chéo sang V.
+
+**Lần 2 — linear probing (đóng băng toàn bộ feature extractor, chỉ train lớp `fc` cuối cùng)**:
+giả thuyết là nếu chỉ giới hạn thay đổi ở đúng ranh giới quyết định cuối, sẽ không thể làm
+trôi đặc trưng dùng chung cho V. Kết quả:
+
+| Epoch | MIT-BIH Prec | MIT-BIH F1 | SVDB Recall_S | SVDB Acc | INCART Acc | EDB Recall_S |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 (gốc) | 91.48% | 91.70% | 0.4% | 77.32% | 93.18% | 3.6% |
+| 1 | 91.51% | 90.41% | 1.5% | 77.79% | 90.60% | 8.4% |
+| 2 | 86.70% | 86.29% | 4.5% | 77.20% | 86.44% | 16.6% |
+| 3 | 86.24% | 85.76% | 6.1% | 77.40% | 86.04% | 17.5% |
+
+Gây hại nhẹ hơn (INCART chỉ tụt còn 90.60% thay vì sập 83.11%), nhưng **S cải thiện cũng kém
+hẳn** (SVDB Recall_S cao nhất chỉ 1.5%, so với 17.9% của lần 1) và **V vẫn bị ảnh hưởng rõ**
+(SVDB Recall_V: 78.2%→50.8%) dù đã đóng băng toàn bộ backbone — chỉ điều chỉnh 1 lớp Linear
+cuối cùng cũng đủ làm lệch ranh giới V.
+
+**Kết luận (quan trọng hơn cả việc "có sửa được không")**: 2 kỹ thuật khác nhau (fine-tune
+toàn bộ, linear probing) đều thất bại theo cùng 1 kiểu — cải thiện S luôn đi kèm cái giá làm
+hại V. Đây là bằng chứng cho thấy vấn đề không nằm ở kỹ thuật fine-tune (đã thử đủ nghiêm túc),
+mà ở **bản chất hình học của bài toán phân loại 5 lớp dùng chung 1 mặt quyết định (softmax)**:
+biểu diễn đặc trưng của nhịp SVDB nằm ở vùng mơ hồ giữa các lớp trong không gian đặc trưng đã
+học từ MIT-BIH — kéo chúng về đúng lớp S tất yếu kéo theo xáo trộn lớp lân cận (V). Cách duy
+nhất để sửa triệt để là **train lại từ đầu**, trộn cả MIT-BIH + SVDB + INCART ngay từ vòng
+chia Train/Val/Test đầu tiên — khối lượng công việc tương đương làm lại toàn bộ pipeline
+training, không phải fine-tune, và **không nằm trong phạm vi đợt cải thiện này**.
+
+**Quyết định**: KHÔNG promote 2 bản fine-tune SVDB này. Production giữ nguyên bản fine-tune
+INCART (đạt đủ 4/4 mục tiêu đề cương trên MIT-BIH, INCART 93.18%) — cả 2 file thử nghiệm
+(`saved_models/resnet1d_finetuned_svdb.pth` qua từng lần chạy) chỉ lưu local, gitignored,
+không ảnh hưởng production.
+
+**Giới hạn cuối cùng cần ghi rõ trong báo cáo**: hệ thống generalize tốt cho lớp N và V (2 lớp
+quan trọng nhất — bình thường và PVC) trên mọi bộ dữ liệu độc lập đã thử; lớp S và F cần thêm
+dữ liệu huấn luyện đa nguồn ngay từ đầu (không chỉ MIT-BIH) mới generalize tốt được ra ngoài —
+đây là hướng phát triển tiếp theo hợp lý, không phải thiếu sót của lần triển khai này.

@@ -59,6 +59,7 @@ async def ecg_stream_endpoint(
         last_hrv_sdnn = 0.0
         last_hrv_rmssd = 0.0
         last_latency_e2e_ms = 0.0
+        last_tachycardia = False
         afib_screener = AfibScreener(fs=360)
         last_afib = {"afib_suspected": False, "afib_score": 0.0}
 
@@ -72,6 +73,7 @@ async def ecg_stream_endpoint(
                 last_bpm = beat_info["bpm"]
                 last_hrv_sdnn = beat_info["hrv_sdnn"]
                 last_hrv_rmssd = beat_info["hrv_rmssd"]
+                last_tachycardia = beat_info.get("tachycardia_suspected", False)
                 afib_metrics = afib_screener.update(beat_info.get("r_peak_sample"))
                 last_afib = {
                     "afib_suspected": afib_metrics["afib_suspected"],
@@ -109,6 +111,7 @@ async def ecg_stream_endpoint(
                 "is_new_beat": beat_info is not None,  # true đúng lúc vừa chẩn đoán 1 nhịp mới
                 "afib_suspected": last_afib["afib_suspected"],
                 "afib_score": last_afib["afib_score"],
+                "tachycardia_suspected": last_tachycardia,  # BPM trung bình 5 nhịp gần nhất >= 100
             }
 
             await websocket.send_json(payload)
