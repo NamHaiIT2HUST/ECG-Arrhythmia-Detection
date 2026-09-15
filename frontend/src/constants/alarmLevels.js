@@ -66,3 +66,24 @@ export const getAlarmLevel = (prediction) => {
   if (!prediction) return ALARM_LEVELS['BÌNH THƯỜNG'];
   return ALARM_LEVELS[prediction] ?? ALARM_LEVELS['BÌNH THƯỜNG'];
 };
+
+/**
+ * Mức cảnh báo cho các điều kiện KHÔNG phải nhãn AAMI từng nhịp (afib_suspected/
+ * tachycardia_suspected từ payload WS) — dùng chung nguồn duy nhất này với ALARM_LEVELS,
+ * cùng cơ chế sound/push, để AlarmContext.triggerAlarm xử lý đồng nhất cả 2 loại điều kiện.
+ * Giữ đúng mức độ đã dùng cho màu badge ở StatCards.jsx (AFib đỏ/mức 3, tachycardia vàng/mức 2).
+ */
+export const EXTRA_CONDITIONS = {
+  afib: {
+    level: 3,
+    label: '🚨 Khẩn cấp — Nghi ngờ Rung Nhĩ (AFib)',
+    sound: true,
+    push: true,
+  },
+  tachycardia: {
+    level: 2,
+    label: 'Chú ý — Nhịp Tim Nhanh Bất Thường (≥100 bpm)',
+    sound: false,
+    push: false,
+  },
+};

@@ -67,7 +67,7 @@ const DashboardPage = () => {
     let cancelled = false; // true khi effect này bị cleanup (đổi bản ghi/unmount) - chặn onclose cũ tự reconnect lại bản ghi cũ
 
     const handleNewData = (data) => {
-      const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected } = data;
+      const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
       
       setLatency(latency_ms);
       setLatestPrediction(prediction);
@@ -78,11 +78,20 @@ const DashboardPage = () => {
       if (afib_score !== undefined) setAfibScore(afib_score);
       if (tachycardia_suspected !== undefined) setTachycardiaSuspected(tachycardia_suspected);
       
+      if (is_new_beat) {
+        // Gọi trigger alarm mỗi khi có 1 nhịp mới - kể cả lúc AAMI là Bình thường (heatmap
+        // null), vì afib_suspected/tachycardia_suspected có thể đang true độc lập với nhãn
+        // AAMI của đúng nhịp này (rung nhĩ/nhịp nhanh là điều kiện theo nhịp điệu nhiều nhịp,
+        // không phải hình dạng riêng 1 nhịp) - nếu chỉ gọi lúc có heatmap sẽ bỏ lỡ 2 cảnh báo
+        // này hoàn toàn khi nhịp hiện tại được phân loại Bình thường.
+        triggerAlarmRef.current(prediction, settings.confidenceThreshold, confidence, {
+          afibSuspected: afib_suspected,
+          tachycardiaSuspected: tachycardia_suspected,
+        });
+      }
+
       if (heatmap) {
         setCurrentHeatmap(heatmap);
-
-        // Gọi trigger alarm cho tất cả các bản tin có prediction (kể cả bình thường để tắt alarm)
-        triggerAlarmRef.current(prediction, settings.confidenceThreshold, confidence);
 
         if (prediction && prediction.includes('CẢNH BÁO')) {
           // Lưu lại chính xác 187 điểm cuối cùng của yData (và thêm chunk) để XAI phân tích

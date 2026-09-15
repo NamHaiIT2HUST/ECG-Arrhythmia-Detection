@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useRef, useCallback, useEffect } from 'react';
-import { getAlarmLevel } from '../constants/alarmLevels';
+import { ALARM_LEVELS, getAlarmLevel, EXTRA_CONDITIONS } from '../constants/alarmLevels';
 import { startAlarm, stopAlarm, setMuted } from '../utils/alarmAudio';
 
 const AlarmContext = createContext();
@@ -51,38 +51,44 @@ export const AlarmProvider = ({ children }) => {
   }, []);
 
   /**
-   * Gọi khi nhận prediction mới từ WS.
+   * Gọi khi nhận prediction mới từ WS (mỗi khi có 1 nhịp mới được chẩn đoán, kể cả nhịp
+   * Bình thường - cần gọi liên tục để tự tắt cảnh báo cũ đúng lúc, không chỉ lúc bất thường).
    * @param {string} prediction - nhãn AAMI
    * @param {number} confidenceThreshold - ngưỡng confidence (0-1), mặc định 0
    * @param {number} confidence - confidence thực tế từ WS
+   * @param {{afibSuspected?: boolean, tachycardiaSuspected?: boolean}} extras - các điều kiện
+   *   cảnh báo KHÔNG dựa trên nhãn AAMI từng nhịp (rung nhĩ/nhịp nhanh theo nhịp điệu nhiều
+   *   nhịp) - có thể đang true dù prediction của đúng nhịp này là Bình thường.
    */
-  const triggerAlarm = useCallback((prediction, confidenceThreshold = 0, confidence = 1) => {
-    const alarm = getAlarmLevel(prediction);
+  const triggerAlarm = useCallback((prediction, confidenceThreshold = 0, confidence = 1, extras = {}) => {
+    const aami = getAlarmLevel(prediction);
+    // Nếu confidence dưới ngưỡng → coi như AAMI không kích hoạt (Settings CP4.5), nhưng
+    // AFib/tachycardia không phụ thuộc confidence của model phân loại nhịp nên vẫn xét riêng.
+    const aamiActive = !(aami.level > 1 && confidence < confidenceThreshold);
+    const candidates = [aamiActive ? aami : ALARM_LEVELS['BÌNH THƯỜNG']];
+    if (extras.afibSuspected) candidates.push(EXTRA_CONDITIONS.afib);
+    if (extras.tachycardiaSuspected) candidates.push(EXTRA_CONDITIONS.tachycardia);
 
-    // Nếu confidence dưới ngưỡng → không kích hoạt (Settings CP4.5)
-    if (alarm.level > 1 && confidence < confidenceThreshold) {
-      setCurrentAlarmLevel(0);
+    // Điều kiện nào mức độ cao nhất thắng, quyết định âm thanh/push/label hiển thị.
+    const winner = candidates.reduce((max, c) => (c.level > max.level ? c : max));
+
+    setCurrentAlarmLevel(winner.level);
+
+    if (winner.level < 2) {
       stopAlarm();
       return;
     }
 
-    setCurrentAlarmLevel(alarm.level);
-
-    if (alarm.level < 2) {
-      stopAlarm();
-      return;
-    }
-
-    if (!isMuted && alarm.sound) {
-      startAlarm(alarm.level);
+    if (!isMuted && winner.sound) {
+      startAlarm(winner.level);
     }
 
     // Push Notification (chỉ mức 3)
-    if (alarm.push && alarm.level === 3 && !isMuted) {
+    if (winner.push && winner.level === 3 && !isMuted) {
       if (Notification.permission === 'granted') {
         try {
           new Notification('⚠️ CẢNH BÁO ECG KHẨN CẤP', {
-            body: `Phát hiện: ${prediction}\nYêu cầu kiểm tra ngay bệnh nhân!`,
+            body: `Phát hiện: ${winner.label}\nYêu cầu kiểm tra ngay bệnh nhân!`,
             icon: '/favicon.ico',
             tag: 'ecg-alarm', // tag để không spam nhiều notification cùng lúc
           });
