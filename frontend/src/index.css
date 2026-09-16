@@ -51,7 +51,7 @@ button {
 .landing-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   padding: 28px clamp(20px, 4vw, 60px) 48px;
 }
 
@@ -261,8 +261,8 @@ button {
 .hero-copy h1 {
   margin: 18px 0 16px;
   font-size: clamp(2.7rem, 5vw, 5rem);
-  line-height: 0.96;
-  letter-spacing: -0.06em;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
   color: #0f172a;
 }
 
@@ -342,7 +342,7 @@ button {
 .card-header h3 {
   margin: 8px 0 0;
   font-size: 2rem;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.02em;
 }
 
 .status-indicator {
@@ -498,7 +498,7 @@ button {
 .auth-copy h2 {
   margin: 16px 0 12px;
   font-size: clamp(2.3rem, 4vw, 4rem);
-  letter-spacing: -0.06em;
+  letter-spacing: -0.02em;
 }
 
 .auth-copy p {
@@ -570,7 +570,7 @@ button {
 .section-heading h2 {
   margin: 0;
   font-size: clamp(2rem, 3vw, 3rem);
-  letter-spacing: -0.06em;
+  letter-spacing: -0.02em;
 }
 
 .workflow-grid {
@@ -674,5 +674,37 @@ button {
 
   .status-indicator {
     align-self: flex-start;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0f172a;
+    --bg-deep: #020617;
+    --bg-panel: rgba(15, 23, 42, 0.9);
+    --card-bg: rgba(30, 41, 59, 0.94);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: rgba(148, 163, 184, 0.1);
+  }
+  
+  body, html, #root {
+    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  }
+
+  .landing-header {
+    background: rgba(15, 23, 42, 0.7);
+  }
+  
+  .hero-copy h1 {
+    color: #f8fafc;
+  }
+
+  .feature-card, .workflow-card {
+    background: rgba(30, 41, 59, 0.8);
+  }
+
+  .mini-stat {
+    background: rgba(30, 41, 59, 0.86);
   }
 }
