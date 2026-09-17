@@ -10,8 +10,8 @@ from tests.conftest import requires_saved_model
 # GET /api/records
 # ---------------------------------------------------------------------------
 
-def test_get_records_shape(client):
-    res = client.get("/api/records")
+def test_get_records_shape(client, auth_headers):
+    res = client.get("/api/records", headers=auth_headers["nurse"])
     assert res.status_code == 200
     body = res.json()
     assert "default_record" in body
@@ -24,7 +24,7 @@ def test_get_records_shape(client):
 # ---------------------------------------------------------------------------
 
 @requires_saved_model
-def test_upload_diagnosis_shape(client):
+def test_upload_diagnosis_shape(client, auth_headers):
     # Tín hiệu sin tổng hợp (không cần dữ liệu MIT-BIH thật) — chỉ để kiểm tra ĐÚNG SHAPE
     # response, không kiểm tra ý nghĩa lâm sàng của kết quả.
     signal = np.sin(np.linspace(0, 80, 3600))
@@ -33,6 +33,7 @@ def test_upload_diagnosis_shape(client):
     res = client.post(
         "/api/diagnosis/upload-ecg?fs=360",
         files={"file": ("sample.csv", csv_bytes, "text/csv")},
+        headers=auth_headers["nurse"],
     )
     assert res.status_code == 200
     body = res.json()
@@ -41,13 +42,27 @@ def test_upload_diagnosis_shape(client):
         assert key in body
 
 
-def test_upload_diagnosis_rejects_too_short_file(client):
+def test_upload_diagnosis_rejects_too_short_file(client, auth_headers):
     csv_bytes = io.BytesIO(b"0.1\n0.2\n0.3\n")  # chỉ 3 mẫu, quá ngắn
     res = client.post(
         "/api/diagnosis/upload-ecg?fs=360",
         files={"file": ("tiny.csv", csv_bytes, "text/csv")},
+        headers=auth_headers["nurse"],
     )
     assert res.status_code == 400
+
+
+def test_upload_diagnosis_requires_login(client):
+    csv_bytes = io.BytesIO(b"0.1\n0.2\n0.3\n")
+    res = client.post(
+        "/api/diagnosis/upload-ecg?fs=360",
+        files={"file": ("tiny.csv", csv_bytes, "text/csv")},
+    )
+    assert res.status_code == 401
+
+
+def test_get_records_requires_login(client):
+    assert client.get("/api/records").status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +195,7 @@ def test_verify_unknown_anomaly_returns_404(client, auth_headers):
     assert res.status_code == 404
 
 
-def test_afib_screening_status_shape(client):
+def test_afib_screening_status_shape(client, auth_headers):
     fs = 360
     t = np.linspace(0, 8, int(fs * 8), endpoint=False)
     signal = np.sin(2 * np.pi * 1.2 * t) + 0.05 * np.sin(2 * np.pi * 20 * t)
@@ -189,9 +204,19 @@ def test_afib_screening_status_shape(client):
     res = client.post(
         "/api/screening/afib?fs=360",
         files={"file": ("sample.csv", csv_bytes, "text/csv")},
+        headers=auth_headers["nurse"],
     )
     assert res.status_code == 200
     body = res.json()
     for key in ("status", "confidence", "bpm", "rr_irregularity", "rr_rmssd_ms", "thresholds_used", "recommendation"):
         assert key in body
     assert body["status"] in {"negative", "indeterminate", "positive"}
+
+
+def test_afib_screening_requires_login(client):
+    csv_bytes = io.BytesIO(b"0.1\n0.2\n0.3\n")
+    res = client.post(
+        "/api/screening/afib?fs=360",
+        files={"file": ("tiny.csv", csv_bytes, "text/csv")},
+    )
+    assert res.status_code == 401

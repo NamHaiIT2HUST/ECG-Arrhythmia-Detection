@@ -1,6 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
+
 from fastapi.concurrency import run_in_threadpool
 
+from backend.core.security import get_current_user
+from backend.db.models import User
 from backend.service.diagnosis_service import parse_ecg_csv, run_offline_diagnosis
 from backend.service.inference_service import ai_service
 
@@ -16,6 +19,7 @@ MIN_VALID_FS = 91
 async def upload_ecg_diagnosis(
     file: UploadFile = File(...),
     fs: int = Query(360, ge=50, le=2000, description="Tần số lấy mẫu (Hz) của tín hiệu trong file"),
+    current_user: User = Depends(get_current_user),
 ):
     """CP3.5: Nhận file CSV tín hiệu ECG (1 cột biên độ, có/không có header — xem
     `parse_ecg_csv`), tiền xử lý (lọc nhiễu + phát hiện đỉnh R + cắt nhịp) và chạy AI

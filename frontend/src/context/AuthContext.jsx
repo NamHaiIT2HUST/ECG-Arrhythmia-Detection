@@ -9,7 +9,7 @@ const ACCESS_TOKEN_KEY = 'ecg_access_token';
 const REFRESH_TOKEN_KEY = 'ecg_refresh_token';
 const USER_CACHE_KEY = 'ecg_auth_user';
 
-const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
+export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
 
 const setTokens = ({ access_token, refresh_token }) => {

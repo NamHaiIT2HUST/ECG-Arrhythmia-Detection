@@ -87,6 +87,27 @@ def get_current_user(
     return user
 
 
+def get_user_from_token(token: str | None, db: Session) -> User | None:
+    """Giống `get_current_user` nhưng nhận thẳng chuỗi token thay vì header Authorization -
+    dùng cho WebSocket (`/ws/ecg`), nơi trình duyệt KHÔNG thể gắn header Authorization vào
+    lúc handshake WS, nên token phải truyền qua query param. Trả về `None` (thay vì raise)
+    nếu thiếu/sai/hết hạn - nơi gọi tự quyết định đóng kết nối với code/reason phù hợp."""
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+    except jwt.InvalidTokenError:
+        return None
+    if payload.get("type") != "access":
+        return None
+    user_id = payload.get("sub")
+    try:
+        user = db.get(User, int(user_id)) if user_id is not None else None
+    except (ValueError, TypeError):
+        return None
+    return user
+
+
 def require_role(*roles: str):
     """Dependency factory phân quyền theo vai trò, dùng: `Depends(require_role("admin", "doctor"))`.
     So sánh theo string (vd "admin") để nơi gọi không cần import `UserRole`. 403 nếu vai trò

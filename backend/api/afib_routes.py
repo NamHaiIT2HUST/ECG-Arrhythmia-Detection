@@ -1,6 +1,8 @@
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
+from backend.core.security import get_current_user
+from backend.db.models import User
 from backend.service.afib_screening_service import screen_afib_signal
 from backend.service.diagnosis_service import parse_ecg_csv
 
@@ -14,6 +16,7 @@ MIN_VALID_FS = 91
 async def screening_afib(
     file: UploadFile = File(...),
     fs: int = Query(360, ge=50, le=2000, description="Tần số lấy mẫu (Hz) của tín hiệu ECG."),
+    current_user: User = Depends(get_current_user),
 ):
     """Sàng lọc rung nhĩ (AFib) trên một đoạn ECG tải lên.
 

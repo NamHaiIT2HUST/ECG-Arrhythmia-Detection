@@ -8,7 +8,7 @@ from backend.service.inference_service import ai_service
 from backend.service.anomaly_log_service import end_ecg_record, log_anomaly, resolve_patient, start_ecg_record
 from backend.api.records_routes import record_exists, DEFAULT_RECORD
 from backend.db.session import get_db
-from backend.core.afib_screener import AfibScreener
+from backend.core.security import get_user_from_token
 
 router = APIRouter()
 
@@ -20,9 +20,20 @@ async def ecg_stream_endpoint(
     websocket: WebSocket,
     record: str = DEFAULT_RECORD,
     patient_id: int | None = None,
+    token: str | None = None,
     db: Session = Depends(get_db),
 ):
     global active_connections
+
+    # Bat buoc dang nhap: du lieu ECG real-time la du lieu benh nhan nhay cam, khong duoc de
+    # anonymous truy cap. WebSocket khong the gan header Authorization tu trinh duyet, nen
+    # token duoc truyen qua query param (?token=<access_token>) - xem get_user_from_token().
+    # Kiem tra TRUOC accept()/truoc khi vao try-finally, de active_connections khong bi lech
+    # (finally luon -=1, chi += 1 sau accept() thanh cong - xem comment o finally ben duoi).
+    user = get_user_from_token(token, db)
+    if user is None:
+        await websocket.close(code=4401, reason="Unauthorized")
+        return
 
     # CP3.4: cho phép chọn bản ghi PhysioNet muốn phát qua query param, vd:
     # ws://localhost:8000/ws/ecg?record=100  (mặc định 208 nếu không truyền)
@@ -60,7 +71,6 @@ async def ecg_stream_endpoint(
         last_hrv_rmssd = 0.0
         last_latency_e2e_ms = 0.0
         last_tachycardia = False
-        afib_screener = AfibScreener(fs=360)
         last_afib = {"afib_suspected": False, "afib_score": 0.0}
 
         async for chunk_values, beat_info in ecg_stream:
@@ -74,10 +84,9 @@ async def ecg_stream_endpoint(
                 last_hrv_sdnn = beat_info["hrv_sdnn"]
                 last_hrv_rmssd = beat_info["hrv_rmssd"]
                 last_tachycardia = beat_info.get("tachycardia_suspected", False)
-                afib_metrics = afib_screener.update(beat_info.get("r_peak_sample"))
                 last_afib = {
-                    "afib_suspected": afib_metrics["afib_suspected"],
-                    "afib_score": afib_metrics["afib_score"],
+                    "afib_suspected": beat_info.get("afib_suspected", False),
+                    "afib_score": beat_info.get("afib_score", 0.0),
                 }
                 # End-to-End Latency: tu luc phat hien dinh R (data_streamer.py) den ngay truoc
                 # khi gui payload nay qua WebSocket - xem backend/scripts/benchmark_e2e_latency.py.

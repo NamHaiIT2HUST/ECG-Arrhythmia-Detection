@@ -8,6 +8,7 @@ import numpy as np
 from backend.core.signal_processing import bandpass_filter, notch_filter
 from backend.core.qrs_detector import pan_tompkins_r_peaks, extract_beat_window, resample_signal, MODEL_FS
 from backend.core.hrv import HRVTracker
+from backend.core.afib_screener import AfibScreener
 
 # Resolve đường dẫn tuyệt đối từ vị trí file này
 # Tránh bị lỗi khi chạy uvicorn từ thư mục khác
@@ -72,6 +73,11 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
     idx = 0
     beat_cursor = 0
     tracker = HRVTracker(fs=fs)
+    # AfibScreener song song HRVTracker, cung reset khi loop lai tu dau (xem nhanh idx>=len
+    # ben duoi) - truoc day AfibScreener duoc tao rieng o ws_routes.py va KHONG bao gio duoc
+    # reset khi stream lap lai, khien lich su RR cua no bi "bac cau" giua cuoi va dau ban ghi,
+    # lam afib_score sai lech trong vai chuc nhip dau moi vong lap tren ket noi chay lau.
+    afib_screener = AfibScreener(fs=fs)
 
     while True:
         chunk = []
@@ -82,6 +88,7 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
                 idx = 0
                 beat_cursor = 0
                 tracker = HRVTracker(fs=fs)  # Loop lại từ đầu để demo chạy mãi mãi
+                afib_screener = AfibScreener(fs=fs)
 
             val = float(clean_signal[idx])
             chunk.append(val)
@@ -90,10 +97,12 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
                 window = extract_beat_window(model_signal, r_peaks_model, beat_cursor, window_size=window_size, fs=MODEL_FS)
                 if window is not None:
                     hrv = tracker.update(int(r_peaks[beat_cursor]))
+                    afib = afib_screener.update(int(r_peaks[beat_cursor]))
                     # 'detected_at': moc thoi gian ngay luc phat hien nhip nay - dung de do
                     # End-to-End Latency (xem ws_routes.py va benchmark_e2e_latency.py).
                     beat_info = {'window': window, 'r_peak_sample': int(r_peaks[beat_cursor]),
-                                 'detected_at': time.time(), **hrv}
+                                 'detected_at': time.time(), **hrv,
+                                 'afib_suspected': afib['afib_suspected'], 'afib_score': afib['afib_score']}
                 beat_cursor += 1
 
             idx += 1

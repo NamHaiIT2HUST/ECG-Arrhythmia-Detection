@@ -1,5 +1,8 @@
 import os
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.core.security import get_current_user
+from backend.db.models import User
 
 router = APIRouter()
 
@@ -55,7 +58,7 @@ def record_exists(record_id: str) -> bool:
 
 
 @router.get("/api/records")
-async def get_records():
+async def get_records(current_user: User = Depends(get_current_user)):
     """CP3.4: Danh sách bản ghi PhysioNet MIT-BIH khả dụng để chọn stream, kèm mô tả lâm sàng
     ngắn cho các bản ghi tiêu biểu. Dùng id trả về làm query param khi mở WebSocket:
     ws://localhost:8000/ws/ecg?record=<id>

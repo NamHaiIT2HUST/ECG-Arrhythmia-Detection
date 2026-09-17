@@ -8,6 +8,7 @@ import { useAnomaly } from '../context/AnomalyContext';
 import { usePatient } from '../context/PatientContext';
 import { useAlarm } from '../context/AlarmContext';
 import { loadSettings } from './SettingsPage';
+import { getAccessToken } from '../context/AuthContext';
 
 const MAX_POINTS = 1000;
 
@@ -65,6 +66,27 @@ const DashboardPage = () => {
     let ws = null;
     let reconnectTimeout = null;
     let cancelled = false; // true khi effect này bị cleanup (đổi bản ghi/unmount) - chặn onclose cũ tự reconnect lại bản ghi cũ
+
+    // Reset toàn bộ dữ liệu hiển thị mỗi khi effect này CHẠY LẠI (đổi bản ghi/bệnh nhân/wsUrl) -
+    // trước đây chỉ reset xData/yData/heatmap, và CHỈ khi mất kết nối thật (ws.onclose có guard
+    // `if (cancelled) return`, mà lúc đổi bản ghi cleanup luôn set cancelled=true TRƯỚC khi gọi
+    // ws.close(), nên nhánh reset đó không bao giờ chạy lúc đổi bản ghi). Hậu quả: đổi từ 1 bản
+    // ghi đang có badge AFib/tachycardia/cảnh báo đỏ sang bản ghi khác (kể cả bản ghi "bình
+    // thường") vẫn hiện nguyên các badge/cảnh báo CŨ vài giây cho tới khi có nhịp đầu tiên của
+    // bản ghi mới. Reset ngay ở đây thay vì dựa vào onclose.
+    setIsInitialLoading(true);
+    setXData([]);
+    setYData([]);
+    setCurrentHeatmap(null);
+    setLatestPrediction('Đang tải...');
+    setLatency(0);
+    setBpm(null);
+    setHrvSdnn(null);
+    setConfidence(null);
+    setAfibSuspected(false);
+    setAfibScore(0);
+    setTachycardiaSuspected(false);
+    triggerAlarmRef.current('BÌNH THƯỜNG', 0, 1); // tắt còi/badge cảnh báo của bản ghi cũ ngay lập tức
 
     const handleNewData = (data) => {
       const { chunk, prediction, latency_ms, heatmap, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
@@ -144,6 +166,11 @@ const DashboardPage = () => {
       // truyền patient_id khi đã có remoteId (số nguyên, đồng bộ từ backend thật); nếu chưa có,
       // bỏ qua tham số này - backend tự dùng "bệnh nhân mặc định" (xem plan.md mục 5.4).
       if (selectedPatient?.remoteId) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId}`;
+      // Backend giờ bắt buộc đăng nhập cho /ws/ecg (dữ liệu ECG real-time là dữ liệu bệnh nhân
+      // nhạy cảm) - WebSocket không gắn được header Authorization từ trình duyệt, nên phải
+      // truyền access token qua query param (xem backend/core/security.get_user_from_token).
+      const token = getAccessToken();
+      if (token) qs += `${qs ? '&' : '?'}token=${encodeURIComponent(token)}`;
       const wsUrl = base + qs;
       ws = new WebSocket(wsUrl);
 
@@ -163,9 +190,14 @@ const DashboardPage = () => {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         if (cancelled) return; // effect đã bị cleanup (vd đổi bản ghi) - đây không phải mất kết nối thật, đừng tự reconnect lại bản ghi cũ
-        setConnectionStatus('Đang kết nối lại...');
+        // 4401 = backend từ chối do thiếu/hết hạn access token (xem ws_routes.py). Vẫn thử kết
+        // nối lại sau 3s như bình thường - nếu 1 request REST khác trong lúc đó làm token được
+        // refresh (qua interceptor axios), lần connect() kế tiếp sẽ tự lấy đúng token mới từ
+        // localStorage (getAccessToken() luôn đọc lại lúc gọi, không cache) - chỉ khác thông
+        // báo hiển thị cho rõ nguyên nhân thay vì luôn nói chung chung "Đang kết nối lại...".
+        setConnectionStatus(event?.code === 4401 ? 'Phiên đăng nhập hết hạn, đang thử lại...' : 'Đang kết nối lại...');
         // Reset buffers
         setXData([]);
         setYData([]);
