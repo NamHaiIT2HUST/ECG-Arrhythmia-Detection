@@ -162,38 +162,35 @@ const LoginPage = () => {
               <div className="cta-row">
                 <button type="button" className="primary-button" onClick={openRegister}>Bắt đầu miễn phí</button>
               </div>
-
-              <div className="trust-row" id="metrics">
-                <div>
-                  <strong>24/7</strong>
-                  <span>Giám sát liên tục</span>
-                </div>
-                <div>
-                  <strong>99.2%</strong>
-                  <span>Độ chính xác mô hình</span>
-                </div>
-                <div>
-                  <strong>3</strong>
-                  <span>Vai trò người dùng</span>
-                </div>
-              </div>
             </div>
 
             <div className="hero-visual">
               <div className="pulse-panel large-pulse">
-                <div className="pulse-line" />
-                <div className="pulse-stats">
-                  <span>HR: 72 bpm</span>
-                  <span>Rhythm: Normal</span>
+                <div className="pulse-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)' }}>Real-time ECG Stream</span>
+                </div>
+                <div className="pulse-line" style={{ background: 'transparent', boxShadow: 'none', height: '80px' }}>
+                  <svg viewBox="0 0 500 100" className="ecg-line-svg" style={{ width: '100%', height: '100%', stroke: 'var(--primary)', filter: 'drop-shadow(0 2px 4px rgba(47,109,246,0.3))' }}>
+                    <polyline points="0,50 50,50 60,40 70,50 90,50 100,20 110,90 120,50 150,50 160,45 170,50 220,50 230,40 240,50 260,50 270,20 280,90 290,50 320,50 330,45 340,50 390,50 400,40 410,50 430,50 440,20 450,90 460,50 500,50" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="pulse-stats" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Heart Rate</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>72 <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>bpm</span></span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rhythm Status</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--success)' }}>Normal Sinus</span>
+                    <span className="live-badge" style={{ fontSize: '0.65rem', padding: '2px 8px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold', marginTop: '6px' }}>
+                      <span style={{ width: '6px', height: '6px', background: 'var(--danger)', borderRadius: '50%', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span> LIVE
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="mini-stat stat-one">
-                <span>Chẩn đoán</span>
-                <strong>96.8%</strong>
-              </div>
               <div className="mini-stat stat-two">
-                <span>Cảnh báo</span>
-                <strong>12 vụ</strong>
+                <span>Cảnh báo bất thường</span>
+                <strong>12 ca / ngày</strong>
               </div>
             </div>
           </section>
@@ -215,9 +212,19 @@ const LoginPage = () => {
         {view === 'landing' && (
           <>
             <section className="feature-section" id="features">
+              <div className="section-heading" style={{ gridColumn: '1 / -1' }}>
+                <span>TÍNH NĂNG</span>
+                <h2>Các tính năng nổi bật của hệ thống</h2>
+              </div>
               {features.map((feature) => (
                 <article key={feature.title} className="feature-card">
-                  <div className="feature-icon">✦</div>
+                  <div className="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+                      <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
+                      <circle cx="20" cy="10" r="2"/>
+                    </svg>
+                  </div>
                   <h3>{feature.title}</h3>
                   <p>{feature.text}</p>
                 </article>
@@ -237,6 +244,31 @@ const LoginPage = () => {
                     <h3>{step}</h3>
                   </div>
                 ))}
+              </div>
+            </section>
+
+            <section className="workflow-section" id="metrics" style={{ marginTop: '64px' }}>
+              <div className="section-heading">
+                <span>HIỆU SUẤT</span>
+                <h2>Độ tin cậy và hiệu suất vượt trội</h2>
+              </div>
+
+              <div className="workflow-grid">
+                <div className="workflow-card">
+                  <div className="step-number" style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}>24/7</div>
+                  <h3>Giám sát liên tục</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Hệ thống hoạt động không gián đoạn, luôn sẵn sàng phân tích tín hiệu 24 giờ mỗi ngày.</p>
+                </div>
+                <div className="workflow-card">
+                  <div className="step-number" style={{ background: 'rgba(23, 178, 106, 0.12)', color: 'var(--success)', width: 'auto', padding: '0 16px' }}>99.2%</div>
+                  <h3>Độ chính xác cao</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Mô hình AI được huấn luyện chuyên sâu với độ chính xác và tin cậy đạt chuẩn y tế.</p>
+                </div>
+                <div className="workflow-card">
+                  <div className="step-number" style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)' }}>03</div>
+                  <h3>Vai trò linh hoạt</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Phân quyền rõ ràng cho Admin, Bác sĩ và Y tá, phù hợp với luồng công việc bệnh viện.</p>
+                </div>
               </div>
             </section>
           </>

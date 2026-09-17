@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
+import { stopAlarm } from '../utils/alarmAudio';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     clearAuthStorage();
     setUser(null);
+    stopAlarm();
   };
 
   // Đăng ký interceptor axios đúng 1 lần: tự đính Bearer token vào mọi request, và tự thử
