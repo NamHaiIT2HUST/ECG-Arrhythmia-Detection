@@ -1,7 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 
 const ECGChart = ({ xData, yData, heatmap = null }) => {
+  const [isDarkMode, setIsDarkMode] = useState(() => 
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => setIsDarkMode(e.matches);
+    // Support for older Safari versions which use addListener instead of addEventListener
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    } else if (mediaQuery.addListener) {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+  }, []);
+
   const shapes = [];
   
   if (heatmap && xData.length >= 187) {
@@ -49,7 +67,7 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
             type: 'scatter',
             mode: 'lines',
             line: {
-              color: '#2563eb', // Xanh dương classic
+              color: isDarkMode ? '#eab308' : '#2563eb', // Vàng ở chế độ tối, Xanh dương classic ở chế độ sáng
               width: 1.5,
             }
           }]}
@@ -61,16 +79,16 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
             shapes: shapes,
             xaxis: {
               showgrid: true,
-              gridcolor: '#f1f5f9',
+              gridcolor: isDarkMode ? '#000000' : '#f1f5f9',
               zeroline: false,
               showticklabels: false,
               title: { text: 'Thời gian trôi (2.7s)', font: { size: 11, color: '#94a3b8' } }
             },
             yaxis: {
               showgrid: true,
-              gridcolor: '#f1f5f9',
+              gridcolor: isDarkMode ? '#000000' : '#f1f5f9',
               zeroline: true,
-              zerolinecolor: '#e2e8f0',
+              zerolinecolor: isDarkMode ? '#000000' : '#e2e8f0',
               range: [-2.0, 4.0]
             },
             margin: { l: 30, r: 10, t: 10, b: 30 },

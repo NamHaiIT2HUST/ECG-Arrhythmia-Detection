@@ -686,6 +686,7 @@ button {
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --border-color: rgba(148, 163, 184, 0.1);
+    --primary-strong: #60a5fa;
   }
   
   body, html, #root {

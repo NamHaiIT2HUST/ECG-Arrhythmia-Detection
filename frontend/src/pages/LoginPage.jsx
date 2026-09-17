@@ -129,8 +129,8 @@ const LoginPage = () => {
       <header className="landing-header">
         <div className="brand-wrap" aria-label="CardioVision brand">
           <div className="brand-mark">ECG</div>
-          <div className="brand-text" style={{ color: '#000000' }}>
-            <span style={{ color: '#000000' }}>NEURO</span>-ECG
+          <div className="brand-text" style={{ color: 'var(--text-main)' }}>
+            <span style={{ color: 'var(--text-main)' }}>NEURO</span>-ECG
           </div>
         </div>
 
