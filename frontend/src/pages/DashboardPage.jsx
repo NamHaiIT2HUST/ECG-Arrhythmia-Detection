@@ -33,9 +33,11 @@ const DashboardPage = () => {
   const [tachycardiaSuspected, setTachycardiaSuspected] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedError, setSeedError] = useState(null);
 
     const { addAnomaly } = useAnomaly();
-  const { patients, selectedPatient, setSelectedPatient } = usePatient();
+  const { patients, selectedPatient, setSelectedPatient, seedDemoPatients } = usePatient();
   const { triggerAlarm } = useAlarm();
   const { getWsTicket } = useAuth(); // Import getWsTicket
 
@@ -250,6 +252,19 @@ const DashboardPage = () => {
     };
   }, [selectedRecord, selectedPatient, settings.wsUrl]); // Chạy lại hiệu ứng khi bản ghi, bệnh nhân hoặc wsUrl thay đổi
 
+  const handleSeedDemoPatients = async () => {
+    setIsSeeding(true);
+    setSeedError(null);
+    try {
+      const count = await seedDemoPatients();
+      if (count === 0) setSeedError('Tất cả bản ghi mẫu đã có bệnh nhân tương ứng.');
+    } catch {
+      setSeedError('Không tạo được bệnh nhân mẫu. Kiểm tra kết nối backend.');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
       
@@ -312,9 +327,28 @@ const DashboardPage = () => {
               ))}
             </select>
           ) : (
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
-              Chưa có bệnh nhân nào trong hệ thống. Vào mục "Hồ Sơ Bệnh Nhân" ở thanh bên để thêm bệnh nhân đầu tiên.
-            </p>
+            <>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+                Chưa có bệnh nhân nào trong hệ thống. Thêm tay qua "Hồ Sơ Bệnh Nhân", hoặc tạo
+                nhanh 1 bệnh nhân mẫu cho mỗi bản ghi ECG có sẵn để dùng thử ngay:
+              </p>
+              <button
+                type="button"
+                onClick={handleSeedDemoPatients}
+                disabled={isSeeding}
+                style={{
+                  padding: '10px 18px', borderRadius: '8px', border: 'none',
+                  backgroundColor: 'var(--primary)', color: 'white', fontWeight: '600',
+                  fontSize: '13.5px', cursor: isSeeding ? 'default' : 'pointer',
+                  opacity: isSeeding ? 0.7 : 1,
+                }}
+              >
+                {isSeeding ? 'Đang tạo...' : '＋ Tạo bệnh nhân mẫu từ các bản ghi có sẵn'}
+              </button>
+            </>
+          )}
+          {seedError && (
+            <p style={{ margin: 0, color: 'var(--danger)', fontSize: '12.5px' }}>{seedError}</p>
           )}
         </div>
       ) : isInitialLoading ? (

@@ -5,10 +5,25 @@ import PatientForm from '../components/patient/PatientForm';
 import api from '../api/axios';
 
 const PatientPage = () => {
-  const { patients, activePatient, selectPatient, clearActivePatient, deletePatient } = usePatient();
+  const { patients, activePatient, selectPatient, clearActivePatient, deletePatient, seedDemoPatients } = usePatient();
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [records, setRecords] = useState([]);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedError, setSeedError] = useState(null);
+
+  const handleSeedDemoPatients = async () => {
+    setIsSeeding(true);
+    setSeedError(null);
+    try {
+      const count = await seedDemoPatients();
+      if (count === 0) setSeedError('Tất cả bản ghi mẫu đã có bệnh nhân tương ứng.');
+    } catch {
+      setSeedError('Không tạo được bệnh nhân mẫu. Kiểm tra kết nối backend.');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   // Tải danh sách bản ghi MIT-BIH để dùng trong PatientForm
   useEffect(() => {
@@ -89,12 +104,28 @@ const PatientPage = () => {
           <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '14px' }}>
             Bấm "Thêm bệnh nhân" để tạo hồ sơ đầu tiên. Sau khi thêm, bấm vào card để bắt đầu theo dõi bệnh nhân đó trên Dashboard.
           </p>
-          <button onClick={handleAddNew} style={{
-            padding: '10px 24px', backgroundColor: 'var(--primary)', color: 'white',
-            border: 'none', borderRadius: '7px', fontWeight: '600', cursor: 'pointer'
-          }}>
-            ＋ Thêm bệnh nhân đầu tiên
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={handleAddNew} style={{
+              padding: '10px 24px', backgroundColor: 'var(--primary)', color: 'white',
+              border: 'none', borderRadius: '7px', fontWeight: '600', cursor: 'pointer'
+            }}>
+              ＋ Thêm bệnh nhân đầu tiên
+            </button>
+            <button
+              onClick={handleSeedDemoPatients}
+              disabled={isSeeding}
+              style={{
+                padding: '10px 24px', backgroundColor: 'transparent', color: 'var(--primary)',
+                border: '1px solid var(--primary)', borderRadius: '7px', fontWeight: '600',
+                cursor: isSeeding ? 'default' : 'pointer', opacity: isSeeding ? 0.7 : 1,
+              }}
+            >
+              {isSeeding ? 'Đang tạo...' : '＋ Tạo bệnh nhân mẫu từ bản ghi có sẵn'}
+            </button>
+          </div>
+          {seedError && (
+            <p style={{ marginTop: '12px', color: 'var(--danger)', fontSize: '12.5px' }}>{seedError}</p>
+          )}
         </div>
       ) : (
         <>

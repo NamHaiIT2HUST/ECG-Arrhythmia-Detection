@@ -135,6 +135,36 @@ export const PatientProvider = ({ children }) => {
     })();
   };
 
+  // Sinh nhanh 1 bệnh nhân demo / 1 bản ghi MIT-BIH đang có sẵn (dùng khi mới cài đặt hệ
+  // thống, chưa có dữ liệu bệnh nhân thật) - tránh phải tạo tay từng người qua form cho mỗi
+  // bản ghi muốn thử. Bỏ qua bản ghi đã có sẵn 1 bệnh nhân dùng nó (tránh tạo trùng nếu bấm
+  // nút nhiều lần). Trả về số bệnh nhân mới đã tạo.
+  const seedDemoPatients = async () => {
+    const res = await api.get('/api/records');
+    const records = res.data?.records || [];
+    const usedRecordIds = new Set(patients.map(p => String(p.activeRecordId)));
+    const toSeed = records.filter(r => !usedRecordIds.has(String(r.id)));
+    if (toSeed.length === 0) return 0;
+
+    const startIndex = patients.length;
+    const genders = ['M', 'F'];
+    const today = new Date().toISOString().split('T')[0];
+    const newPatients = toSeed.map((r, i) => normalize({
+      id: Date.now() + i,
+      name: `Bệnh nhân mẫu #${r.id}`,
+      age: 30 + (parseInt(r.id, 10) % 50),
+      gender: genders[i % 2],
+      bedNumber: `G${String(startIndex + i + 1).padStart(2, '0')}`,
+      admissionDate: today,
+      diagnosis: r.description || '',
+      attendingDoctor: '',
+      activeRecordId: r.id,
+    }));
+
+    setPatients(prev => [...newPatients, ...prev]);
+    return newPatients.length;
+  };
+
   const removePatient = (id) => {
     setPatients(prev => prev.filter(x => x.id !== id));
     if (selectedPatient && selectedPatient.id === id) setSelectedPatient(null);
@@ -156,6 +186,7 @@ export const PatientProvider = ({ children }) => {
     addPatient,
     updatePatient,
     removePatient,
+    seedDemoPatients,
     selectedPatient,
     setSelectedPatient,
     // Backwards compatibility aliases
