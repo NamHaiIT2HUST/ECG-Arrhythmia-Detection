@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
 import LoadingSpinner from '../components/dashboard/LoadingSpinner';
-import RecordSelector from '../components/dashboard/RecordSelector';
 import UploadDiagnosisModal from '../components/dashboard/UploadDiagnosisModal';
 import { useAnomaly } from '../context/AnomalyContext';
 import { usePatient } from '../context/PatientContext';
@@ -10,7 +9,11 @@ import { useAlarm } from '../context/AlarmContext';
 import { loadSettings } from './SettingsPage';
 import { useAuth } from '../context/AuthContext';
 
-const MAX_POINTS = 1000;
+// 3600 diem = 10 giay o 360Hz (toc do goc MIT-BIH, xem data_streamer.py) - voi nhip nghi
+// ~70-90 bpm se hien ~8-12 chu ky tim tren 1 khung hinh, dung khuyen nghi tu bac si tham
+// khao (may ECG that thuong hien 8-10 chu ky/man hinh, ít hon se lam so BPM tuc thoi trong
+// "nhay loan" vi qua it ngu canh).
+const MAX_POINTS = 3600;
 
 const DashboardPage = () => {
   const [connectionStatus, setConnectionStatus] = useState('Đang kết nối...');
@@ -29,11 +32,10 @@ const DashboardPage = () => {
   const [afibScore, setAfibScore] = useState(0);
   const [tachycardiaSuspected, setTachycardiaSuspected] = useState(false);
 
-  const [localSelectedRecord, setLocalSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { addAnomaly } = useAnomaly();
-  const { selectedPatient } = usePatient();
+  const { patients, selectedPatient, setSelectedPatient } = usePatient();
   const { triggerAlarm } = useAlarm();
   const { getWsTicket } = useAuth(); // Import getWsTicket
 
@@ -57,9 +59,10 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, []);
   
-  // Ưu tiên bản ghi của bệnh nhân active
-  const selectedRecord = selectedPatient ? selectedPatient.activeRecordId : localSelectedRecord;
-  
+  // Bat buoc phai co benh nhan dang chon moi co ban ghi de stream (xem khoi "chua chon
+  // benh nhan" o JSX ben duoi) - moi benh nhan tao qua PatientForm deu da co san activeRecordId.
+  const selectedRecord = selectedPatient?.activeRecordId;
+
   // Ref cho báo cáo PDF
   const chartRef = React.useRef(null);
 
@@ -114,6 +117,13 @@ const DashboardPage = () => {
     setAfibScore(0);
     setTachycardiaSuspected(false);
     triggerAlarmRef.current('BÌNH THƯỜNG', 0, 1); // tắt còi/badge cảnh báo của bản ghi cũ ngay lập tức
+
+    // Chưa chọn bệnh nhân nào - không tự stream 1 bản ghi mặc định nữa (đúng luồng lâm sàng:
+    // phải biết đang theo dõi ai trước). Dừng ở đây, JSX bên dưới sẽ hiện khối "chọn bệnh nhân".
+    if (!selectedPatient) {
+      setIsInitialLoading(false);
+      return () => { cancelled = true; };
+    }
 
     const handleNewData = (data) => {
       const { chunk, prediction, latency_ms, heatmap, anomaly_id, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
@@ -246,22 +256,20 @@ const DashboardPage = () => {
       {/* Thanh công cụ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ flex: 1 }}>
-          <RecordSelector 
-            selectedRecord={localSelectedRecord} 
-            onSelectRecord={setLocalSelectedRecord} 
-          />
           {selectedPatient && (
-            <div style={{ fontSize: '13px', color: '#f59e0b', marginTop: '6px' }}>
-              ⚠️ Đang khóa ở bản ghi của bệnh nhân: <strong>{selectedPatient.name}</strong>
+            <div style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: '600' }}>
+              📡 Đang theo dõi: {selectedPatient.name} · Giường {selectedPatient.bedNumber}
             </div>
           )}
         </div>
-        
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
-            ● {connectionStatus}
-          </span>
-          <button 
+          {selectedPatient && (
+            <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
+              ● {connectionStatus}
+            </span>
+          )}
+          <button
             onClick={() => setIsModalOpen(true)}
             style={{
               padding: '8px 16px',
@@ -280,15 +288,44 @@ const DashboardPage = () => {
 
       <UploadDiagnosisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
-      {isInitialLoading ? (
+      {!selectedPatient ? (
+        // Đúng luồng lâm sàng: phải biết đang theo dõi bệnh nhân nào trước khi hiện ECG,
+        // không tự stream 1 bản ghi mặc định vô danh như trước nữa.
+        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', padding: '40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '40px' }}>🏥</div>
+          <h3 style={{ margin: 0, color: 'var(--text-main)' }}>Chưa chọn bệnh nhân để theo dõi</h3>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px', maxWidth: '420px' }}>
+            Chọn 1 bệnh nhân đang quản lý để bắt đầu xem tín hiệu ECG thời gian thực của người đó.
+          </p>
+          {patients.length > 0 ? (
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                const p = patients.find(x => String(x.id) === e.target.value);
+                if (p) setSelectedPatient(p);
+              }}
+              style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '14px', minWidth: '260px' }}
+            >
+              <option value="" disabled>-- Chọn bệnh nhân --</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{p.name} · Giường {p.bedNumber}</option>
+              ))}
+            </select>
+          ) : (
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+              Chưa có bệnh nhân nào trong hệ thống. Vào mục "Hồ Sơ Bệnh Nhân" ở thanh bên để thêm bệnh nhân đầu tiên.
+            </p>
+          )}
+        </div>
+      ) : isInitialLoading ? (
         <div className="card" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LoadingSpinner />
         </div>
       ) : (
         <>
-          <StatCards 
-            latestPrediction={latestPrediction} 
-            latency={latency} 
+          <StatCards
+            latestPrediction={latestPrediction}
+            latency={latency}
             bpm={bpm}
             hrv_sdnn={hrvSdnn}
             confidence={confidence}

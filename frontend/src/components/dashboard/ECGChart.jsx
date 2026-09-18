@@ -44,21 +44,26 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
 
   return (
     <div className="card" style={{ width: '100%', height: '100%', minHeight: '350px', display: 'flex', flexDirection: 'column', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>Tín Hiệu ECG Thời Gian Thực</h3>
-          {heatmap && (
-            <span style={{ padding: '2px 8px', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: '4px', fontSize: '11px', fontWeight: '600', border: '1px solid #fca5a5' }} className="pulse-log-danger">
-              Phát hiện bất thường (XAI)
-            </span>
-          )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)', fontWeight: '600' }}>Tín Hiệu ECG Thời Gian Thực</h3>
+            {heatmap && (
+              <span style={{ padding: '2px 8px', backgroundColor: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: '4px', fontSize: '11px', fontWeight: '600', border: '1px solid #fca5a5' }} className="pulse-log-danger">
+                Phát hiện bất thường (XAI)
+              </span>
+            )}
+          </div>
+          <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+            Đơn kênh (Lead II/MLII) — sàng lọc rối loạn nhịp, không thay thế ECG 12 chuyển đạo chẩn đoán đầy đủ.
+          </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginTop: '2px' }}>
           <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>1000 điểm (360 Hz)</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{xData.length} điểm (360 Hz)</span>
         </div>
       </div>
-      
+
       <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%', minHeight: '0' }}>
         <Plot
           data={[{
@@ -82,7 +87,7 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
               gridcolor: isDarkMode ? '#000000' : '#f1f5f9',
               zeroline: false,
               showticklabels: false,
-              title: { text: 'Thời gian trôi (2.7s)', font: { size: 11, color: '#94a3b8' } }
+              title: { text: `Thời gian trôi (${(xData.length / 360).toFixed(1)}s)`, font: { size: 11, color: '#94a3b8' } }
             },
             yaxis: {
               showgrid: true,

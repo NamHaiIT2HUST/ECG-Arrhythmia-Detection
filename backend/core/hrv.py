@@ -6,6 +6,13 @@ import numpy as np
 TACHYCARDIA_BPM_THRESHOLD = 100.0
 TACHYCARDIA_MIN_BEATS = 3  # can it nhat 3 khoang RR gan nhat de tinh trung binh co y nghia
 
+# So khoang RR gan nhat dung de tinh BPM HIEN THI (trung binh, khong phai tuc thoi) - BPM tuc
+# thoi tu dung 1 khoang RR dao dong binh thuong theo sinh ly (ho hap, 1 ngoai tam thu don le...)
+# khien so hien tren man hinh "nhay loan" (vd 76 -> 100 -> 120) du nguoi benh khong thay doi
+# nhip that. Trung binh vai nhip gan nhat cho so on dinh, de doc hon, giong cach may monitor
+# that hien thi HR (khong anh huong is_tachycardia() - ham do da tu tinh trung binh rieng).
+BPM_DISPLAY_WINDOW = 6
+
 
 def rr_to_ms(rr_samples, fs=360):
     """Doi 1 khoang RR (so mau) sang mili-giay."""
@@ -77,7 +84,8 @@ class HRVTracker:
             return {'bpm': 0.0, 'hrv_sdnn': 0.0, 'hrv_rmssd': 0.0, 'tachycardia_suspected': False}
 
         rr_ms_history = [rr_to_ms(rr, self.fs) for rr in self._rr_samples_history]
-        bpm = compute_bpm(self._rr_samples_history[-1], self.fs)
+        recent_rr = self._rr_samples_history[-BPM_DISPLAY_WINDOW:]
+        bpm = float(np.mean([compute_bpm(rr, self.fs) for rr in recent_rr]))
         return {
             'bpm': round(bpm, 1),
             'hrv_sdnn': round(compute_sdnn(rr_ms_history), 2),
