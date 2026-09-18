@@ -29,6 +29,14 @@ const labelStyle = {
   letterSpacing: '0.5px',
 };
 
+const Field = ({ label, error, children }) => (
+  <div>
+    <label style={labelStyle}>{label}</label>
+    {children}
+    {error && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f87171' }}>{error}</p>}
+  </div>
+);
+
 const PatientForm = ({ patient, onClose, records = [] }) => {
   const { addPatient, updatePatient, patients } = usePatient();
   const isEdit = !!patient;
@@ -89,14 +97,6 @@ const PatientForm = ({ patient, onClose, records = [] }) => {
     }
     onClose();
   };
-
-  const Field = ({ label, error, children }) => (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      {children}
-      {error && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f87171' }}>{error}</p>}
-    </div>
-  );
 
   return (
     <div style={{
