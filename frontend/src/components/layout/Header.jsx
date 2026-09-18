@@ -1,85 +1,138 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAlarm } from '../../context/AlarmContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { SunIcon, MoonIcon } from '../icons/ThemeIcons';
 
 const Header = () => {
+  const { isDarkActive, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <header style={{ 
-      height: '65px', 
-      minHeight: '65px', 
-      backgroundColor: '#ffffff', 
-      borderBottom: '1px solid var(--border-color)', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      padding: '0 25px', 
-      zIndex: 5, 
+    <header style={{
+      height: '65px',
+      minHeight: '65px',
+      backgroundColor: 'var(--header-bg)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: '1px solid var(--border-color)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 25px',
+      zIndex: 5,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
         <h1 style={{ margin: 0, fontSize: '18px', color: 'var(--text-main)', fontWeight: '600' }}>Hệ Thống Theo Dõi Trung Tâm</h1>
-        <span style={{ 
-          padding: '4px 10px', 
-          backgroundColor: 'var(--success-bg)', 
-          color: 'var(--success)', 
-          borderRadius: '4px', 
-          fontSize: '12px', 
-          fontWeight: '600',
-          border: '1px solid #a7f3d0'
-        }}>
-          ● Phiên bản 1.0.0
-        </span>
       </div>
-      
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-          <div style={{ textAlign: 'right' }}>
-            <UserBadge />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <AlarmStatus />
+        
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={isDarkActive ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+          title={isDarkActive ? 'Chế độ sáng' : 'Chế độ tối'}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '36px', height: '36px', borderRadius: '999px',
+            border: '1px solid var(--border-color)', background: 'var(--theme-toggle-bg)',
+            color: 'var(--theme-toggle-icon)', cursor: 'pointer',
+          }}
+        >
+          <span style={{ width: '17px', height: '17px', display: 'inline-flex' }}>
+            {isDarkActive ? <SunIcon /> : <MoonIcon />}
+          </span>
+        </button>
+
+        <div ref={profileRef} style={{ position: 'relative' }}>
+          <div 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            style={{ 
+              width: '38px', height: '38px', borderRadius: '50%', 
+              backgroundColor: 'var(--primary-bg)', color: 'var(--primary)', 
+              border: '1px solid var(--primary)', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', 
+              fontWeight: 'bold', fontSize: '14px', cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            {user?.username ? user.username.substring(0, 2).toUpperCase() : 'NB'}
           </div>
-          <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'var(--primary-bg)', color: 'var(--primary)', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
-            NB
-          </div>
+
+          {isProfileOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '50px',
+              right: '0',
+              backgroundColor: 'var(--card-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              minWidth: '200px',
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>{user?.username || 'Người dùng'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user?.role || 'Khách'}</div>
+              </div>
+              <button 
+                onClick={logout} 
+                style={{ 
+                  padding: '8px', borderRadius: '4px', border: '1px solid #ef4444', 
+                  background: 'transparent', color: '#ef4444', 
+                  cursor: 'pointer', fontWeight: '500', textAlign: 'center',
+                  width: '100%', transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = '#ef4444';
+                  e.target.style.color = '#ffffff';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#ef4444';
+                }}
+              >
+                Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
-            <AlarmControls />
       </div>
     </header>
   );
 };
 
-    const AlarmControls = () => {
-      const { isMuted, snoozeCountdown, currentAlarmLevel, muteAlarm, unmuteAlarm } = useAlarm();
+const AlarmStatus = () => {
+  const { currentAlarmLevel } = useAlarm();
 
-      const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
-      const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
+  const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
+  const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
 
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 18 }}>{levelIcon}</div>
-            <div style={{ fontSize: 12, color: currentAlarmLevel >=3 ? '#ef4444' : (currentAlarmLevel===2 ? '#f59e0b' : '#10b981'), fontWeight: 700 }}>{levelText}</div>
-          </div>
-          <div>
-            {isMuted ? (
-              <button onClick={unmuteAlarm} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
-                Bật âm {snoozeCountdown > 0 ? `(${snoozeCountdown}s)` : ''}
-              </button>
-            ) : (
-              <button onClick={muteAlarm} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}>
-                Tắt âm 2 phút
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    };
-
-export default Header;
-
-const UserBadge = () => {
-  const { user, logout } = useAuth();
   return (
-    <div>
-      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>{user?.username || 'Người dùng'}</div>
-      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user?.role || ''} <button onClick={logout} style={{ marginLeft: 8, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer' }}>Đăng xuất</button></div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+      <div style={{ fontSize: 16 }}>{levelIcon}</div>
+      <div style={{ fontSize: 13, color: currentAlarmLevel >=3 ? '#ef4444' : (currentAlarmLevel===2 ? '#f59e0b' : '#10b981'), fontWeight: 600 }}>{levelText}</div>
     </div>
   );
 };
+
+export default Header;
