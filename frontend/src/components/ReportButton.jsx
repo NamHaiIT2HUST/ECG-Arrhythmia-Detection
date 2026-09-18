@@ -60,10 +60,10 @@ const ReportButton = ({ chartElementRef }) => {
           />
           <div style={{
             position: 'absolute', top: '110%', right: 0,
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
             zIndex: 100,
             minWidth: '180px',
             overflow: 'hidden',
@@ -74,31 +74,31 @@ const ReportButton = ({ chartElementRef }) => {
               style={{
                 width: '100%', padding: '12px 16px', background: 'none',
                 border: 'none', textAlign: 'left', cursor: 'pointer',
-                fontSize: '14px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px',
+                fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px',
               }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
               onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               📄 Xuất PDF
-              <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#94a3b8' }}>+ Snapshot ECG</span>
+              <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>+ Snapshot ECG</span>
             </button>
-            <div style={{ height: '1px', backgroundColor: '#f1f5f9' }} />
+            <div style={{ height: '1px', backgroundColor: 'var(--border-color)' }} />
             <button
               id="export-csv-btn"
               onClick={handleCSV}
               style={{
                 width: '100%', padding: '12px 16px', background: 'none',
                 border: 'none', textAlign: 'left', cursor: 'pointer',
-                fontSize: '14px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px',
+                fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px',
               }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
               onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               📊 Xuất CSV
-              <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#94a3b8' }}>Mở Excel được</span>
+              <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>Mở Excel được</span>
             </button>
             {anomalyHistory.length === 0 && (
-              <div style={{ padding: '8px 16px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+              <div style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                 Chưa có dữ liệu cảnh báo.
               </div>
             )}

@@ -45,8 +45,16 @@ export const AnomalyProvider = ({ children }) => {
     setSelectedAnomaly(prev => (prev && prev.id === id ? { ...prev, ...patch } : prev));
   };
 
+  // Gọi khi đổi bệnh nhân/bản ghi đang theo dõi (MonitoringContext) - lịch sử cảnh báo là của
+  // 1 phiên theo dõi 1 bệnh nhân, không xoá sẽ lẫn cảnh báo của nhiều bệnh nhân khác nhau
+  // trong cùng phiên trình duyệt (ảnh hưởng cả trang XAI lẫn báo cáo xuất theo bệnh nhân).
+  const clearHistory = () => {
+    setAnomalyHistory([]);
+    setSelectedAnomaly(null);
+  };
+
   return (
-    <AnomalyContext.Provider value={{ anomalyHistory, selectedAnomaly, setSelectedAnomaly, addAnomaly, updateAnomaly }}>
+    <AnomalyContext.Provider value={{ anomalyHistory, selectedAnomaly, setSelectedAnomaly, addAnomaly, updateAnomaly, clearHistory }}>
       {children}
     </AnomalyContext.Provider>
   );

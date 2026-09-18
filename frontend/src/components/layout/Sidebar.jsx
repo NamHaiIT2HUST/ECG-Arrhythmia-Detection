@@ -43,25 +43,59 @@ const IconGear = () => (
   </svg>
 );
 
-const ADMIN_MENU_ITEMS = [
-  { id: 'admin-overview', Icon: IconChart, label: 'Tổng Quan Hệ Thống' },
-  { id: 'admin-users', Icon: IconUsers, label: 'Quản Lý Tài Khoản' },
-  { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
-  { id: 'settings', Icon: IconGear, label: 'Cài Đặt Hệ Thống' },
+// Nhóm theo nhóm chức năng (section) thay vì 1 danh sách phẳng - giúp dễ định hướng hơn khi
+// số mục tăng lên. Mỗi nhóm là 1 mảng item, section không có item nào (vd admin không có XAI)
+// tự động không hiện.
+const ADMIN_SECTIONS = [
+  {
+    label: 'QUẢN TRỊ',
+    items: [
+      { id: 'admin-overview', Icon: IconChart, label: 'Tổng Quan Hệ Thống' },
+      { id: 'admin-users', Icon: IconUsers, label: 'Quản Lý Tài Khoản' },
+    ],
+  },
+  {
+    label: 'HỒ SƠ',
+    items: [
+      { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
+    ],
+  },
+  {
+    label: 'HỆ THỐNG',
+    items: [
+      { id: 'settings', Icon: IconGear, label: 'Cài Đặt Hệ Thống' },
+    ],
+  },
 ];
 
-const CLINICAL_MENU_ITEMS = [
-  { id: 'dashboard', Icon: IconChart, label: 'Theo Dõi Trực Tuyến' },
-  { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
-  { id: 'xai', Icon: IconBrain, label: 'Phân Tích XAI Chuyên Sâu' },
-  { id: 'reports', Icon: IconDocument, label: 'Xuất Báo Cáo (PDF/CSV)' },
+const CLINICAL_SECTIONS = [
+  {
+    label: 'GIÁM SÁT',
+    items: [
+      { id: 'dashboard', Icon: IconChart, label: 'Theo Dõi Trực Tuyến' },
+    ],
+  },
+  {
+    label: 'HỒ SƠ & PHÂN TÍCH',
+    items: [
+      { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
+      { id: 'xai', Icon: IconBrain, label: 'Phân Tích XAI Chuyên Sâu' },
+      { id: 'reports', Icon: IconDocument, label: 'Xuất Báo Cáo (PDF/CSV)' },
+    ],
+  },
 ];
+
+const ROLE_LABELS = {
+  admin: 'Quản trị viên',
+  doctor: 'Bác sĩ',
+  nurse: 'Y tá',
+};
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   // "Cài Đặt Hệ Thống" (WS URL/ngưỡng cảnh báo) chỉ dành cho admin cấu hình - bác sĩ/y tá
   // không cần vào đây trong lúc trực, tránh vô tình đổi cấu hình đang ảnh hưởng tới màn theo dõi.
-  const menuItems = isAdmin ? ADMIN_MENU_ITEMS : CLINICAL_MENU_ITEMS;
+  const sections = isAdmin ? ADMIN_SECTIONS : CLINICAL_SECTIONS;
 
   return (
     <nav style={{
@@ -70,7 +104,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       backgroundColor: 'var(--sidebar-bg)',
       display: 'flex',
       flexDirection: 'column',
-      padding: '22px 0',
+      padding: '22px 0 0',
       zIndex: 10,
     }}>
       <div style={{ padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
@@ -92,40 +126,87 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '0 14px' }}>
-        {menuItems.map(({ id, Icon, label }) => {
-          const isActive = activeTab === id;
-          return (
-            <div
-              key={id}
-              onClick={() => setActiveTab(id)}
-              style={{
-                padding: '11px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: 'pointer',
-                borderRadius: '9px',
-                backgroundColor: isActive ? 'var(--primary-bg)' : 'transparent',
-                color: isActive ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
-                fontWeight: isActive ? '600' : '500',
-                fontSize: '13.5px',
-                transition: 'background-color 0.15s ease, color 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <span style={{ display: 'inline-flex', flexShrink: 0 }}>
-                <Icon />
-              </span>
-              {label}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '18px', padding: '0 14px', overflowY: 'auto' }}>
+        {sections.map((section) => (
+          <div key={section.label}>
+            <div style={{
+              padding: '0 14px 8px',
+              fontSize: '10.5px',
+              fontWeight: '700',
+              letterSpacing: '0.08em',
+              color: 'rgba(226,232,240,0.35)',
+            }}>
+              {section.label}
             </div>
-          );
-        })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {section.items.map(({ id, Icon, label }) => {
+                const isActive = activeTab === id;
+                return (
+                  <div
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    style={{
+                      position: 'relative',
+                      padding: '11px 14px 11px 17px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      borderRadius: '9px',
+                      backgroundColor: isActive ? 'var(--primary-bg)' : 'transparent',
+                      color: isActive ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
+                      fontWeight: isActive ? '600' : '500',
+                      fontSize: '13.5px',
+                      transition: 'background-color 0.15s ease, color 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    {isActive && (
+                      <span style={{
+                        position: 'absolute', left: 0, top: '20%', bottom: '20%', width: '3px',
+                        borderRadius: '0 3px 3px 0', backgroundColor: 'var(--primary)',
+                      }} />
+                    )}
+                    <span style={{ display: 'inline-flex', flexShrink: 0, color: isActive ? 'var(--primary)' : 'inherit' }}>
+                      <Icon />
+                    </span>
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        margin: '16px 14px 18px',
+        padding: '12px 14px',
+        borderRadius: '10px',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        display: 'flex', alignItems: 'center', gap: '10px',
+      }}>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+          backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 'bold', fontSize: '12.5px',
+        }}>
+          {user?.username ? user.username.substring(0, 2).toUpperCase() : 'NB'}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user?.username || 'Người dùng'}
+          </div>
+          <div style={{ fontSize: '11px', color: 'rgba(226,232,240,0.5)' }}>
+            {ROLE_LABELS[user?.role] || user?.role || 'Khách'}
+          </div>
+        </div>
       </div>
     </nav>
   );

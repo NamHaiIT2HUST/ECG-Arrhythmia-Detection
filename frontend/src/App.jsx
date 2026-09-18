@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import { AnomalyProvider } from './context/AnomalyContext';
 import { PatientProvider } from './context/PatientContext';
 import { AlarmProvider } from './context/AlarmContext';
+import { MonitoringProvider } from './context/MonitoringContext';
 import PatientPage from './pages/PatientPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
@@ -24,7 +25,9 @@ function App() {
         <AnomalyProvider>
           <PatientProvider>
             <AlarmProvider>
-              <InnerApp activeTab={activeTab} setActiveTab={setActiveTab} />
+              <MonitoringProvider>
+                <InnerApp activeTab={activeTab} setActiveTab={setActiveTab} />
+              </MonitoringProvider>
             </AlarmProvider>
           </PatientProvider>
         </AnomalyProvider>

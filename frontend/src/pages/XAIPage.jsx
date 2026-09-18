@@ -116,15 +116,25 @@ const XAIPage = () => {
       
       <div className="card" style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '20px' }}>🧠 Trạm Phân Tích XAI (1D Grad-CAM)</h2>
+          <h2 style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '20px' }}>🧠 Trạm Phân Tích XAI (Explainable AI)</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '14px' }}>
-            Nghiên cứu vùng trọng số (Heatmap) của mô hình ResNet1D trên các nhịp tim lỗi (PVC).
+            Xem AI đang "nhìn" vào đâu trên sóng ECG để đưa ra chẩn đoán, và xác nhận/sửa lại
+            nếu chưa đúng — dữ liệu này giúp cải thiện mô hình trong tương lai.
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tổng số nhịp lỗi đã lưu:</span>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--danger)' }}>{anomalyHistory.length}</div>
         </div>
+      </div>
+
+      {/* Giải thích luồng 3 bước - trả lời thẳng câu hỏi "trang này giúp ích gì cho bác sĩ" */}
+      <div className="card" style={{ padding: '14px 20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <StepBadge number="1" text="Chọn 1 nhịp lỗi ở danh sách bên trái" />
+        <StepArrow />
+        <StepBadge number="2" text='Xem AI đang "tập trung" vào vùng nào trên sóng ECG' />
+        <StepArrow />
+        <StepBadge number="3" text="Xác nhận đúng hoặc sửa lại nhãn cho AI" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '20px', flex: 1, minHeight: 0 }}>
@@ -166,8 +176,28 @@ const XAIPage = () => {
 
         {/* Khung phân tích chi tiết */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
-          <h3 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-main)' }}>Giải phẫu trọng số mô hình (Weights Anatomy)</h3>
-          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)' }}>
+              Vùng Tín Hiệu AI Tập Trung <span style={{ fontWeight: '400', fontSize: '12px', color: 'var(--text-muted)' }}>(Grad-CAM / "Weights Anatomy")</span>
+            </h3>
+            {selectedAnomaly?.heatmap && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#7f1d1d', display: 'inline-block' }} />
+                  AI tập trung nhiều
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#fee2e2', border: '1px solid var(--border-color)', display: 'inline-block' }} />
+                  Ít ảnh hưởng
+                </span>
+              </div>
+            )}
+          </div>
+          <p style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+            Bước 2: vùng tô đỏ càng đậm là vùng sóng ECG mà mô hình ResNet1D dựa vào nhiều nhất
+            để đưa ra chẩn đoán bên dưới.
+          </p>
+
           <div style={{ flex: 1, border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
             {!selectedAnomaly || !selectedAnomaly.signal ? (
               <p style={{ color: 'var(--text-muted)' }}>Vui lòng chọn một nhịp tim lỗi ở danh sách bên trái.</p>
@@ -226,6 +256,9 @@ const XAIPage = () => {
                   Điều này khớp với đặc trưng lâm sàng của phức bộ QRS dị dạng dãn rộng trong nhịp <strong>{selectedAnomaly.prediction}</strong>.
                 </p>
               </div>
+              <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                Bước 3: xác nhận kết luận trên đúng hay chưa — quyết định cuối cùng luôn thuộc về bác sĩ.
+              </p>
               <VerifyPanel
                 anomaly={selectedAnomaly}
                 onVerified={(patch) => updateAnomaly(selectedAnomaly.id, patch)}
@@ -238,5 +271,23 @@ const XAIPage = () => {
     </div>
   );
 };
+
+const StepBadge = ({ number, text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{
+      width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+      backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '11px', fontWeight: '700',
+    }}>
+      {number}
+    </span>
+    <span style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{text}</span>
+  </div>
+);
+
+const StepArrow = () => (
+  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>→</span>
+);
 
 export default XAIPage;

@@ -11,6 +11,13 @@ const PatientPage = () => {
   const [records, setRecords] = useState([]);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedError, setSeedError] = useState(null);
+  const [query, setQuery] = useState('');
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredPatients = normalizedQuery
+    ? patients.filter((p) => [p.name, p.bedNumber, p.attendingDoctor]
+        .some((field) => String(field || '').toLowerCase().includes(normalizedQuery)))
+    : patients;
 
   const handleSeedDemoPatients = async () => {
     setIsSeeding(true);
@@ -129,6 +136,24 @@ const PatientPage = () => {
         </div>
       ) : (
         <>
+          {/* Tìm kiếm nhanh theo tên/số giường/bác sĩ phụ trách */}
+          <div style={{ position: 'relative', maxWidth: '360px' }}>
+            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '14px', pointerEvents: 'none' }}>
+              🔍
+            </span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm theo tên, số giường hoặc bác sĩ phụ trách..."
+              style={{
+                width: '100%', padding: '10px 14px 10px 34px', borderRadius: '8px',
+                border: '1px solid var(--border-color)', background: 'var(--card-bg)',
+                color: 'var(--text-main)', fontSize: '13.5px', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
           {/* Active patient banner */}
           {activePatient && (
             <div style={{
@@ -149,25 +174,31 @@ const PatientPage = () => {
           )}
 
           {/* Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '16px',
-            overflowY: 'auto',
-            flex: 1,
-          }}>
-            {patients.map(patient => (
-              <PatientCard
-                key={patient.id}
-                patient={patient}
-                isActive={activePatient?.id === patient.id}
-                onSelect={handleSelect}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                latestPrediction={activePatient?.id === patient.id ? activePatient._latestPrediction : null}
-              />
-            ))}
-          </div>
+          {filteredPatients.length === 0 ? (
+            <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+              Không tìm thấy bệnh nhân/giường phù hợp với "{query}".
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '16px',
+              overflowY: 'auto',
+              flex: 1,
+            }}>
+              {filteredPatients.map(patient => (
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  isActive={activePatient?.id === patient.id}
+                  onSelect={handleSelect}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  latestPrediction={activePatient?.id === patient.id ? activePatient._latestPrediction : null}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 
