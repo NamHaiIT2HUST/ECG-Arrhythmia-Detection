@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAnomaly } from '../context/AnomalyContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { ALARM_LEVELS } from '../constants/alarmLevels';
 import api from '../api/axios';
 import Plot from 'react-plotly.js';
@@ -108,6 +109,7 @@ const VerifyPanel = ({ anomaly, onVerified }) => {
 
 const XAIPage = () => {
   const { anomalyHistory, selectedAnomaly, setSelectedAnomaly, updateAnomaly } = useAnomaly();
+  const { isDarkActive } = useTheme();
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
@@ -129,7 +131,7 @@ const XAIPage = () => {
         
         {/* Lịch sử nhịp lỗi */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+          <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>Lịch Sử Cảnh Báo</h3>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
@@ -147,7 +149,7 @@ const XAIPage = () => {
                     borderRadius: '6px',
                     marginBottom: '8px',
                     cursor: 'pointer',
-                    backgroundColor: selectedAnomaly?.id === item.id ? 'var(--primary-bg)' : '#ffffff',
+                    backgroundColor: selectedAnomaly?.id === item.id ? 'var(--primary-bg)' : 'var(--card-bg)',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -166,7 +168,7 @@ const XAIPage = () => {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
           <h3 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-main)' }}>Giải phẫu trọng số mô hình (Weights Anatomy)</h3>
           
-          <div style={{ flex: 1, border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafaf9', position: 'relative' }}>
+          <div style={{ flex: 1, border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
             {!selectedAnomaly || !selectedAnomaly.signal ? (
               <p style={{ color: 'var(--text-muted)' }}>Vui lòng chọn một nhịp tim lỗi ở danh sách bên trái.</p>
             ) : (
@@ -193,19 +195,19 @@ const XAIPage = () => {
                       y: selectedAnomaly.signal,
                       type: 'scatter',
                       mode: 'lines',
-                      line: { color: '#0f172a', width: 2 },
+                      line: { color: isDarkActive ? '#f8fafc' : '#0f172a', width: 2 },
                       name: 'Tín hiệu ECG'
                     }
                   ]}
                   layout={{
                     autosize: true,
-                    plot_bgcolor: 'transparent', 
+                    plot_bgcolor: 'transparent',
                     paper_bgcolor: 'transparent',
-                    font: { family: 'Inter, sans-serif' },
+                    font: { family: 'Inter, sans-serif', color: isDarkActive ? '#94a3b8' : '#64748b' },
                     margin: { l: 40, r: 20, t: 30, b: 40 },
-                    title: { text: `Phân tích mẫu thử lúc ${selectedAnomaly.time}`, font: { size: 13, color: '#64748b' } },
+                    title: { text: `Phân tích mẫu thử lúc ${selectedAnomaly.time}`, font: { size: 13, color: isDarkActive ? '#94a3b8' : '#64748b' } },
                     xaxis: { title: 'Chỉ số mẫu (0-186)', showgrid: false },
-                    yaxis: { title: 'Biên độ chuẩn hóa', showgrid: true, gridcolor: '#e2e8f0' },
+                    yaxis: { title: 'Biên độ chuẩn hóa', showgrid: true, gridcolor: isDarkActive ? 'rgba(148,163,184,0.15)' : '#e2e8f0' },
                     showlegend: false
                   }}
                   useResizeHandler={true}
@@ -218,8 +220,8 @@ const XAIPage = () => {
           
           {selectedAnomaly && (
             <>
-              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid #fecaca' }}>
-                <p style={{ margin: 0, fontSize: '13px', color: '#991b1b', lineHeight: 1.5 }}>
+              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid var(--danger)' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', lineHeight: 1.5 }}>
                   <strong>Kết luận XAI:</strong> Mô hình ResNet1D đã tập trung sự chú ý cao nhất vào các vùng màu đỏ sậm (giá trị heatmap ≈ 1.0).
                   Điều này khớp với đặc trưng lâm sàng của phức bộ QRS dị dạng dãn rộng trong nhịp <strong>{selectedAnomaly.prediction}</strong>.
                 </p>
