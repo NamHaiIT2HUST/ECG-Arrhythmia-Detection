@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -15,7 +15,6 @@ import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Khởi động (Startup)
     print("===========================================")
     print("🚀 BẮT ĐẦU KHỞI ĐỘNG HỆ THỐNG ECG BACKEND 🚀")
     print("===========================================")
@@ -26,21 +25,26 @@ async def lifespan(app: FastAPI):
               "bất kỳ quyền nào. Đặt biến môi trường JWT_SECRET_KEY thật trước khi triển khai "
               "ngoài máy cá nhân, xem docs/deployment_guide.md.")
 
-    # Nạp model ResNet1D vào RAM
     model_path = os.path.join("saved_models", "resnet1d.pth")
     ai_service.load_model(model_path)
 
     yield
     
-    # Tắt máy (Shutdown)
     print("===========================================")
     print("🛑 HỆ THỐNG ĐÃ TẮT 🛑")
     print("===========================================")
 
-# Khởi tạo app dùng thông số từ thư mục core
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION, lifespan=lifespan)
 
-# Cấu hình CORS lấy từ settings
+# Add Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -57,7 +61,6 @@ async def root():
         "status": "online"
     }
 
-# Gắn Router
 app.include_router(ws_router)
 app.include_router(records_router)
 app.include_router(diagnosis_router)
@@ -69,3 +72,4 @@ app.include_router(admin_router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

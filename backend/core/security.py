@@ -1,21 +1,15 @@
 from datetime import datetime, timedelta, timezone
-
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.core.config import settings
 from backend.db.models import User
 from backend.db.session import get_db
 
-bearer_scheme = HTTPBearer(auto_error=True)
-
 
 def hash_password(plain_password: str) -> str:
-    """Băm mật khẩu bằng bcrypt trực tiếp (không qua passlib — passlib có xung đột phiên bản
-    đã biết với bcrypt>=4.1, dùng thẳng thư viện `bcrypt` cho chắc chắn)."""
     return bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
@@ -27,7 +21,7 @@ def _create_token(claims: dict, expires_delta: timedelta, token_type: str) -> st
     to_encode = claims.copy()
     to_encode.update({
         "exp": datetime.now(timezone.utc) + expires_delta,
-        "type": token_type,  # phân biệt access/refresh - bắt buộc kiểm tra lại khi decode
+        "type": token_type,
     })
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -41,8 +35,6 @@ def create_access_token(user: User) -> str:
 
 
 def create_refresh_token(user: User) -> str:
-    # Refresh token chỉ mang "sub" (id) — role/username luôn được đọc LẠI từ DB lúc refresh,
-    # tránh cấp access token mới mang role cũ nếu tài khoản bị đổi quyền sau khi đăng nhập.
     return _create_token(
         {"sub": str(user.id)},
         timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
@@ -50,26 +42,37 @@ def create_refresh_token(user: User) -> str:
     )
 
 
+def create_ws_ticket(user: User) -> str:
+    return _create_token(
+        {"sub": str(user.id)},
+        timedelta(seconds=10),
+        token_type="ws_ticket",
+    )
+
+
 def decode_token(token: str) -> dict:
-    """Giải mã + xác thực chữ ký/hạn JWT. Ném `jwt.InvalidTokenError` (bao gồm cả
-    `ExpiredSignatureError`) nếu token sai chữ ký/hết hạn/sai định dạng — nơi gọi tự bắt."""
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
-    """FastAPI dependency: `current_user: User = Depends(get_current_user)`.
-    401 nếu thiếu header, sai chữ ký, hết hạn, sai loại token (vd đưa refresh token vào đây),
-    hoặc user đã bị xoá khỏi DB sau khi token được cấp."""
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token không hợp lệ hoặc hết hạn",
-        headers={"WWW-Authenticate": "Bearer"},
     )
+    if not token:
+        raise unauthorized
+
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
     except jwt.InvalidTokenError:
         raise unauthorized
 
@@ -87,18 +90,14 @@ def get_current_user(
     return user
 
 
-def get_user_from_token(token: str | None, db: Session) -> User | None:
-    """Giống `get_current_user` nhưng nhận thẳng chuỗi token thay vì header Authorization -
-    dùng cho WebSocket (`/ws/ecg`), nơi trình duyệt KHÔNG thể gắn header Authorization vào
-    lúc handshake WS, nên token phải truyền qua query param. Trả về `None` (thay vì raise)
-    nếu thiếu/sai/hết hạn - nơi gọi tự quyết định đóng kết nối với code/reason phù hợp."""
-    if not token:
+def get_user_from_ws_ticket(ticket: str | None, db: Session) -> User | None:
+    if not ticket:
         return None
     try:
-        payload = decode_token(token)
+        payload = decode_token(ticket)
     except jwt.InvalidTokenError:
         return None
-    if payload.get("type") != "access":
+    if payload.get("type") != "ws_ticket":
         return None
     user_id = payload.get("sub")
     try:
@@ -109,14 +108,13 @@ def get_user_from_token(token: str | None, db: Session) -> User | None:
 
 
 def require_role(*roles: str):
-    """Dependency factory phân quyền theo vai trò, dùng: `Depends(require_role("admin", "doctor"))`.
-    So sánh theo string (vd "admin") để nơi gọi không cần import `UserRole`. 403 nếu vai trò
-    không khớp (401 đã được `get_current_user` xử lý riêng cho trường hợp chưa đăng nhập)."""
     def checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role.value not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Yêu cầu vai trò: {', '.join(roles)}",
+                detail=f"Yêu cầu vai trò: {
+.join(roles)}",
             )
         return current_user
     return checker
+

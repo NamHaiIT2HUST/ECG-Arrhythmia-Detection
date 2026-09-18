@@ -8,7 +8,7 @@ import { useAnomaly } from '../context/AnomalyContext';
 import { usePatient } from '../context/PatientContext';
 import { useAlarm } from '../context/AlarmContext';
 import { loadSettings } from './SettingsPage';
-import { getAccessToken } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const MAX_POINTS = 1000;
 
@@ -32,9 +32,10 @@ const DashboardPage = () => {
   const [localSelectedRecord, setLocalSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { addAnomaly } = useAnomaly();
+    const { addAnomaly } = useAnomaly();
   const { selectedPatient } = usePatient();
   const { triggerAlarm } = useAlarm();
+  const { getWsTicket } = useAuth(); // Import getWsTicket
 
   // handleNewData sống bên trong 1 useEffect hiếm khi chạy lại (chỉ khi đổi record/bệnh
   // nhân/wsUrl) - nếu gọi thẳng triggerAlarm/addAnomaly, closure sẽ đóng băng bản cũ mãi mãi
@@ -171,26 +172,28 @@ const DashboardPage = () => {
       xDataRef.current = rawX.length > MAX_POINTS ? rawX.slice(rawX.length - MAX_POINTS) : rawX;
     };
 
-    const connect = () => {
+    const connect = async () => {
       if (ws) {
         try { ws.close(); } catch (e) {}
       }
 
-      // Khởi tạo WS URL từ settings, nếu có selectedRecord thì truyền vào query
       const base = `${settings.wsUrl}/ws/ecg`;
       let qs = '';
       if (selectedRecord) qs += `?record=${selectedRecord}`;
-      // Backend yêu cầu patient_id là số nguyên (id thật trong bảng `patients`). Bệnh nhân chỉ
-      // lưu localStorage (chưa có API /api/patients thật) có `id` là UUID (crypto.randomUUID())
-      // - gửi UUID này sẽ làm FastAPI từ chối handshake WS ngay lúc validate query param. Chỉ
-      // truyền patient_id khi đã có remoteId (số nguyên, đồng bộ từ backend thật); nếu chưa có,
-      // bỏ qua tham số này - backend tự dùng "bệnh nhân mặc định" (xem plan.md mục 5.4).
       if (selectedPatient?.remoteId) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId}`;
-      // Backend giờ bắt buộc đăng nhập cho /ws/ecg (dữ liệu ECG real-time là dữ liệu bệnh nhân
-      // nhạy cảm) - WebSocket không gắn được header Authorization từ trình duyệt, nên phải
-      // truyền access token qua query param (xem backend/core/security.get_user_from_token).
-      const token = getAccessToken();
-      if (token) qs += `${qs ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      
+      try {
+        const ticket = await getWsTicket();
+        if (cancelled) return;
+        if (ticket) qs += `${qs ? '&' : '?'}ticket=${encodeURIComponent(ticket)}`;
+      } catch (err) {
+        console.error('Không thể lấy WS ticket:', err);
+        if (cancelled) return;
+        setConnectionStatus('Phiên đăng nhập lỗi, đang thử lại...');
+        reconnectTimeout = setTimeout(connect, 3000);
+        return;
+      }
+
       const wsUrl = base + qs;
       ws = new WebSocket(wsUrl);
 
@@ -211,14 +214,8 @@ const DashboardPage = () => {
       };
 
       ws.onclose = (event) => {
-        if (cancelled) return; // effect đã bị cleanup (vd đổi bản ghi) - đây không phải mất kết nối thật, đừng tự reconnect lại bản ghi cũ
-        // 4401 = backend từ chối do thiếu/hết hạn access token (xem ws_routes.py). Vẫn thử kết
-        // nối lại sau 3s như bình thường - nếu 1 request REST khác trong lúc đó làm token được
-        // refresh (qua interceptor axios), lần connect() kế tiếp sẽ tự lấy đúng token mới từ
-        // localStorage (getAccessToken() luôn đọc lại lúc gọi, không cache) - chỉ khác thông
-        // báo hiển thị cho rõ nguyên nhân thay vì luôn nói chung chung "Đang kết nối lại...".
+        if (cancelled) return;
         setConnectionStatus(event?.code === 4401 ? 'Phiên đăng nhập hết hạn, đang thử lại...' : 'Đang kết nối lại...');
-        // Reset buffers
         xDataRef.current = [];
         yDataRef.current = [];
         setXData([]);

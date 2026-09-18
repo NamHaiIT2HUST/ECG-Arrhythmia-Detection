@@ -18,6 +18,7 @@ const getDefaultBase = () => {
 
 const api = axios.create({
   baseURL: getDefaultBase(),
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },

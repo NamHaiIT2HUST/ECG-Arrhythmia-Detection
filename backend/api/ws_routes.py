@@ -8,7 +8,7 @@ from backend.service.inference_service import ai_service
 from backend.service.anomaly_log_service import end_ecg_record, log_anomaly, resolve_patient, start_ecg_record
 from backend.api.records_routes import record_exists, DEFAULT_RECORD
 from backend.db.session import get_db
-from backend.core.security import get_user_from_token
+from backend.core.security import get_user_from_ws_ticket
 
 router = APIRouter()
 
@@ -20,17 +20,12 @@ async def ecg_stream_endpoint(
     websocket: WebSocket,
     record: str = DEFAULT_RECORD,
     patient_id: int | None = None,
-    token: str | None = None,
+    ticket: str | None = None,
     db: Session = Depends(get_db),
 ):
     global active_connections
 
-    # Bat buoc dang nhap: du lieu ECG real-time la du lieu benh nhan nhay cam, khong duoc de
-    # anonymous truy cap. WebSocket khong the gan header Authorization tu trinh duyet, nen
-    # token duoc truyen qua query param (?token=<access_token>) - xem get_user_from_token().
-    # Kiem tra TRUOC accept()/truoc khi vao try-finally, de active_connections khong bi lech
-    # (finally luon -=1, chi += 1 sau accept() thanh cong - xem comment o finally ben duoi).
-    user = get_user_from_token(token, db)
+    user = get_user_from_ws_ticket(ticket, db)
     if user is None:
         await websocket.close(code=4401, reason="Unauthorized")
         return
