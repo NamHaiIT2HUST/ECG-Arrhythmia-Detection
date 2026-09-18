@@ -12,12 +12,12 @@ const normalize = (p) => {
   return {
     id: p.id,
     name: p.name || p.fullName || '',
-    age: p.age || p.age || '',
+    age: p.age || '',
     gender: p.gender || p.sex || '',
     bedNumber: p.bedNumber || p.bed_number || p.bed || '',
     activeRecordId: p.activeRecordId || p.active_record_id || p.active_record || p.activeRecord || null,
     attendingDoctor: p.attendingDoctor || p.attending_doctor || p.attending || '',
-    diagnosis: p.diagnosis || p.diagnosis || '',
+    diagnosis: p.diagnosis || '',
     ...p,
   };
 };

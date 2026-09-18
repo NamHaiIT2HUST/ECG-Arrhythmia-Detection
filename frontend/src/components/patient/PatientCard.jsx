@@ -1,5 +1,4 @@
 import React from 'react';
-import { usePatient } from '../../context/PatientContext';
 import { getAlarmLevel } from '../../constants/alarmLevels';
 
 const GENDER_LABEL = { M: 'Nam', F: 'Nữ', Other: 'Khác' };

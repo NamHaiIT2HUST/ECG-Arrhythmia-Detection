@@ -62,6 +62,16 @@ const DashboardPage = () => {
   // Ref cho báo cáo PDF
   const chartRef = React.useRef(null);
 
+  // Giữ bản sao yData mới nhất ngoài React state - handleNewData được định nghĩa 1 lần mỗi
+  // khi effect WS chạy lại (không phải mỗi lần render), nên closure `yData` lấy trực tiếp từ
+  // useState sẽ bị "đóng băng" ở giá trị lúc effect khởi chạy, không cập nhật theo từng nhịp.
+  // Trước đây dùng setYData(prev => {...}) để né việc này, nhưng lại gọi addAnomalyRef.current()
+  // (setState của AnomalyContext) NGAY BÊN TRONG updater function đó - React cảnh báo "Cannot
+  // update a component while rendering a different component" vì updater có thể bị gọi lại
+  // (đặc biệt StrictMode) làm log trùng anomaly. Dùng ref đọc/ghi trực tiếp, gọi setYData với
+  // giá trị đã tính sẵn (không phải updater function) - không còn side effect nào bên trong.
+  const yDataRef = React.useRef([]);
+
   useEffect(() => {
     let ws = null;
     let reconnectTimeout = null;
@@ -77,6 +87,7 @@ const DashboardPage = () => {
     setIsInitialLoading(true);
     setXData([]);
     setYData([]);
+    yDataRef.current = [];
     setCurrentHeatmap(null);
     setLatestPrediction('Đang tải...');
     setLatency(0);
@@ -112,34 +123,29 @@ const DashboardPage = () => {
         });
       }
 
+      // Tính yData mới dựa trên ref (luôn mới nhất), không dùng updater function của setYData
+      // nữa - xem giải thích ở khai báo yDataRef.current phía trên.
+      const rawY = [...yDataRef.current, ...chunk];
+      const nextY = rawY.length > MAX_POINTS ? rawY.slice(rawY.length - MAX_POINTS) : rawY;
+      yDataRef.current = nextY;
+      setYData(nextY);
+
       if (heatmap) {
         setCurrentHeatmap(heatmap);
 
         if (prediction && prediction.includes('CẢNH BÁO')) {
-          // Lưu lại chính xác 187 điểm cuối cùng của yData (và thêm chunk) để XAI phân tích
-          setYData(prevY => {
-            const tempY = [...prevY, ...chunk];
-            const recent187 = tempY.slice(-187);
-
-            // Đẩy vào context
-            addAnomalyRef.current({
-              prediction,
-              latency: latency_ms,
-              heatmap: heatmap,
-              confidence: confidence, // Lưu thêm confidence
-              signal: recent187.length === 187 ? recent187 : null // Chỉ lấy khi đủ 187
-            });
-            
-            return tempY.length > MAX_POINTS ? tempY.slice(tempY.length - MAX_POINTS) : tempY;
+          // Lưu lại chính xác 187 điểm cuối cùng (trước khi cắt bớt theo MAX_POINTS) để XAI phân tích
+          const recent187 = rawY.slice(-187);
+          addAnomalyRef.current({
+            prediction,
+            latency: latency_ms,
+            heatmap: heatmap,
+            confidence: confidence, // Lưu thêm confidence
+            signal: recent187.length === 187 ? recent187 : null // Chỉ lấy khi đủ 187
           });
         }
       } else {
         setCurrentHeatmap(null);
-        setYData(prevY => {
-          const newY = [...prevY, ...chunk];
-          if (newY.length > MAX_POINTS) return newY.slice(newY.length - MAX_POINTS);
-          return newY;
-        });
       }
       
       setXData(prevX => {

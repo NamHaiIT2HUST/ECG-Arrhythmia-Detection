@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAnomaly } from '../context/AnomalyContext';
 import { usePatient } from '../context/PatientContext';
 import { generateCSV, generatePDF } from '../utils/reportGenerator';
