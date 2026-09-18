@@ -8,6 +8,7 @@ from backend.api.diagnosis_routes import router as diagnosis_router
 from backend.api.afib_routes import router as afib_router
 from backend.api.auth import router as auth_router
 from backend.api.anomalies import router as anomalies_router
+from backend.api.admin_routes import router as admin_router
 from backend.core.config import settings, DEFAULT_JWT_SECRET_KEY
 from backend.service.inference_service import ai_service
 import os
@@ -63,6 +64,7 @@ app.include_router(diagnosis_router)
 app.include_router(afib_router)
 app.include_router(auth_router)
 app.include_router(anomalies_router)
+app.include_router(admin_router)
 
 if __name__ == "__main__":
     import uvicorn

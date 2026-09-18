@@ -1,14 +1,26 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 
+const ADMIN_MENU_ITEMS = [
+  { id: 'admin-overview', icon: '📊', label: 'Tổng Quan Hệ Thống' },
+  { id: 'admin-users', icon: '👤', label: 'Quản Lý Tài Khoản' },
+  { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
+];
+
+const CLINICAL_MENU_ITEMS = [
+  { id: 'dashboard', icon: '📊', label: 'Theo Dõi Trực Tuyến' },
+  { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
+  { id: 'xai', icon: '🧠', label: 'Phân Tích XAI Chuyên Sâu' },
+  { id: 'reports', icon: '📄', label: 'Xuất Báo Cáo (PDF/CSV)' },
+  { id: 'settings', icon: '⚙️', label: 'Cài Đặt Hệ Thống' },
+];
+
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { isAdmin } = useAuth();
-  const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Theo Dõi Trực Tuyến' },
-    { id: 'patient', icon: '🗂️', label: 'Hồ Sơ Bệnh Nhân' },
-    { id: 'xai', icon: '🧠', label: 'Phân Tích XAI Chuyên Sâu' },
-    { id: 'reports', icon: '📄', label: 'Xuất Báo Cáo (PDF/CSV)' },
-  ];
+  // Admin quản trị hệ thống (tài khoản/bệnh nhân) - không xem cùng màn hình theo dõi real-time
+  // với bác sĩ/y tá. "Cài Đặt Hệ Thống" (WS URL/ngưỡng cảnh báo) là tuỳ chọn của người trực
+  // tiếp theo dõi màn hình, nên chuyển sang menu bác sĩ/y tá thay vì admin-only như trước.
+  const menuItems = isAdmin ? ADMIN_MENU_ITEMS : CLINICAL_MENU_ITEMS;
 
   return (
     <nav style={{ 
@@ -73,37 +85,6 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           </div>
         ))}
       </div>
-
-      {isAdmin && (
-        <div
-          onClick={() => setActiveTab('settings')}
-          style={{
-            margin: 'auto 15px 0',
-            padding: '12px 15px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            cursor: 'pointer',
-            borderRadius: '6px',
-            backgroundColor: activeTab === 'settings' ? 'var(--primary-bg)' : 'transparent',
-            color: activeTab === 'settings' ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
-            fontWeight: activeTab === 'settings' ? '600' : '500',
-            transition: 'all 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (activeTab !== 'settings') {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (activeTab !== 'settings') {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }
-          }}
-        >
-          <span>⚙️</span> Cài Đặt Hệ Thống
-        </div>
-      )}
     </nav>
   );
 };

@@ -95,31 +95,59 @@ def test_refresh_rejects_access_token_used_as_refresh_token(client, auth_headers
     assert res.status_code == 401
 
 
-def test_register_creates_user_and_allows_login(client):
-    username = "new_doctor_001"
-    # Cố tình gửi role="doctor" - server PHẢI bỏ qua giá trị này, tự đăng ký chỉ được tạo
-    # tài khoản nurse (thấp quyền nhất). Đây là kiểm tra chống leo quyền (xem backend/api/auth.py).
+def test_public_register_endpoint_removed(client):
+    # Tự đăng ký công khai đã bị xoá hoàn toàn - chỉ admin được tạo tài khoản (xem
+    # backend/api/admin_routes.py). Route không còn tồn tại -> 404, không phải 401/403.
+    res = client.post("/api/auth/register", json={"username": "anyone", "password": "Password@123"})
+    assert res.status_code == 404
+
+
+def test_admin_can_create_user_with_chosen_role(client, auth_headers):
     res = client.post(
-        "/api/auth/register",
-        json={"username": username, "password": "Doctor@456", "role": "doctor"},
+        "/api/admin/users",
+        json={"username": "new_doctor_001", "password": "Doctor@456", "role": "doctor"},
+        headers=auth_headers["admin"],
     )
     assert res.status_code == 201
     body = res.json()
-    assert body["username"] == username
-    assert body["role"] == "nurse"
+    assert body["username"] == "new_doctor_001"
+    assert body["role"] == "doctor"
 
-    login = client.post("/api/auth/login", json={"username": username, "password": "Doctor@456"})
+    login = client.post("/api/auth/login", json={"username": "new_doctor_001", "password": "Doctor@456"})
     assert login.status_code == 200
-    assert login.json()["role"] == "nurse"
+    assert login.json()["role"] == "doctor"
 
 
-def test_register_rejects_duplicate_username(client):
-    username = "dup_user_001"
-    res = client.post("/api/auth/register", json={"username": username, "password": "Password@123"})
-    assert res.status_code == 201
+def test_admin_create_user_rejects_duplicate_username(client, auth_headers, seeded_users):
+    username = seeded_users["nurse"][0]
+    res = client.post(
+        "/api/admin/users",
+        json={"username": username, "password": "Password@123", "role": "nurse"},
+        headers=auth_headers["admin"],
+    )
+    assert res.status_code == 409
 
-    res2 = client.post("/api/auth/register", json={"username": username, "password": "Password@123"})
-    assert res2.status_code == 409
+
+def test_non_admin_cannot_create_user(client, auth_headers):
+    res = client.post(
+        "/api/admin/users",
+        json={"username": "sneaky_001", "password": "Password@123", "role": "admin"},
+        headers=auth_headers["doctor"],
+    )
+    assert res.status_code == 403
+
+
+def test_non_admin_cannot_list_users(client, auth_headers):
+    res = client.get("/api/admin/users", headers=auth_headers["nurse"])
+    assert res.status_code == 403
+
+
+def test_admin_stats_shape(client, auth_headers):
+    res = client.get("/api/admin/stats", headers=auth_headers["admin"])
+    assert res.status_code == 200
+    body = res.json()
+    assert set(body["users_by_role"].keys()) == {"admin", "doctor", "nurse"}
+    assert isinstance(body["total_anomalies"], int)
 
 
 # ---------------------------------------------------------------------------

@@ -167,7 +167,7 @@ const steps = [
 
 
 const LoginPage = () => {
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const [view, setView] = useState('landing');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -225,85 +225,53 @@ const LoginPage = () => {
     }
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await register({ username, password });
-      await login(username, password);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Đăng ký thất bại. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const openLogin = () => {
     resetForm();
     setView('login');
   };
 
-  const openRegister = () => {
-    resetForm();
-    setView('register');
-  };
-
-  const renderAuthCard = () => {
-    const isLogin = view === 'login';
-    const isRegister = view === 'register';
-
-    return (
-      <div className="identity-card">
-        <div className="card-header">
-          <div>
-            <p>Hệ thống chăm sóc tim mạch</p>
-            <h3>{isLogin ? 'Đăng nhập' : 'Đăng ký tài khoản'}</h3>
-          </div>
-          <button type="button" className="mini-link" onClick={() => setView('landing')}>
-            Quay lại
-          </button>
+  const renderAuthCard = () => (
+    <div className="identity-card">
+      <div className="card-header">
+        <div>
+          <p>Hệ thống chăm sóc tim mạch</p>
+          <h3>Đăng nhập</h3>
         </div>
-
-        <form className="auth-form" onSubmit={isLogin ? handleLogin : handleRegister}>
-          {/* Role selection removed: public registrations are always created as nurse on the server. */}
-
-          <label>
-            <span>Tên đăng nhập</span>
-            <input
-              type="text"
-              placeholder="Nhập tên tài khoản"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-            />
-          </label>
-
-          <label>
-            <span>Mật khẩu</span>
-            <input
-              type="password"
-              placeholder="Nhập mật khẩu"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-
-          {error && <div className="error-box">{error}</div>}
-
-          <button type="submit" className="submit-button" disabled={loading || !username || !password}>
-            {loading ? (isLogin ? 'Đang đăng nhập...' : 'Đang đăng ký...') : (isLogin ? 'Đăng nhập hệ thống' : 'Tạo tài khoản')}
-          </button>
-
-          {isLogin && (
-            <button type="button" className="secondary-button compact-button" onClick={openRegister}>
-              Tạo tài khoản mới
-            </button>
-          )}
-        </form>
+        <button type="button" className="mini-link" onClick={() => setView('landing')}>
+          Quay lại
+        </button>
       </div>
-    );
-  };
+
+      <form className="auth-form" onSubmit={handleLogin}>
+        <label>
+          <span>Tên đăng nhập</span>
+          <input
+            type="text"
+            placeholder="Nhập tên tài khoản"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+          />
+        </label>
+
+        <label>
+          <span>Mật khẩu</span>
+          <input
+            type="password"
+            placeholder="Nhập mật khẩu"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+
+        {error && <div className="error-box">{error}</div>}
+
+        <button type="submit" className="submit-button" disabled={loading || !username || !password}>
+          {loading ? 'Đang đăng nhập...' : 'Đăng nhập hệ thống'}
+        </button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="landing-shell">
@@ -365,7 +333,7 @@ const LoginPage = () => {
               </p>
 
               <div className="cta-row">
-                <button type="button" className="primary-button" onClick={openRegister}>Bắt đầu miễn phí</button>
+                <button type="button" className="primary-button" onClick={openLogin}>Bắt đầu ngay</button>
               </div>
             </div>
 
@@ -404,11 +372,11 @@ const LoginPage = () => {
           <section className="auth-layout">
             <div className="auth-copy">
               <div className="eyebrow">TRUNG TÂM CHĂM SÓC TIM MẠCH</div>
-              <h2>{view === 'login' ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới'}</h2>
-              <p>
-                {view === 'login'
-                  ? 'Quản lý bệnh nhân, theo dõi ECG và xử lý cảnh báo trong một giao diện thống nhất.'
-                  : 'Chọn vai trò, tạo tên đăng nhập và mật khẩu để bắt đầu sử dụng hệ thống.'}
+              <h2>Đăng nhập để tiếp tục</h2>
+              <p>Quản lý bệnh nhân, theo dõi ECG và xử lý cảnh báo trong một giao diện thống nhất.</p>
+              <p className="auth-note">
+                Chưa có tài khoản? Liên hệ quản trị viên bệnh viện để được cấp tài khoản —
+                hệ thống không hỗ trợ tự đăng ký.
               </p>
             </div>
             {renderAuthCard()}

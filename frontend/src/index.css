@@ -720,6 +720,12 @@ button {
   font-size: 1.02rem;
 }
 
+.auth-copy .auth-note {
+  margin-top: 14px;
+  font-size: 0.88rem;
+  opacity: 0.85;
+}
+
 .feature-section {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

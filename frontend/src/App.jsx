@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardPage from './pages/DashboardPage';
 import XAIPage from './pages/XAIPage';
 import ReportExporter from './pages/ReportExporter';
@@ -9,12 +9,14 @@ import { PatientProvider } from './context/PatientContext';
 import { AlarmProvider } from './context/AlarmContext';
 import PatientPage from './pages/PatientPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminOverviewPage from './pages/AdminOverviewPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   return (
     <AuthProvider>
       <AnomalyProvider>
@@ -30,6 +32,14 @@ function App() {
 
 const InnerApp = ({ activeTab, setActiveTab }) => {
   const { isAuthenticated, isAdmin, authLoading } = useAuth();
+
+  // Admin không dùng màn theo dõi real-time ('dashboard') - mặc định sang trang quản trị
+  // ngay khi đăng nhập, thay vì lỡ dừng ở tab mặc định của bác sĩ/y tá.
+  useEffect(() => {
+    if (isAdmin && (activeTab === 'dashboard')) {
+      setActiveTab('admin-overview');
+    }
+  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (authLoading) {
     return (
@@ -50,7 +60,9 @@ const InnerApp = ({ activeTab, setActiveTab }) => {
           {activeTab === 'patient' && <PatientPage />}
           {activeTab === 'xai' && <XAIPage />}
           {activeTab === 'reports' && <ReportExporter />}
-          {activeTab === 'settings' && isAdmin && <SettingsPage />}
+          {activeTab === 'settings' && <SettingsPage />}
+          {activeTab === 'admin-overview' && isAdmin && <AdminOverviewPage />}
+          {activeTab === 'admin-users' && isAdmin && <AdminUsersPage />}
         </main>
       </div>
     </div>
