@@ -1,5 +1,48 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+
+const THEME_KEY = 'ecg_theme';
+
+// Vi tri co dinh (khong random) cho hat trang tri hero - tranh giat layout giua cac lan render/
+// StrictMode double-invoke. Toa do % theo landing-shell.
+const PARTICLES = [
+  { top: '12%', left: '8%', delay: '0s', duration: '5.5s' },
+  { top: '22%', left: '34%', delay: '1.2s', duration: '6.5s' },
+  { top: '8%', left: '58%', delay: '2.1s', duration: '5s' },
+  { top: '30%', left: '78%', delay: '0.6s', duration: '7s' },
+  { top: '48%', left: '15%', delay: '1.8s', duration: '6s' },
+  { top: '60%', left: '46%', delay: '0.3s', duration: '5.8s' },
+  { top: '68%', left: '68%', delay: '2.6s', duration: '6.2s' },
+  { top: '40%', left: '90%', delay: '1s', duration: '5.2s' },
+  { top: '78%', left: '25%', delay: '1.5s', duration: '6.8s' },
+  { top: '85%', left: '55%', delay: '0.9s', duration: '5.4s' },
+];
+
+const HeartbeatLogo = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M3 12h3.5l1.5-4 3 8 2-5.5 1.5 3.5H21"
+      stroke="white"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+  </svg>
+);
 
 const features = [
   { title: 'AI cảnh báo sớm', text: 'Phân tích nhịp tim theo thời gian thực và phát hiện bất thường sớm.' },
@@ -21,6 +64,38 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Theme: 'light' | 'dark' | null (null = theo he thong, khong ep). Ap dung bang attribute
+  // data-theme tren <html> - CSS (index.css) doc attribute nay de ghi de bang mau. Landing
+  // page truoc day CHI theo prefers-color-scheme cua he dieu hanh, khong co nut bam thu cong.
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme) {
+      root.setAttribute('data-theme', theme);
+    } else {
+      root.removeAttribute('data-theme');
+    }
+    try {
+      if (theme) localStorage.setItem(THEME_KEY, theme);
+      else localStorage.removeItem(THEME_KEY);
+    } catch {
+      // localStorage khong kha dung (private mode...) - bo qua, theme van hoat dong trong phien
+    }
+  }, [theme]);
+
+  const isDarkActive = theme
+    ? theme === 'dark'
+    : typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const toggleTheme = () => setTheme(isDarkActive ? 'light' : 'dark');
 
   const resetForm = () => {
     setUsername('');
@@ -127,10 +202,10 @@ const LoginPage = () => {
       <div className="landing-glow glow-two" />
 
       <header className="landing-header">
-        <div className="brand-wrap" aria-label="CardioVision brand">
-          <div className="brand-mark">ECG</div>
-          <div className="brand-text" style={{ color: 'var(--text-main)' }}>
-            <span style={{ color: 'var(--text-main)' }}>NEURO</span>-ECG
+        <div className="brand-wrap" aria-label="NEURO-ECG brand">
+          <div className="brand-mark"><HeartbeatLogo /></div>
+          <div className="brand-text">
+            <span>NEURO</span>-ECG
           </div>
         </div>
 
@@ -140,16 +215,36 @@ const LoginPage = () => {
           <a href="#metrics">Hiệu suất</a>
         </nav>
 
-        <button type="button" className="nav-button" onClick={openLogin}>
-          Đăng nhập
-        </button>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={isDarkActive ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+            title={isDarkActive ? 'Chế độ sáng' : 'Chế độ tối'}
+          >
+            {isDarkActive ? <SunIcon /> : <MoonIcon />}
+          </button>
+          <button type="button" className="nav-button" onClick={openLogin}>
+            Đăng nhập
+          </button>
+        </div>
       </header>
 
       <main className="landing-main">
         {view === 'landing' ? (
           <section className="hero-section">
-            <div className="hero-copy">
-              <div className="eyebrow">PHÒNG NGỪA TỔN THƯƠNG TIM MẠNH</div>
+            <div className="particle-field" aria-hidden="true">
+              {PARTICLES.map((p, i) => (
+                <span key={i} style={{ top: p.top, left: p.left, animationDelay: p.delay, animationDuration: p.duration }} />
+              ))}
+            </div>
+
+            <div className="hero-copy fade-in-up" style={{ animationDelay: '0.05s' }}>
+              <div className="eyebrow">
+                <span className="eyebrow-dot" />
+                GIÁM SÁT NHỊP TIM AI · THỜI GIAN THỰC
+              </div>
               <h1>
                 Giám sát ECG theo thời gian thực
                 <span> và cảnh báo sớm bất thường</span>
@@ -164,14 +259,14 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="hero-visual">
+            <div className="hero-visual fade-in-up" style={{ animationDelay: '0.2s' }}>
               <div className="pulse-panel large-pulse">
                 <div className="pulse-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)' }}>Real-time ECG Stream</span>
                 </div>
-                <div className="pulse-line" style={{ background: 'transparent', boxShadow: 'none', height: '80px' }}>
-                  <svg viewBox="0 0 500 100" className="ecg-line-svg" style={{ width: '100%', height: '100%', stroke: 'var(--primary)', filter: 'drop-shadow(0 2px 4px rgba(47,109,246,0.3))' }}>
-                    <polyline points="0,50 50,50 60,40 70,50 90,50 100,20 110,90 120,50 150,50 160,45 170,50 220,50 230,40 240,50 260,50 270,20 280,90 290,50 320,50 330,45 340,50 390,50 400,40 410,50 430,50 440,20 450,90 460,50 500,50" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <div className="pulse-line" style={{ background: 'transparent', boxShadow: 'none', height: '80px', overflow: 'hidden' }}>
+                  <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="ecg-line-svg" style={{ width: '200%', height: '100%', stroke: 'var(--primary)', filter: 'drop-shadow(0 2px 4px rgba(47,109,246,0.3))', animation: 'ecg-scroll 4s linear infinite' }}>
+                    <polyline points="0,50 50,50 60,40 70,50 90,50 100,20 110,90 120,50 150,50 160,45 170,50 220,50 230,40 240,50 260,50 270,20 280,90 290,50 320,50 330,45 340,50 390,50 400,40 410,50 430,50 440,20 450,90 460,50 500,50 550,50 560,40 570,50 590,50 600,20 610,90 620,50 650,50 660,45 670,50 720,50 730,40 740,50 760,50 770,20 780,90 790,50 820,50 830,45 840,50 890,50 900,40 910,50 930,50 940,20 950,90 960,50 1000,50" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div className="pulse-stats" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
@@ -183,7 +278,7 @@ const LoginPage = () => {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rhythm Status</span>
                     <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--success)' }}>Normal Sinus</span>
                     <span className="live-badge" style={{ fontSize: '0.65rem', padding: '2px 8px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold', marginTop: '6px' }}>
-                      <span style={{ width: '6px', height: '6px', background: 'var(--danger)', borderRadius: '50%', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span> LIVE
+                      <span style={{ width: '6px', height: '6px', background: 'var(--danger)', borderRadius: '50%', display: 'inline-block', animation: 'pulse-dot 1.5s ease-in-out infinite' }}></span> LIVE
                     </span>
                   </div>
                 </div>
@@ -216,8 +311,8 @@ const LoginPage = () => {
                 <span>TÍNH NĂNG</span>
                 <h2>Các tính năng nổi bật của hệ thống</h2>
               </div>
-              {features.map((feature) => (
-                <article key={feature.title} className="feature-card">
+              {features.map((feature, index) => (
+                <article key={feature.title} className="feature-card fade-in-up" style={{ animationDelay: `${index * 0.12}s` }}>
                   <div className="feature-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
@@ -239,7 +334,7 @@ const LoginPage = () => {
 
               <div className="workflow-grid">
                 {steps.map((step, index) => (
-                  <div key={step} className="workflow-card">
+                  <div key={step} className="workflow-card fade-in-up" style={{ animationDelay: `${index * 0.12}s` }}>
                     <div className="step-number">0{index + 1}</div>
                     <h3>{step}</h3>
                   </div>
@@ -254,17 +349,17 @@ const LoginPage = () => {
               </div>
 
               <div className="workflow-grid">
-                <div className="workflow-card">
+                <div className="workflow-card fade-in-up" style={{ animationDelay: '0s' }}>
                   <div className="step-number" style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}>24/7</div>
                   <h3>Giám sát liên tục</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Hệ thống hoạt động không gián đoạn, luôn sẵn sàng phân tích tín hiệu 24 giờ mỗi ngày.</p>
                 </div>
-                <div className="workflow-card">
+                <div className="workflow-card fade-in-up" style={{ animationDelay: '0.12s' }}>
                   <div className="step-number" style={{ background: 'rgba(23, 178, 106, 0.12)', color: 'var(--success)', width: 'auto', padding: '0 16px' }}>99.2%</div>
                   <h3>Độ chính xác cao</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Mô hình AI được huấn luyện chuyên sâu với độ chính xác và tin cậy đạt chuẩn y tế.</p>
                 </div>
-                <div className="workflow-card">
+                <div className="workflow-card fade-in-up" style={{ animationDelay: '0.24s' }}>
                   <div className="step-number" style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)' }}>03</div>
                   <h3>Vai trò linh hoạt</h3>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Phân quyền rõ ràng cho Admin, Bác sĩ và Y tá, phù hợp với luồng công việc bệnh viện.</p>

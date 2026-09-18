@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* Bảng màu SÁNG (mặc định) - xem khối [data-theme="dark"] và @media prefers-color-scheme
+     phía cuối file để biết bảng màu TỐI. Đổi theme bằng nút toggle ở header (LoginPage.jsx),
+     lưu lựa chọn vào localStorage 'ecg_theme' ('light' | 'dark' | để trống = theo hệ thống). */
+  --bg-grad-1: #edf5ff;
+  --bg-grad-2: #f7fbff;
+  --bg-grad-3: #eef6ff;
   --bg-color: #eef6ff;
   --bg-deep: #091b39;
   --bg-panel: rgba(15, 23, 42, 0.72);
@@ -17,6 +23,24 @@
   --danger: #ef4444;
   --border-color: rgba(148, 163, 184, 0.25);
   --shadow-soft: 0 20px 45px rgba(14, 30, 66, 0.16);
+
+  --header-bg: rgba(255, 255, 255, 0.62);
+  --glow-one: rgba(59, 130, 246, 0.18);
+  --glow-two: rgba(16, 185, 129, 0.14);
+  --particle-color: rgba(47, 109, 246, 0.35);
+  --eyebrow-bg: rgba(47, 109, 246, 0.08);
+  --eyebrow-text: var(--primary-strong);
+  --feature-card-bg: rgba(255, 255, 255, 0.78);
+  --workflow-card-bg: rgba(255, 255, 255, 0.8);
+  --mini-stat-bg: rgba(255, 255, 255, 0.86);
+  --gradient-text: linear-gradient(100deg, var(--primary-strong), #7c3aed);
+  --theme-toggle-bg: rgba(15, 23, 42, 0.06);
+  --theme-toggle-icon: #1237c0;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="dark"] .landing-shell {
+  color-scheme: dark;
 }
 
 * {
@@ -34,9 +58,44 @@ html,
   min-height: 100%;
   width: 100%;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(180deg, #edf5ff 0%, #f7fbff 50%, #eef6ff 100%);
+  background: linear-gradient(180deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 50%, var(--bg-grad-3) 100%);
   color: var(--text-main);
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+  50% { transform: scale(1.15); opacity: 0.85; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+@keyframes float-particle {
+  0%, 100% { transform: translate(0, 0); opacity: 0.5; }
+  50% { transform: translate(6px, -14px); opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ecg-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes glow-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(18px, -22px) scale(1.06); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 button,
@@ -61,12 +120,14 @@ button {
   filter: blur(80px);
   opacity: 0.55;
   pointer-events: none;
+  animation: glow-drift 14s ease-in-out infinite;
+  will-change: transform;
 }
 
 .glow-one {
   width: 420px;
   height: 420px;
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--glow-one);
   top: -120px;
   right: -30px;
 }
@@ -74,9 +135,30 @@ button {
 .glow-two {
   width: 380px;
   height: 380px;
-  background: rgba(16, 185, 129, 0.14);
+  background: var(--glow-two);
   bottom: 40px;
   left: -120px;
+  animation-delay: -7s;
+}
+
+/* Nen hat li ti (constellation) trang tri hero - thuan CSS, khong anh nang, giup landing page
+   bot "tinh" theo yeu cau. 12 hat vi tri co dinh (khong random moi lan render de tranh giat
+   layout), moi hat 1 do tre khac nhau de trong tu nhien hon. */
+.particle-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle-field span {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--particle-color);
+  animation: float-particle 6s ease-in-out infinite;
 }
 
 .landing-header {
@@ -90,10 +172,11 @@ button {
   gap: 24px;
   padding: 18px 18px 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--header-bg);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  transition: background 0.3s ease;
 }
 
 .brand-wrap {
@@ -109,21 +192,54 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary), #7cc0ff);
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
   color: white;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(47, 109, 246, 0.35);
+  flex-shrink: 0;
+}
+
+.brand-mark svg {
+  width: 26px;
+  height: 26px;
 }
 
 .brand-text {
   font-weight: 800;
   font-size: 1.5rem;
   letter-spacing: -0.045em;
+  color: var(--text-main);
 }
 
 .brand-text span {
   color: var(--primary);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--theme-toggle-bg);
+  color: var(--theme-toggle-icon);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(14deg) scale(1.06);
+}
+
+.theme-toggle svg {
+  width: 19px;
+  height: 19px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .landing-nav {
@@ -193,11 +309,17 @@ button {
 }
 
 .hero-section {
+  position: relative;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
   gap: 46px;
   padding: 32px 8px 12px;
+}
+
+.hero-section > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-visual {
@@ -210,7 +332,7 @@ button {
 
 .mini-stat {
   position: absolute;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--mini-stat-bg);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 20px;
   padding: 14px 16px;
@@ -218,6 +340,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: background 0.3s ease;
 }
 
 .mini-stat span {
@@ -249,26 +372,40 @@ button {
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
   border-radius: 999px;
-  background: rgba(47, 109, 246, 0.08);
-  color: var(--primary-strong);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  background: var(--eyebrow-bg);
+  border: 1px solid rgba(47, 109, 246, 0.18);
+  color: var(--eyebrow-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  animation: pulse-dot 1.8s ease-in-out infinite;
 }
 
 .hero-copy h1 {
   margin: 18px 0 16px;
   font-size: clamp(2.7rem, 5vw, 5rem);
-  line-height: 1.2;
+  line-height: 1.15;
   letter-spacing: -0.02em;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .hero-copy h1 span {
   display: block;
-  color: var(--primary-strong);
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .hero-copy p {
@@ -390,13 +527,9 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.pulse-line::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 15%, transparent 30%, rgba(255, 255, 255, 0.2) 45%, transparent 60%, rgba(110, 231, 183, 0.5) 75%, transparent 100%);
-  clip-path: polygon(0 54%, 10% 54%, 18% 38%, 28% 62%, 36% 44%, 46% 52%, 58% 26%, 64% 58%, 74% 36%, 82% 54%, 92% 47%, 100% 54%, 100% 100%, 0 100%);
-}
+/* Truoc day co 1 lop ::before phu tinh (zigzag gia lap song ECG) o day vi polyline goc dung
+   yen - gio polyline that da duoc animate (ecg-scroll) nen bo lop gia nay di, tranh chong
+   hinh roi mat voi duong song dang chay that. */
 
 .pulse-stats {
   display: flex;
@@ -516,11 +649,18 @@ button {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--feature-card-bg);
   border: 1px solid var(--border-color);
   border-radius: 24px;
   padding: 24px 22px;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.03);
+  transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-card:hover,
+.workflow-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
 }
 
 .feature-icon {
@@ -582,9 +722,10 @@ button {
 .workflow-card {
   padding: 26px 22px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--workflow-card-bg);
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.03);
+  transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .step-number {
@@ -677,35 +818,59 @@ button {
   }
 }
 
+/* Bang mau TOI - ap dung khi (a) he thong dang o dark VA nguoi dung chua tu chon "light",
+   hoac (b) nguoi dung bam nut toggle chon "dark" tay (ghi de ca khi he thong dang light).
+   2 khoi ben duoi cung 1 bo bien - lam theo dung 1 khoi roi copy sang khoi kia khi can sua. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    --bg-grad-1: #0f172a;
+    --bg-grad-2: #0b1220;
+    --bg-grad-3: #020617;
     --bg-color: #0f172a;
     --bg-deep: #020617;
     --bg-panel: rgba(15, 23, 42, 0.9);
     --card-bg: rgba(30, 41, 59, 0.94);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --border-color: rgba(148, 163, 184, 0.1);
+    --border-color: rgba(148, 163, 184, 0.14);
     --primary-strong: #60a5fa;
+    --header-bg: rgba(15, 23, 42, 0.7);
+    --glow-one: rgba(59, 130, 246, 0.22);
+    --glow-two: rgba(124, 58, 237, 0.2);
+    --particle-color: rgba(96, 165, 250, 0.5);
+    --eyebrow-bg: rgba(96, 165, 250, 0.12);
+    --eyebrow-text: #93c5fd;
+    --feature-card-bg: rgba(30, 41, 59, 0.8);
+    --workflow-card-bg: rgba(30, 41, 59, 0.8);
+    --mini-stat-bg: rgba(30, 41, 59, 0.9);
+    --gradient-text: linear-gradient(100deg, #60a5fa, #c084fc);
+    --theme-toggle-bg: rgba(148, 163, 184, 0.12);
+    --theme-toggle-icon: #93c5fd;
   }
-  
-  body, html, #root {
-    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
-  }
+}
 
-  .landing-header {
-    background: rgba(15, 23, 42, 0.7);
-  }
-  
-  .hero-copy h1 {
-    color: #f8fafc;
-  }
-
-  .feature-card, .workflow-card {
-    background: rgba(30, 41, 59, 0.8);
-  }
-
-  .mini-stat {
-    background: rgba(30, 41, 59, 0.86);
-  }
+:root[data-theme="dark"] {
+  --bg-grad-1: #0f172a;
+  --bg-grad-2: #0b1220;
+  --bg-grad-3: #020617;
+  --bg-color: #0f172a;
+  --bg-deep: #020617;
+  --bg-panel: rgba(15, 23, 42, 0.9);
+  --card-bg: rgba(30, 41, 59, 0.94);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: rgba(148, 163, 184, 0.14);
+  --primary-strong: #60a5fa;
+  --header-bg: rgba(15, 23, 42, 0.7);
+  --glow-one: rgba(59, 130, 246, 0.22);
+  --glow-two: rgba(124, 58, 237, 0.2);
+  --particle-color: rgba(96, 165, 250, 0.5);
+  --eyebrow-bg: rgba(96, 165, 250, 0.12);
+  --eyebrow-text: #93c5fd;
+  --feature-card-bg: rgba(30, 41, 59, 0.8);
+  --workflow-card-bg: rgba(30, 41, 59, 0.8);
+  --mini-stat-bg: rgba(30, 41, 59, 0.9);
+  --gradient-text: linear-gradient(100deg, #60a5fa, #c084fc);
+  --theme-toggle-bg: rgba(148, 163, 184, 0.12);
+  --theme-toggle-icon: #93c5fd;
 }
