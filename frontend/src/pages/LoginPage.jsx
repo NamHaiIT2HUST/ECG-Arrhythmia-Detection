@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-
-const THEME_KEY = 'ecg_theme';
+import { useTheme } from '../context/ThemeContext';
+import { SunIcon, MoonIcon } from '../components/icons/ThemeIcons';
+import HeartbeatLogo from '../components/icons/HeartbeatLogo';
 
 // Vi tri co dinh (khong random) cho hat trang tri hero - tranh giat layout giua cac lan render/
 // StrictMode double-invoke. Toa do % theo landing-shell.
@@ -17,32 +18,6 @@ const PARTICLES = [
   { top: '78%', left: '25%', delay: '1.5s', duration: '6.8s' },
   { top: '85%', left: '55%', delay: '0.9s', duration: '5.4s' },
 ];
-
-const HeartbeatLogo = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M3 12h3.5l1.5-4 3 8 2-5.5 1.5 3.5H21"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const SunIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="2" />
-    <path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const MoonIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-  </svg>
-);
 
 // Nen "constellation" dong sau toan bo landing page: cac hat troi tu do va tu ket noi bang duong
 // ke khi den gan nhau (ve bang canvas moi frame), lay cam hung tu nen dang o
@@ -173,38 +148,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Theme: 'light' | 'dark' | null (null = theo he thong, khong ep). Ap dung bang attribute
-  // data-theme tren <html> - CSS (index.css) doc attribute nay de ghi de bang mau. Landing
-  // page truoc day CHI theo prefers-color-scheme cua he dieu hanh, khong co nut bam thu cong.
-  const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem(THEME_KEY) || null;
-    } catch {
-      return null;
-    }
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme) {
-      root.setAttribute('data-theme', theme);
-    } else {
-      root.removeAttribute('data-theme');
-    }
-    try {
-      if (theme) localStorage.setItem(THEME_KEY, theme);
-      else localStorage.removeItem(THEME_KEY);
-    } catch {
-      // localStorage khong kha dung (private mode...) - bo qua, theme van hoat dong trong phien
-    }
-  }, [theme]);
-
-  const isDarkActive = theme
-    ? theme === 'dark'
-    : typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-  const toggleTheme = () => setTheme(isDarkActive ? 'light' : 'dark');
+  const { isDarkActive, toggleTheme } = useTheme();
 
   const resetForm = () => {
     setUsername('');

@@ -17,6 +17,7 @@ VALID_ROLES = {r.value for r in UserRole}
 class UserOut(BaseModel):
     id: int
     username: str
+    full_name: str | None = None
     role: str
     created_at: datetime
 
@@ -24,6 +25,7 @@ class UserOut(BaseModel):
 class CreateUserRequest(BaseModel):
     username: str
     password: str
+    full_name: str | None = None
     role: str
 
 
@@ -39,7 +41,7 @@ def list_users(
 ):
     """CP mới: chỉ admin xem được danh sách toàn bộ tài khoản trong hệ thống."""
     users = db.query(User).order_by(User.created_at.desc()).all()
-    return [UserOut(id=u.id, username=u.username, role=u.role.value, created_at=u.created_at) for u in users]
+    return [UserOut(id=u.id, username=u.username, full_name=u.full_name, role=u.role.value, created_at=u.created_at) for u in users]
 
 
 @router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -67,12 +69,12 @@ def create_user(
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tên đăng nhập đã tồn tại")
 
-    user = User(username=username, hashed_password=hash_password(payload.password), role=UserRole(payload.role))
+    user = User(username=username, hashed_password=hash_password(payload.password), full_name=payload.full_name, role=UserRole(payload.role))
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    return UserOut(id=user.id, username=user.username, role=user.role.value, created_at=user.created_at)
+    return UserOut(id=user.id, username=user.username, full_name=user.full_name, role=user.role.value, created_at=user.created_at)
 
 
 @router.get("/stats", response_model=StatsResponse)

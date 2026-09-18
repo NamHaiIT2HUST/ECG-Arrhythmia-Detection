@@ -36,7 +36,7 @@ const AdminUsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState(null);
 
-  const [form, setForm] = useState({ username: '', password: '', role: 'nurse' });
+  const [form, setForm] = useState({ username: '', password: '', full_name: '', role: 'nurse' });
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -65,7 +65,7 @@ const AdminUsersPage = () => {
     setSubmitting(true);
     try {
       await api.post('/api/admin/users', form);
-      setForm({ username: '', password: '', role: 'nurse' });
+      setForm({ username: '', password: '', full_name: '', role: 'nurse' });
       await loadUsers();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Tạo tài khoản thất bại. Vui lòng thử lại.');
@@ -90,7 +90,7 @@ const AdminUsersPage = () => {
           Thêm tài khoản mới
         </h3>
         <form onSubmit={handleCreate} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 180px' }}>
+          <div style={{ flex: '1 1 150px' }}>
             <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Tên đăng nhập</label>
             <input
               style={inputStyle}
@@ -101,6 +101,15 @@ const AdminUsersPage = () => {
             />
           </div>
           <div style={{ flex: '1 1 180px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Họ và tên</label>
+            <input
+              style={inputStyle}
+              value={form.full_name}
+              onChange={(e) => updateForm('full_name', e.target.value)}
+              placeholder="Nguyễn Văn A"
+            />
+          </div>
+          <div style={{ flex: '1 1 150px' }}>
             <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Mật khẩu</label>
             <input
               type="password"
@@ -111,7 +120,7 @@ const AdminUsersPage = () => {
               required
             />
           </div>
-          <div style={{ flex: '0 0 160px' }}>
+          <div style={{ flex: '0 0 120px' }}>
             <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Vai trò</label>
             <select
               style={inputStyle}
@@ -159,6 +168,7 @@ const AdminUsersPage = () => {
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                   <th style={{ padding: '10px 8px', color: 'var(--text-muted)', fontWeight: '600' }}>Tên đăng nhập</th>
+                  <th style={{ padding: '10px 8px', color: 'var(--text-muted)', fontWeight: '600' }}>Họ và tên</th>
                   <th style={{ padding: '10px 8px', color: 'var(--text-muted)', fontWeight: '600' }}>Vai trò</th>
                   <th style={{ padding: '10px 8px', color: 'var(--text-muted)', fontWeight: '600' }}>Ngày tạo</th>
                 </tr>
@@ -167,6 +177,7 @@ const AdminUsersPage = () => {
                 {users.map((u) => (
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td style={{ padding: '10px 8px', color: 'var(--text-main)', fontWeight: '600' }}>{u.username}</td>
+                    <td style={{ padding: '10px 8px', color: 'var(--text-main)' }}>{u.full_name || '-'}</td>
                     <td style={{ padding: '10px 8px', color: 'var(--text-main)' }}>{ROLE_LABEL[u.role] || u.role}</td>
                     <td style={{ padding: '10px 8px', color: 'var(--text-muted)' }}>{formatDate(u.created_at)}</td>
                   </tr>

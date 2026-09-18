@@ -40,6 +40,7 @@ class RefreshResponse(BaseModel):
 class MeResponse(BaseModel):
     id: int
     username: str
+    full_name: str | None = None
     role: str
 
 
@@ -90,4 +91,4 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=MeResponse)
 def me(current_user: User = Depends(get_current_user)):
-    return MeResponse(id=current_user.id, username=current_user.username, role=current_user.role.value)
+    return MeResponse(id=current_user.id, username=current_user.username, full_name=current_user.full_name, role=current_user.role.value)

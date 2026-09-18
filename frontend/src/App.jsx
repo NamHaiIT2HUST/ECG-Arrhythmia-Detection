@@ -12,21 +12,24 @@ import SettingsPage from './pages/SettingsPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import LoginPage from './pages/LoginPage';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-    <AuthProvider>
-      <AnomalyProvider>
-        <PatientProvider>
-          <AlarmProvider>
-            <InnerApp activeTab={activeTab} setActiveTab={setActiveTab} />
-          </AlarmProvider>
-        </PatientProvider>
-      </AnomalyProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AnomalyProvider>
+          <PatientProvider>
+            <AlarmProvider>
+              <InnerApp activeTab={activeTab} setActiveTab={setActiveTab} />
+            </AlarmProvider>
+          </PatientProvider>
+        </AnomalyProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

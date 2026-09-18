@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAlarm } from '../context/AlarmContext';
+import { useTheme } from '../context/ThemeContext';
 
 const SETTINGS_KEY = 'ecg_settings';
 
 const defaultSettings = {
   wsUrl: 'ws://localhost:8000',
-  theme: 'auto', // 'auto' | 'light' | 'dark'
   confidenceThreshold: 0, // 0-1 (0 = không lọc)
   notificationEnabled: false,
 };
@@ -24,13 +24,6 @@ export const loadSettings = () => {
 
 const saveSettings = (settings) => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-};
-
-// Apply theme to <html> element
-const applyTheme = (theme) => {
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
-  const isDark = theme === 'dark' || (theme === 'auto' && prefersDark);
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 };
 
 const sectionStyle = {
@@ -74,21 +67,7 @@ const SettingsPage = () => {
   const [saved, setSaved] = useState(false);
   const [notifStatus, setNotifStatus] = useState(() => (typeof Notification !== 'undefined' ? Notification.permission : 'default'));
   const { muteAlarm, unmuteAlarm, isMuted, snoozeCountdown } = useAlarm();
-
-  // Apply theme khi settings thay đổi
-  useEffect(() => {
-    applyTheme(settings.theme);
-  }, [settings.theme]);
-
-  // Theo dõi theme auto theo system preference
-  useEffect(() => {
-    if (settings.theme !== 'auto') return;
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!mq) return;
-    const handler = () => applyTheme('auto');
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [settings.theme]);
+  const { theme, setTheme } = useTheme();
 
   const update = (key, value) => setSettings(prev => ({ ...prev, [key]: value }));
 
@@ -101,7 +80,7 @@ const SettingsPage = () => {
   const handleReset = () => {
     setSettings(defaultSettings);
     saveSettings(defaultSettings);
-    applyTheme(defaultSettings.theme);
+    setTheme(null);
   };
 
   const requestNotification = async () => {
@@ -164,27 +143,30 @@ const SettingsPage = () => {
               { value: 'auto', label: '🔄 Tự động (theo hệ thống)' },
               { value: 'light', label: '☀️ Sáng' },
               { value: 'dark', label: '🌙 Tối' },
-            ].map(opt => (
-              <label key={opt.value} style={{
-                display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-                padding: '8px 14px', borderRadius: '7px', fontSize: '13px',
-                border: `2px solid ${settings.theme === opt.value ? 'var(--primary)' : 'var(--border-color)'}`,
-                backgroundColor: settings.theme === opt.value ? 'var(--primary-bg)' : 'transparent',
-                color: settings.theme === opt.value ? 'var(--primary)' : 'var(--text-muted)',
-                fontWeight: settings.theme === opt.value ? '600' : '400',
-                transition: 'all 0.15s ease',
-              }}>
-                <input
-                  type="radio"
-                  name="theme"
-                  value={opt.value}
-                  checked={settings.theme === opt.value}
-                  onChange={() => update('theme', opt.value)}
-                  style={{ display: 'none' }}
-                />
-                {opt.label}
-              </label>
-            ))}
+            ].map(opt => {
+              const currentValue = theme || 'auto';
+              return (
+                <label key={opt.value} style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                  padding: '8px 14px', borderRadius: '7px', fontSize: '13px',
+                  border: `2px solid ${currentValue === opt.value ? 'var(--primary)' : 'var(--border-color)'}`,
+                  backgroundColor: currentValue === opt.value ? 'var(--primary-bg)' : 'transparent',
+                  color: currentValue === opt.value ? 'var(--primary)' : 'var(--text-muted)',
+                  fontWeight: currentValue === opt.value ? '600' : '400',
+                  transition: 'all 0.15s ease',
+                }}>
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={opt.value}
+                    checked={currentValue === opt.value}
+                    onChange={() => setTheme(opt.value === 'auto' ? null : opt.value)}
+                    style={{ display: 'none' }}
+                  />
+                  {opt.label}
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>

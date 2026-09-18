@@ -37,8 +37,16 @@ export const AnomalyProvider = ({ children }) => {
     });
   };
 
+  // CP5.4: dùng sau khi bác sĩ xác nhận/sửa nhãn AI (XAIPage) - cập nhật đồng thời cả item
+  // trong danh sách lịch sử VÀ bản đang xem chi tiết (2 object khác nhau sau addAnomaly, nếu
+  // chỉ sửa 1 bên sẽ lệch trạng thái giữa list và khung chi tiết).
+  const updateAnomaly = (id, patch) => {
+    setAnomalyHistory(prev => prev.map(item => (item.id === id ? { ...item, ...patch } : item)));
+    setSelectedAnomaly(prev => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+  };
+
   return (
-    <AnomalyContext.Provider value={{ anomalyHistory, selectedAnomaly, setSelectedAnomaly, addAnomaly }}>
+    <AnomalyContext.Provider value={{ anomalyHistory, selectedAnomaly, setSelectedAnomaly, addAnomaly, updateAnomaly }}>
       {children}
     </AnomalyContext.Provider>
   );

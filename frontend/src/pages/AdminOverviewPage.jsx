@@ -29,15 +29,23 @@ const StatCard = ({ label, value, unit, accent, note }) => (
 const AdminOverviewPage = () => {
   const { patients } = usePatient();
   const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedRole, setExpandedRole] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await api.get('/api/admin/stats');
-        if (!cancelled) setStats(res.data);
+        const [statsRes, usersRes] = await Promise.all([
+          api.get('/api/admin/stats'),
+          api.get('/api/admin/users')
+        ]);
+        if (!cancelled) {
+          setStats(statsRes.data);
+          setUsers(usersRes.data);
+        }
       } catch (err) {
         if (!cancelled) setError(err.response?.data?.detail || 'Không tải được số liệu thống kê.');
       } finally {
@@ -97,12 +105,45 @@ const AdminOverviewPage = () => {
               Phân bổ tài khoản theo vai trò
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {stats && Object.entries(stats.users_by_role).map(([role, count]) => (
-                <div key={role} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
-                  <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>{ROLE_LABEL[role] || role}</span>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary)' }}>{count}</span>
-                </div>
-              ))}
+              {stats && Object.entries(stats.users_by_role).map(([role, count]) => {
+                const roleUsers = users.filter(u => u.role === role);
+                const isExpanded = expandedRole === role;
+                return (
+                  <div key={role} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <div 
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', cursor: 'pointer' }}
+                      onClick={() => setExpandedRole(isExpanded ? null : role)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s',
+                          fontSize: '12px',
+                          color: 'var(--text-muted)'
+                        }}>▶</span>
+                        <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>{ROLE_LABEL[role] || role}</span>
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary)' }}>{count}</span>
+                    </div>
+                    {isExpanded && (
+                      <div style={{ padding: '0 0 12px 24px' }}>
+                        {roleUsers.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: '16px', color: 'var(--text-muted)', fontSize: '13.5px' }}>
+                            {roleUsers.map(u => (
+                              <li key={u.id} style={{ marginBottom: '4px' }}>
+                                {u.full_name ? `${u.full_name} (@${u.username})` : `@${u.username}`}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Chưa có tài khoản nào</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>

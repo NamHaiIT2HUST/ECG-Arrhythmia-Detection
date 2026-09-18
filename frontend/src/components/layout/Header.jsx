@@ -6,7 +6,7 @@ import { SunIcon, MoonIcon } from '../icons/ThemeIcons';
 
 const Header = () => {
   const { isDarkActive, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
 
@@ -40,7 +40,7 @@ const Header = () => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <AlarmStatus />
+        {!isAdmin && <AlarmStatus />}
         
         <button
           type="button"

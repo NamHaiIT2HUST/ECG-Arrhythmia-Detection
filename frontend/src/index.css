@@ -36,6 +36,26 @@
   --gradient-text: linear-gradient(100deg, var(--primary-strong), #7c3aed);
   --theme-toggle-bg: rgba(15, 23, 42, 0.06);
   --theme-toggle-icon: #1237c0;
+
+  /* Token cho khu vuc SAU dang nhap (Header/Sidebar/StatCards/EventLog/XAIPage) - truoc day
+     cac component nay dung var() chua bao gio duoc dinh nghia (--sidebar-bg, --text-sidebar,
+     --text-sidebar-active, --primary-bg, --success-bg, --danger-bg), khien gia tri bi coi la
+     invalid va CSS engine bo qua ca property do - day la nguyen nhan chu header/sidebar
+     "chim vao nen" (backgroundColor invalid -> trong suot) va cac the .card khong co
+     background/border/shadow that. Dinh nghia du 1 lan o day cho ca 2 theme. */
+  --sidebar-bg: #0b1f3f;
+  --text-sidebar: rgba(226, 232, 240, 0.72);
+  --text-sidebar-active: #ffffff;
+  --primary-bg: rgba(47, 109, 246, 0.1);
+  --success-bg: rgba(23, 178, 106, 0.1);
+  --danger-bg: rgba(239, 68, 68, 0.08);
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 :root[data-theme="dark"],
@@ -984,6 +1004,12 @@ button {
     --gradient-text: linear-gradient(100deg, #60a5fa, #c084fc);
     --theme-toggle-bg: rgba(148, 163, 184, 0.12);
     --theme-toggle-icon: #93c5fd;
+    --sidebar-bg: #060f24;
+    --text-sidebar: rgba(226, 232, 240, 0.72);
+    --text-sidebar-active: #ffffff;
+    --primary-bg: rgba(96, 165, 250, 0.16);
+    --success-bg: rgba(23, 178, 106, 0.16);
+    --danger-bg: rgba(239, 68, 68, 0.16);
   }
 }
 
@@ -1011,4 +1037,10 @@ button {
   --gradient-text: linear-gradient(100deg, #60a5fa, #c084fc);
   --theme-toggle-bg: rgba(148, 163, 184, 0.12);
   --theme-toggle-icon: #93c5fd;
+  --sidebar-bg: #060f24;
+  --text-sidebar: rgba(226, 232, 240, 0.72);
+  --text-sidebar-active: #ffffff;
+  --primary-bg: rgba(96, 165, 250, 0.16);
+  --success-bg: rgba(23, 178, 106, 0.16);
+  --danger-bg: rgba(239, 68, 68, 0.16);
 }

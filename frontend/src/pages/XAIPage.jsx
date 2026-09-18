@@ -1,9 +1,113 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAnomaly } from '../context/AnomalyContext';
+import { useAuth } from '../context/AuthContext';
+import { ALARM_LEVELS } from '../constants/alarmLevels';
+import api from '../api/axios';
 import Plot from 'react-plotly.js';
 
+const CORRECTABLE_LABELS = Object.keys(ALARM_LEVELS);
+
+const VerifyPanel = ({ anomaly, onVerified }) => {
+  const { isDoctor, isAdmin } = useAuth();
+  const [correctedLabel, setCorrectedLabel] = useState('');
+  const [showCorrectForm, setShowCorrectForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  if (!anomaly.anomalyId) {
+    // Phòng hờ dữ liệu cũ/lỗi không có id thật - không cho verify vào 1 sự kiện không xác định.
+    return null;
+  }
+
+  const canVerify = isDoctor || isAdmin;
+  const status = anomaly.reviewStatus || 'pending';
+
+  const submitVerify = async (payload) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api.post(`/api/anomalies/${anomaly.anomalyId}/verify`, payload);
+      onVerified({
+        reviewStatus: res.data.review_status,
+        correctedLabel: res.data.corrected_label,
+      });
+      setShowCorrectForm(false);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Xác nhận thất bại. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!canVerify) {
+    // Y tá: chỉ xem trạng thái, không có quyền quyết định lâm sàng cuối cùng trên chẩn đoán AI.
+    return (
+      <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '6px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', fontSize: '13px', color: 'var(--text-muted)' }}>
+        {status === 'approved' && '✅ Đã được bác sĩ xác nhận đúng.'}
+        {status === 'corrected' && `✏️ Bác sĩ đã sửa nhãn thành: ${anomaly.correctedLabel}`}
+        {status === 'pending' && '⏳ Chờ bác sĩ xác nhận.'}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: '12px', padding: '14px', borderRadius: '6px', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showCorrectForm ? '10px' : 0 }}>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          {status === 'approved' && '✅ Bạn đã xác nhận đúng.'}
+          {status === 'corrected' && `✏️ Bạn đã sửa nhãn thành: ${anomaly.correctedLabel}`}
+          {status === 'pending' && '⏳ Chưa xác nhận — quyết định cuối cùng thuộc về bác sĩ.'}
+        </span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => submitVerify({ status: 'approved' })}
+            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--success)', background: 'transparent', color: 'var(--success)', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}
+          >
+            Xác nhận đúng
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => setShowCorrectForm((v) => !v)}
+            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-main)', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}
+          >
+            Sửa nhãn
+          </button>
+        </div>
+      </div>
+
+      {showCorrectForm && (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select
+            value={correctedLabel}
+            onChange={(e) => setCorrectedLabel(e.target.value)}
+            style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '13px' }}
+          >
+            <option value="">Chọn nhãn đúng...</option>
+            {CORRECTABLE_LABELS.map((label) => (
+              <option key={label} value={label}>{label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={submitting || !correctedLabel}
+            onClick={() => submitVerify({ status: 'corrected', corrected_label: correctedLabel })}
+            style={{ padding: '7px 14px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}
+          >
+            Lưu
+          </button>
+        </div>
+      )}
+
+      {error && <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--danger)' }}>{error}</div>}
+    </div>
+  );
+};
+
 const XAIPage = () => {
-  const { anomalyHistory, selectedAnomaly, setSelectedAnomaly } = useAnomaly();
+  const { anomalyHistory, selectedAnomaly, setSelectedAnomaly, updateAnomaly } = useAnomaly();
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
@@ -113,12 +217,18 @@ const XAIPage = () => {
           </div>
           
           {selectedAnomaly && (
-            <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid #fecaca' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#991b1b', lineHeight: 1.5 }}>
-                <strong>Kết luận XAI:</strong> Mô hình ResNet1D đã tập trung sự chú ý cao nhất vào các vùng màu đỏ sậm (giá trị heatmap ≈ 1.0). 
-                Điều này khớp với đặc trưng lâm sàng của phức bộ QRS dị dạng dãn rộng trong nhịp <strong>{selectedAnomaly.prediction}</strong>.
-              </p>
-            </div>
+            <>
+              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid #fecaca' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#991b1b', lineHeight: 1.5 }}>
+                  <strong>Kết luận XAI:</strong> Mô hình ResNet1D đã tập trung sự chú ý cao nhất vào các vùng màu đỏ sậm (giá trị heatmap ≈ 1.0).
+                  Điều này khớp với đặc trưng lâm sàng của phức bộ QRS dị dạng dãn rộng trong nhịp <strong>{selectedAnomaly.prediction}</strong>.
+                </p>
+              </div>
+              <VerifyPanel
+                anomaly={selectedAnomaly}
+                onVerified={(patch) => updateAnomaly(selectedAnomaly.id, patch)}
+              />
+            </>
           )}
         </div>
 

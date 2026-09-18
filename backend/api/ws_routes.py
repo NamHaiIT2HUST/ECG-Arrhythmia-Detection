@@ -75,6 +75,7 @@ async def ecg_stream_endpoint(
 
         async for chunk_values, beat_info in ecg_stream:
             heatmap = None
+            anomaly_id = None
 
             if beat_info is not None:
                 # 1 nhịp tim mới vừa được cắt theo đỉnh R -> chạy AI đúng 1 lần cho nhịp này
@@ -95,7 +96,7 @@ async def ecg_stream_endpoint(
                 # CP5.3: chỉ ghi vào DB đúng lúc phát hiện bất thường (heatmap khác None),
                 # giữ đúng ngữ nghĩa cũ "heatmap khác null = có sự kiện mới cần log"
                 if heatmap is not None:
-                    log_anomaly(
+                    event = log_anomaly(
                         db,
                         patient_id=patient.id,
                         record_id=ecg_record.id,
@@ -105,12 +106,17 @@ async def ecg_stream_endpoint(
                         r_peak_sample=beat_info.get("r_peak_sample"),
                         timestamp_ms=int(time.time() * 1000),
                     )
+                    # CP5.4: gửi kèm id thật của AnomalyEvent vừa ghi - frontend cần id này để
+                    # gọi POST /api/anomalies/{id}/verify (trước đây payload không mang id nên
+                    # nút "bác sĩ xác nhận" chưa thể nào gọi đúng được sự kiện tương ứng).
+                    anomaly_id = event.id
 
             # 2. Đóng gói dữ liệu gửi về Frontend
             payload = {
                 "chunk": chunk_values,         # Mảng 10 điểm (đã lọc nhiễu) để vẽ biểu đồ line liên tục
                 "prediction": last_prediction, # Nhãn kết quả nhịp gần nhất (giữ nguyên tới khi có nhịp mới)
                 "heatmap": heatmap,            # Mảng 187 màu CHỈ có ở đúng gói tin phát hiện nhịp mới, còn lại None
+                "anomaly_id": anomaly_id,       # id AnomalyEvent thật trong DB (CHỈ có khi heatmap khác None), dùng để verify
                 "latency_ms": last_latency_ms, # Độ trễ AI của lần chẩn đoán gần nhất
                 "confidence": last_confidence, # Xác suất softmax của nhãn dự đoán gần nhất (0-1)
                 "bpm": last_bpm,                # Nhịp tim tức thời (BPM) theo khoảng RR thực tế
