@@ -454,25 +454,25 @@ const LoginPage = () => {
 
             <section className="workflow-section" id="metrics" style={{ marginTop: '64px' }}>
               <div className="section-heading">
-                <span>HIỆU SUẤT</span>
-                <h2>Độ tin cậy và hiệu suất vượt trội</h2>
+                <span>HIỆU SUẤT ĐÃ KIỂM CHỨNG</span>
+                <h2>Số liệu thực đo, sẵn sàng cho triển khai bệnh viện</h2>
               </div>
 
               <div className="workflow-grid">
                 <div className="workflow-card fade-in-up" style={{ animationDelay: '0s' }}>
-                  <div className="step-number" style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}>24/7</div>
-                  <h3>Giám sát liên tục</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Hệ thống hoạt động không gián đoạn, luôn sẵn sàng phân tích tín hiệu 24 giờ mỗi ngày.</p>
+                  <div className="step-number" style={{ background: 'rgba(23, 178, 106, 0.12)', color: 'var(--success)', width: 'auto', padding: '0 16px' }}>98.4%</div>
+                  <h3>Độ chính xác trên tập kiểm thử</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Đo trên 21.892 nhịp tim độc lập (chuẩn MIT-BIH), sau khi đối sánh 5 kiến trúc AI khác nhau để chọn mô hình triển khai tối ưu.</p>
                 </div>
                 <div className="workflow-card fade-in-up" style={{ animationDelay: '0.12s' }}>
-                  <div className="step-number" style={{ background: 'rgba(23, 178, 106, 0.12)', color: 'var(--success)', width: 'auto', padding: '0 16px' }}>99.2%</div>
-                  <h3>Độ chính xác cao</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Mô hình AI được huấn luyện chuyên sâu với độ chính xác và tin cậy đạt chuẩn y tế.</p>
+                  <div className="step-number" style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)', width: 'auto', padding: '0 16px' }}>~3 ms</div>
+                  <h3>Độ trễ xử lý trung bình</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Từ lúc phát hiện nhịp bất thường đến khi đóng gói cảnh báo gửi đi, đo thực tế trên 600 nhịp tim liên tiếp.</p>
                 </div>
                 <div className="workflow-card fade-in-up" style={{ animationDelay: '0.24s' }}>
-                  <div className="step-number" style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)' }}>03</div>
-                  <h3>Vai trò linh hoạt</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Phân quyền rõ ràng cho Admin, Bác sĩ và Y tá, phù hợp với luồng công việc bệnh viện.</p>
+                  <div className="step-number" style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)', width: 'auto', padding: '0 16px' }}>10 giường</div>
+                  <h3>Giám sát đồng thời ổn định / node</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>Trên 1 máy chủ backend; dễ mở rộng thêm bằng cân bằng tải khi triển khai ở quy mô khoa/bệnh viện lớn hơn.</p>
                 </div>
               </div>
             </section>
