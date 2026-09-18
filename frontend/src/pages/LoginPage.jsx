@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const THEME_KEY = 'ecg_theme';
@@ -43,6 +43,115 @@ const MoonIcon = () => (
     <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
   </svg>
 );
+
+// Nen "constellation" dong sau toan bo landing page: cac hat troi tu do va tu ket noi bang duong
+// ke khi den gan nhau (ve bang canvas moi frame), lay cam hung tu nen dang o
+// https://www.c3-app-165.io.vn/. Dung canvas (khong phai DOM node) vi so luong hat + duong noi
+// thay doi lien tuc moi frame, dung DOM se rat nang. position:fixed nen luon phu kin man hinh
+// va dung nguyen khi cuon trang (khong can ve lai theo chieu cao toan trang).
+const NetworkBackground = ({ dark }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d');
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const NODE_COUNT = 52;
+    const LINK_DIST = 140;
+    const dotColor = dark ? 'rgba(147, 197, 253, 0.8)' : 'rgba(47, 109, 246, 0.55)';
+    const lineColorBase = dark ? '150, 197, 253' : '47, 109, 246';
+
+    let width = 0;
+    let height = 0;
+    let nodes = [];
+    let rafId = null;
+
+    const resize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const initNodes = () => {
+      nodes = Array.from({ length: NODE_COUNT }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 1.4 + 1.1,
+      }));
+    };
+
+    const drawFrame = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < nodes.length; i += 1) {
+        for (let j = i + 1; j < nodes.length; j += 1) {
+          const a = nodes[i];
+          const b = nodes[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < LINK_DIST) {
+            ctx.strokeStyle = `rgba(${lineColorBase}, ${(1 - dist / LINK_DIST) * 0.32})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.fillStyle = dotColor;
+      for (const n of nodes) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    const step = () => {
+      for (const n of nodes) {
+        n.x += n.vx;
+        n.y += n.vy;
+        if (n.x <= 0 || n.x >= width) n.vx *= -1;
+        if (n.y <= 0 || n.y >= height) n.vy *= -1;
+      }
+      drawFrame();
+      rafId = requestAnimationFrame(step);
+    };
+
+    resize();
+    initNodes();
+
+    if (reduceMotion) {
+      drawFrame();
+    } else {
+      step();
+    }
+
+    const handleResize = () => {
+      resize();
+      initNodes();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [dark]);
+
+  return <canvas ref={canvasRef} className="network-canvas" aria-hidden="true" />;
+};
 
 const features = [
   { title: 'AI cảnh báo sớm', text: 'Phân tích nhịp tim theo thời gian thực và phát hiện bất thường sớm.' },
@@ -198,6 +307,7 @@ const LoginPage = () => {
 
   return (
     <div className="landing-shell">
+      <NetworkBackground dark={isDarkActive} />
       <div className="landing-glow glow-one" />
       <div className="landing-glow glow-two" />
 

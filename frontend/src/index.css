@@ -60,7 +60,7 @@ html,
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: linear-gradient(180deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 50%, var(--bg-grad-3) 100%);
   color: var(--text-main);
-  overflow-x: hidden;
+  overflow-x: clip;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
@@ -110,8 +110,16 @@ button {
 .landing-shell {
   position: relative;
   min-height: 100vh;
-  overflow-x: hidden;
   padding: 28px clamp(20px, 4vw, 60px) 48px;
+}
+
+.network-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .landing-glow {
@@ -162,8 +170,9 @@ button {
 }
 
 .landing-header {
-  position: relative;
-  z-index: 1;
+  position: sticky;
+  top: 16px;
+  z-index: 10;
   max-width: 1240px;
   margin: 0 auto 42px;
   display: flex;
@@ -317,7 +326,14 @@ button {
   padding: 32px 8px 12px;
 }
 
-.hero-section > * {
+/* CHU Y: khong dung ">*" o day - no khop luon ca .particle-field (cung la con truc tiep cua
+   .hero-section), va vi cung specificity (1 class) nhung dung SAU rule ".particle-field" trong
+   file nay nen se THANG, ghi de mat position:absolute cua particle-field -> no bien thanh 1
+   grid item that (thay vi bi loai khoi grid flow nhu absolute), day .hero-copy sang cot 2 va
+   .hero-visual xuong hang duoi. Day chinh la nguyen nhan bug "chu chay sang phai, anh troi
+   xuong duoi" - chi liet ke dung 2 phan tu noi dung that. */
+.hero-section > .hero-copy,
+.hero-section > .hero-visual {
   position: relative;
   z-index: 1;
 }
@@ -649,18 +665,40 @@ button {
 }
 
 .feature-card {
+  position: relative;
+  overflow: hidden;
   background: var(--feature-card-bg);
   border: 1px solid var(--border-color);
   border-radius: 24px;
   padding: 24px 22px;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.03);
-  transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.feature-card::before,
+.workflow-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #7c3aed);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.feature-card:hover::before,
+.workflow-card:hover::before {
+  transform: scaleX(1);
 }
 
 .feature-card:hover,
 .workflow-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 38px rgba(15, 23, 42, 0.12);
+  border-color: rgba(47, 109, 246, 0.35);
 }
 
 .feature-icon {
@@ -674,6 +712,13 @@ button {
   color: var(--primary-strong);
   font-size: 1.3rem;
   margin-bottom: 16px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, color 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.12) rotate(-6deg);
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: white;
 }
 
 .feature-card h3 {
@@ -720,12 +765,14 @@ button {
 }
 
 .workflow-card {
+  position: relative;
+  overflow: hidden;
   padding: 26px 22px;
   border-radius: 22px;
   background: var(--workflow-card-bg);
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.03);
-  transition: background 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .step-number {
@@ -739,6 +786,11 @@ button {
   color: var(--primary-strong);
   font-weight: 800;
   margin-bottom: 18px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.workflow-card:hover .step-number {
+  transform: scale(1.08) rotate(-4deg);
 }
 
 .workflow-card h3 {
@@ -771,6 +823,23 @@ button {
 
   .hero-copy {
     max-width: none;
+  }
+
+  /* Duoi 980px, hero-section xep 1 cot (hero-copy tren, hero-visual duoi). hero-visual truoc
+     day giu nguyen min-height:420px + can giua danh cho layout 2 cot ngang hang - khi xep
+     doc, no de lai 1 khoang trong xau xi phia tren card, va mini-stat (position:absolute,
+     right:20px) tinh theo chieu rong CA HERO-VISUAL (rong het container) trong khi the
+     pulse-panel chi rong toi da 470px va duoc can giua rieng - 2 thu lech nhau, badge troi
+     lo lung canh phai thay vi nam sat card. Chuyen badge ve static (nam ngay duoi card, dung
+     flow binh thuong) va bo min-height ep buoc. */
+  .hero-visual {
+    min-height: auto;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .mini-stat {
+    position: static;
   }
 }
 
