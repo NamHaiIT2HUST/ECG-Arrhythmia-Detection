@@ -377,8 +377,8 @@ button {
 }
 
 .stat-two {
-  right: 20px;
-  top: 60px;
+  right: 24px;
+  top: -22px;
 }
 
 .hero-copy {
@@ -528,6 +528,77 @@ button {
   padding: 14px 16px 16px;
 }
 
+.pulse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pulse-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.pulse-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.pulse-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulse-stat-end {
+  align-items: flex-end;
+}
+
+.pulse-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.pulse-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.pulse-stat-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .large-pulse {
   width: min(100%, 470px);
   padding: 20px 18px 18px;
@@ -546,14 +617,6 @@ button {
 /* Truoc day co 1 lop ::before phu tinh (zigzag gia lap song ECG) o day vi polyline goc dung
    yen - gio polyline that da duoc animate (ecg-scroll) nen bo lop gia nay di, tranh chong
    hinh roi mat voi duong song dang chay that. */
-
-.pulse-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  color: rgba(226, 232, 240, 0.8);
-  font-size: 0.78rem;
-}
 
 .auth-form,
 .login-form {

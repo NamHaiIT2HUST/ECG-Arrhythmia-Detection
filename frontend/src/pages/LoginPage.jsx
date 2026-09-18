@@ -371,25 +371,26 @@ const LoginPage = () => {
 
             <div className="hero-visual fade-in-up" style={{ animationDelay: '0.2s' }}>
               <div className="pulse-panel large-pulse">
-                <div className="pulse-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)' }}>Real-time ECG Stream</span>
+                <div className="pulse-header">
+                  <span className="pulse-title">Tín hiệu ECG trực tiếp</span>
+                  <span className="live-badge">
+                    <span className="live-dot" />
+                    TRỰC TIẾP
+                  </span>
                 </div>
                 <div className="pulse-line" style={{ background: 'transparent', boxShadow: 'none', height: '80px', overflow: 'hidden' }}>
                   <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="ecg-line-svg" style={{ width: '200%', height: '100%', stroke: 'var(--primary)', filter: 'drop-shadow(0 2px 4px rgba(47,109,246,0.3))', animation: 'ecg-scroll 4s linear infinite' }}>
                     <polyline points="0,50 50,50 60,40 70,50 90,50 100,20 110,90 120,50 150,50 160,45 170,50 220,50 230,40 240,50 260,50 270,20 280,90 290,50 320,50 330,45 340,50 390,50 400,40 410,50 430,50 440,20 450,90 460,50 500,50 550,50 560,40 570,50 590,50 600,20 610,90 620,50 650,50 660,45 670,50 720,50 730,40 740,50 760,50 770,20 780,90 790,50 820,50 830,45 840,50 890,50 900,40 910,50 930,50 940,20 950,90 960,50 1000,50" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <div className="pulse-stats" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Heart Rate</span>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>72 <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>bpm</span></span>
+                <div className="pulse-stats">
+                  <div className="pulse-stat">
+                    <span className="pulse-stat-label">Nhịp tim</span>
+                    <span className="pulse-stat-value">72 <span className="pulse-stat-unit">bpm</span></span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rhythm Status</span>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--success)' }}>Normal Sinus</span>
-                    <span className="live-badge" style={{ fontSize: '0.65rem', padding: '2px 8px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold', marginTop: '6px' }}>
-                      <span style={{ width: '6px', height: '6px', background: 'var(--danger)', borderRadius: '50%', display: 'inline-block', animation: 'pulse-dot 1.5s ease-in-out infinite' }}></span> LIVE
-                    </span>
+                  <div className="pulse-stat pulse-stat-end">
+                    <span className="pulse-stat-label">Nhịp điệu</span>
+                    <span className="pulse-stat-value" style={{ color: 'var(--success)' }}>Bình thường</span>
                   </div>
                 </div>
               </div>
