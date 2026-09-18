@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAlarm } from '../../context/AlarmContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SunIcon, MoonIcon } from '../icons/ThemeIcons';
 
 const Header = () => {
   const { isDarkActive, toggleTheme } = useTheme();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
 
@@ -40,8 +39,6 @@ const Header = () => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {!isAdmin && <AlarmStatus />}
-        
         <button
           type="button"
           onClick={toggleTheme}
@@ -118,20 +115,6 @@ const Header = () => {
         </div>
       </div>
     </header>
-  );
-};
-
-const AlarmStatus = () => {
-  const { currentAlarmLevel } = useAlarm();
-
-  const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
-  const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-      <div style={{ fontSize: 16 }}>{levelIcon}</div>
-      <div style={{ fontSize: 13, color: currentAlarmLevel >=3 ? '#ef4444' : (currentAlarmLevel===2 ? '#f59e0b' : '#10b981'), fontWeight: 600 }}>{levelText}</div>
-    </div>
   );
 };
 

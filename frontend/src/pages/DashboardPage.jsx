@@ -38,7 +38,7 @@ const DashboardPage = () => {
 
     const { addAnomaly } = useAnomaly();
   const { patients, selectedPatient, setSelectedPatient, seedDemoPatients } = usePatient();
-  const { triggerAlarm } = useAlarm();
+  const { triggerAlarm, currentAlarmLevel } = useAlarm();
   const { getWsTicket } = useAuth(); // Import getWsTicket
 
   // handleNewData sống bên trong 1 useEffect hiếm khi chạy lại (chỉ khi đổi record/bệnh
@@ -279,6 +279,7 @@ const DashboardPage = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {selectedPatient && <AlarmStatus currentAlarmLevel={currentAlarmLevel} />}
           {selectedPatient && (
             <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
               ● {connectionStatus}
@@ -372,6 +373,20 @@ const DashboardPage = () => {
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+// Badge cấp cảnh báo hiện tại - chỉ hiện trong lúc theo dõi 1 bệnh nhân (không đặt ở Header
+// nữa vì ngoài lúc theo dõi nhịp tim, mức cảnh báo chưa có ý nghĩa gì để hiện mọi lúc).
+const AlarmStatus = ({ currentAlarmLevel }) => {
+  const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
+  const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+      <div style={{ fontSize: 16 }}>{levelIcon}</div>
+      <div style={{ fontSize: 13, color: currentAlarmLevel >= 3 ? '#ef4444' : (currentAlarmLevel === 2 ? '#f59e0b' : '#10b981'), fontWeight: 600 }}>{levelText}</div>
     </div>
   );
 };

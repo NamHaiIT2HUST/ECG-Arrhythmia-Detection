@@ -63,7 +63,7 @@ const InnerApp = ({ activeTab, setActiveTab }) => {
           {activeTab === 'patient' && <PatientPage />}
           {activeTab === 'xai' && <XAIPage />}
           {activeTab === 'reports' && <ReportExporter />}
-          {activeTab === 'settings' && <SettingsPage />}
+          {activeTab === 'settings' && isAdmin && <SettingsPage />}
           {activeTab === 'admin-overview' && isAdmin && <AdminOverviewPage />}
           {activeTab === 'admin-users' && isAdmin && <AdminUsersPage />}
         </main>

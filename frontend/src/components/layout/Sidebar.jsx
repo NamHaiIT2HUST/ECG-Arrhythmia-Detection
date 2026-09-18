@@ -47,6 +47,7 @@ const ADMIN_MENU_ITEMS = [
   { id: 'admin-overview', Icon: IconChart, label: 'Tổng Quan Hệ Thống' },
   { id: 'admin-users', Icon: IconUsers, label: 'Quản Lý Tài Khoản' },
   { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
+  { id: 'settings', Icon: IconGear, label: 'Cài Đặt Hệ Thống' },
 ];
 
 const CLINICAL_MENU_ITEMS = [
@@ -54,14 +55,12 @@ const CLINICAL_MENU_ITEMS = [
   { id: 'patient', Icon: IconFolder, label: 'Hồ Sơ Bệnh Nhân' },
   { id: 'xai', Icon: IconBrain, label: 'Phân Tích XAI Chuyên Sâu' },
   { id: 'reports', Icon: IconDocument, label: 'Xuất Báo Cáo (PDF/CSV)' },
-  { id: 'settings', Icon: IconGear, label: 'Cài Đặt Hệ Thống' },
 ];
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { isAdmin } = useAuth();
-  // Admin quản trị hệ thống (tài khoản/bệnh nhân) - không xem cùng màn hình theo dõi real-time
-  // với bác sĩ/y tá. "Cài Đặt Hệ Thống" (WS URL/ngưỡng cảnh báo) là tuỳ chọn của người trực
-  // tiếp theo dõi màn hình, nên chuyển sang menu bác sĩ/y tá thay vì admin-only như trước.
+  // "Cài Đặt Hệ Thống" (WS URL/ngưỡng cảnh báo) chỉ dành cho admin cấu hình - bác sĩ/y tá
+  // không cần vào đây trong lúc trực, tránh vô tình đổi cấu hình đang ảnh hưởng tới màn theo dõi.
   const menuItems = isAdmin ? ADMIN_MENU_ITEMS : CLINICAL_MENU_ITEMS;
 
   return (
