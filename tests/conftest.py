@@ -100,5 +100,6 @@ def auth_headers(client, seeded_users):
     for role_name, (username, password, _role) in seeded_users.items():
         res = client.post("/api/auth/login", json={"username": username, "password": password})
         assert res.status_code == 200, f"Seed login thất bại cho {username}: {res.text}"
-        headers[role_name] = {"Authorization": f"Bearer {res.json()['access_token']}"}
+        access_token = res.cookies.get("access_token")
+        headers[role_name] = {"Authorization": f"Bearer {access_token}"}
     return headers

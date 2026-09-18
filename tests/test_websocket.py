@@ -10,14 +10,16 @@ EXPECTED_PAYLOAD_KEYS = {
 }
 
 
-def _token(auth_headers, role="nurse"):
-    return auth_headers[role]["Authorization"].removeprefix("Bearer ")
+def _ticket(client, auth_headers, role="nurse"):
+    res = client.post("/api/auth/ws-ticket", headers=auth_headers[role])
+    return res.json()["ticket"]
 
 
 @requires_physionet_data
 @requires_saved_model
 def test_ws_ecg_payload_schema(client, auth_headers):
-    with client.websocket_connect(f"/ws/ecg?record=100&token={_token(auth_headers)}") as ws:
+    ticket = _ticket(client, auth_headers)
+    with client.websocket_connect(f"/ws/ecg?record=100&ticket={ticket}") as ws:
         data = ws.receive_json()
 
     assert EXPECTED_PAYLOAD_KEYS.issubset(data.keys()), f"Thiếu field trong payload: {EXPECTED_PAYLOAD_KEYS - data.keys()}"
@@ -31,7 +33,8 @@ def test_ws_ecg_payload_schema(client, auth_headers):
 def test_ws_ecg_invalid_record_falls_back_to_default(client, auth_headers):
     """record_exists() phải chặn record không tồn tại và tự dùng bản ghi mặc định
     (xem backend/api/records_routes.py) thay vì làm sập kết nối."""
-    with client.websocket_connect(f"/ws/ecg?record=khong_ton_tai_999&token={_token(auth_headers)}") as ws:
+    ticket = _ticket(client, auth_headers)
+    with client.websocket_connect(f"/ws/ecg?record=khong_ton_tai_999&ticket={ticket}") as ws:
         data = ws.receive_json()
     assert "chunk" in data
 
@@ -45,6 +48,6 @@ def test_ws_ecg_requires_login(client):
     assert exc_info.value.code == 4401
 
     with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect("/ws/ecg?record=100&token=token-gia-mao"):
+        with client.websocket_connect("/ws/ecg?record=100&ticket=token-gia-mao"):
             pass
     assert exc_info.value.code == 4401

@@ -112,9 +112,7 @@ def require_role(*roles: str):
         if current_user.role.value not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Yêu cầu vai trò: {
-.join(roles)}",
+                detail=f"Yêu cầu vai trò: {', '.join(roles)}",
             )
         return current_user
     return checker
-

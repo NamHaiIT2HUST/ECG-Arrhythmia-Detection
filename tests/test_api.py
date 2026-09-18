@@ -90,8 +90,8 @@ def test_me_returns_correct_user(client, auth_headers, seeded_users):
 
 def test_refresh_rejects_access_token_used_as_refresh_token(client, auth_headers):
     login = client.post("/api/auth/login", json={"username": "doctor_test", "password": "Doctor@123"})
-    access_token = login.json()["access_token"]
-    res = client.post("/api/auth/refresh", json={"refresh_token": access_token})
+    access_token = login.cookies.get("access_token")
+    res = client.post("/api/auth/refresh", cookies={"refresh_token": access_token})
     assert res.status_code == 401
 
 
@@ -103,6 +103,8 @@ def test_public_register_endpoint_removed(client):
 
 
 def test_admin_can_create_user_with_chosen_role(client, auth_headers):
+    from backend.api.auth import login_attempts
+    login_attempts.clear()
     res = client.post(
         "/api/admin/users",
         json={"username": "new_doctor_001", "password": "Doctor@456", "role": "doctor"},
@@ -248,3 +250,4 @@ def test_afib_screening_requires_login(client):
         files={"file": ("tiny.csv", csv_bytes, "text/csv")},
     )
     assert res.status_code == 401
+
