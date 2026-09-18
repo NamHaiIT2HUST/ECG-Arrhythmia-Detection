@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ReportExporter from '../pages/ReportExporter';
 import { PatientProvider } from '../context/PatientContext';
+import { AnomalyProvider } from '../context/AnomalyContext';
 
 // vi.mock được hoist lên đầu file bởi Vitest - phải đặt ở top-level (không phải trong
 // beforeEach) để có tác dụng TRƯỚC khi PatientContext import '../api/axios' phía trên.
@@ -14,8 +15,9 @@ describe('ReportExporter', () => {
     window.localStorage.setItem('ecg_patients', JSON.stringify([
       { id: 1, name: 'Nguyen Van A', bedNumber: 'B12', activeRecordId: '208' }
     ]));
-    // Mock URL.createObjectURL
+    // Mock URL.createObjectURL/revokeObjectURL - jsdom không có sẵn, generateCSV gọi cả 2
     global.URL.createObjectURL = vi.fn(() => 'blob:fake');
+    global.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
@@ -23,15 +25,23 @@ describe('ReportExporter', () => {
     vi.resetAllMocks();
   });
 
-  it('renders buttons and triggers CSV creation', async () => {
+  it('renders buttons and triggers CSV creation after choosing a patient', async () => {
     render(
       <PatientProvider>
-        <ReportExporter />
+        <AnomalyProvider>
+          <ReportExporter />
+        </AnomalyProvider>
       </PatientProvider>
     );
 
+    // Trang mới bắt buộc chọn 1 bệnh nhân trước khi bật nút xuất - chưa chọn ai thì
+    // "Xuất CSV" ở trạng thái disabled (xem ReportExporter.jsx).
+    const select = await screen.findByRole('combobox');
+    fireEvent.change(select, { target: { value: '1' } });
+
     const csvBtn = await screen.findByRole('button', { name: /Xuất CSV/i });
     expect(csvBtn).toBeInTheDocument();
+    expect(csvBtn).not.toBeDisabled();
 
     fireEvent.click(csvBtn);
     expect(global.URL.createObjectURL).toHaveBeenCalled();
