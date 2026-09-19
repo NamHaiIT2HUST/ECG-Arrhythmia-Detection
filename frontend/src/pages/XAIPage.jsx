@@ -222,8 +222,15 @@ const XAIPage = () => {
           </div>
         </div>
 
-        {/* Khung phân tích chi tiết */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
+        {/* Khung phân tích chi tiết.
+            minHeight:0 + overflowY:auto: TRƯỚC ĐÂY card này không có 2 thuộc tính này, nên khi
+            nội dung bên dưới (kết luận XAI + panel xác nhận) đủ dài, ô biểu đồ Grad-CAM (flex:1,
+            position:relative) bị flexbox ép co xuống gần 0px, còn Plotly (chỉ tự vẽ lại theo
+            window resize, không theo container resize) vẫn giữ nguyên kích thước cũ nó đo lúc
+            mount -> chart nhìn như "đè" lên chữ bên dưới thay vì nằm gọn trong khung của nó.
+            Giờ card tự cuộn dọc khi không đủ chỗ, và khung chart có minHeight cố định nên luôn
+            có không gian thật để Plotly vẽ đúng, không bao giờ co về gần 0 nữa. */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px', minHeight: 0, overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)' }}>
               Vùng Tín Hiệu AI Tập Trung <span style={{ fontWeight: '400', fontSize: '12px', color: 'var(--text-muted)' }}>(Grad-CAM / "Weights Anatomy")</span>
@@ -246,7 +253,7 @@ const XAIPage = () => {
             để đưa ra chẩn đoán bên dưới.
           </p>
 
-          <div style={{ flex: 1, border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
+          <div style={{ flex: '1 1 320px', minHeight: '320px', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
             {!selectedAnomaly || !selectedAnomaly.signal ? (
               <p style={{ color: 'var(--text-muted)' }}>Vui lòng chọn một nhịp tim lỗi ở danh sách bên trái.</p>
             ) : (
@@ -298,23 +305,25 @@ const XAIPage = () => {
           
           {selectedAnomaly && (
             <>
-              <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid var(--danger)' }}>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', lineHeight: 1.5 }}>
-                  <strong>Chẩn đoán AI:</strong> {selectedAnomaly.prediction}
-                  {selectedAnomaly.confidence != null && ` (độ tin cậy ${(selectedAnomaly.confidence * 100).toFixed(1)}%)`}.
-                  {insight && (
-                    <>
-                      {' '}Mô hình tập trung <strong>{insight.highAttentionPct}%</strong> cửa sổ tín hiệu vào vùng chú ý
-                      cao (heatmap ≥ {HIGH_ATTENTION_THRESHOLD}), đỉnh chú ý mạnh nhất tại mẫu <strong>#{insight.peakIdx}</strong> (giá
-                      trị {insight.peakValue.toFixed(2)}) —
-                      {insight.isNearRPeak
-                        ? ' nằm quanh vị trí đỉnh R ở giữa cửa sổ, khớp với vị trí phức bộ QRS.'
-                        : ' lệch khỏi vị trí đỉnh R ở giữa cửa sổ, có thể mô hình đang xét vùng sóng P/T lân cận thay vì chính QRS — nên bác sĩ đối chiếu kỹ hơn.'}
-                    </>
-                  )}
+              <div style={{ marginTop: '15px', padding: '12px 15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid var(--danger)' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', fontWeight: '600' }}>
+                  Chẩn đoán AI: {selectedAnomaly.prediction}
+                  {selectedAnomaly.confidence != null && ` · ${(selectedAnomaly.confidence * 100).toFixed(1)}%`}
                 </p>
+                {/* Chip số liệu ngắn thay cho 1 đoạn văn dài - đọc lướt nhanh hơn, chỉ thêm 1 câu
+                    cảnh báo ngắn đúng lúc cần (đỉnh chú ý lệch khỏi QRS), không luôn giải thích dài dòng. */}
+                {insight && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                    <InsightChip label={`Vùng chú ý cao: ${insight.highAttentionPct}%`} />
+                    <InsightChip label={`Đỉnh chú ý: mẫu #${insight.peakIdx}`} />
+                    <InsightChip
+                      label={insight.isNearRPeak ? '✅ Khớp vùng QRS trung tâm' : '⚠️ Lệch khỏi QRS trung tâm'}
+                      warn={!insight.isNearRPeak}
+                    />
+                  </div>
+                )}
               </div>
-              <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                 Bước 3: xác nhận kết luận trên đúng hay chưa — quyết định cuối cùng luôn thuộc về bác sĩ.
               </p>
               <VerifyPanel
@@ -342,6 +351,17 @@ const StepBadge = ({ number, text }) => (
     </span>
     <span style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{text}</span>
   </div>
+);
+
+const InsightChip = ({ label, warn = false }) => (
+  <span style={{
+    fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '999px',
+    color: warn ? 'var(--danger)' : 'var(--text-main)',
+    backgroundColor: warn ? 'var(--danger-bg)' : 'var(--card-bg)',
+    border: `1px solid ${warn ? 'var(--danger)' : 'var(--border-color)'}`,
+  }}>
+    {label}
+  </span>
 );
 
 const StepArrow = () => (
