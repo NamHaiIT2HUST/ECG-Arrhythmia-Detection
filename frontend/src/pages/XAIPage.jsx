@@ -144,34 +144,21 @@ const XAIPage = () => {
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
 
-      <div className="card" style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Gộp tiêu đề + hướng dẫn luồng 3 bước vào 1 card duy nhất (trước đây 2 card riêng, đoạn
+          mô tả cũng dài dòng hơn mức cần) - bác sĩ chỉ cần biết NGAY: chọn 1 nhịp lỗi → xem AI
+          tập trung đâu → xác nhận, không cần đọc hết 1 đoạn văn giới thiệu tính năng. */}
+      <div className="card" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h2 style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '20px' }}>🧠 Trạm Phân Tích XAI (Explainable AI)</h2>
-          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '14px' }}>
-            Xem AI đang "nhìn" vào đâu trên sóng ECG để đưa ra chẩn đoán, và xác nhận/sửa lại
-            nếu chưa đúng — dữ liệu này giúp cải thiện mô hình trong tương lai.
+          <h2 style={{ margin: '0 0 4px 0', color: 'var(--text-main)', fontSize: '18px' }}>🧠 Trạm Phân Tích XAI</h2>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '12.5px' }}>
+            Chọn 1 nhịp lỗi → xem AI tập trung vùng nào trên sóng ECG → xác nhận hoặc sửa nhãn.
+            {selectedPatient && <> · <strong style={{ color: 'var(--primary)' }}>{selectedPatient.name} (Giường {selectedPatient.bedNumber})</strong></>}
           </p>
-          {/* Luôn hiện rõ đang xem cảnh báo của bệnh nhân nào - an toàn lâm sàng, tránh nhầm
-              lẫn dữ liệu giữa các bệnh nhân khi bác sĩ theo dõi nhiều ca trong ca trực. */}
-          {selectedPatient && (
-            <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: 'var(--primary)', fontWeight: '600' }}>
-              🧑‍⚕️ {selectedPatient.name} · Giường {selectedPatient.bedNumber}
-            </p>
-          )}
         </div>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tổng số nhịp lỗi đã lưu:</span>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--danger)' }}>{anomalyHistory.length}</div>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Nhịp lỗi đã lưu:</span>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--danger)' }}>{anomalyHistory.length}</div>
         </div>
-      </div>
-
-      {/* Giải thích luồng 3 bước - trả lời thẳng câu hỏi "trang này giúp ích gì cho bác sĩ" */}
-      <div className="card" style={{ padding: '14px 20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <StepBadge number="1" text="Chọn 1 nhịp lỗi ở danh sách bên trái" />
-        <StepArrow />
-        <StepBadge number="2" text='Xem AI đang "tập trung" vào vùng nào trên sóng ECG' />
-        <StepArrow />
-        <StepBadge number="3" text="Xác nhận đúng hoặc sửa lại nhãn cho AI" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '20px', flex: 1, minHeight: 0 }}>
@@ -233,7 +220,7 @@ const XAIPage = () => {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px', minHeight: 0, overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)' }}>
-              Vùng Tín Hiệu AI Tập Trung <span style={{ fontWeight: '400', fontSize: '12px', color: 'var(--text-muted)' }}>(Grad-CAM / "Weights Anatomy")</span>
+              Vùng Tín Hiệu AI Tập Trung <span style={{ fontWeight: '400', fontSize: '12px', color: 'var(--text-muted)' }}>(Grad-CAM)</span>
             </h3>
             {selectedAnomaly?.heatmap && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
@@ -249,8 +236,7 @@ const XAIPage = () => {
             )}
           </div>
           <p style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Bước 2: vùng tô đỏ càng đậm là vùng sóng ECG mà mô hình ResNet1D dựa vào nhiều nhất
-            để đưa ra chẩn đoán bên dưới.
+            Vùng đỏ đậm = AI dựa vào nhiều nhất để chẩn đoán. Kéo để chọn vùng phóng to, cuộn chuột để zoom.
           </p>
 
           <div style={{ flex: '1 1 320px', minHeight: '320px', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
@@ -297,7 +283,15 @@ const XAIPage = () => {
                   }}
                   useResizeHandler={true}
                   style={{ width: '100%', height: '100%' }}
-                  config={{ displayModeBar: false, responsive: true }}
+                  config={{
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    scrollZoom: true,
+                    // Chỉ giữ đúng bộ nút phóng to/thu nhỏ/khôi phục - bỏ các nút Plotly mặc định
+                    // không cần cho bác sĩ (chọn vùng lasso, box select, xuất ảnh...).
+                    modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d', 'toImage'],
+                  }}
                 />
               </div>
             )}
@@ -323,8 +317,8 @@ const XAIPage = () => {
                   </div>
                 )}
               </div>
-              <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                Bước 3: xác nhận kết luận trên đúng hay chưa — quyết định cuối cùng luôn thuộc về bác sĩ.
+              <p style={{ margin: '10px 0 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                Quyết định cuối cùng luôn thuộc về bác sĩ.
               </p>
               <VerifyPanel
                 anomaly={selectedAnomaly}
@@ -339,20 +333,6 @@ const XAIPage = () => {
   );
 };
 
-const StepBadge = ({ number, text }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <span style={{
-      width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
-      backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '11px', fontWeight: '700',
-    }}>
-      {number}
-    </span>
-    <span style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{text}</span>
-  </div>
-);
-
 const InsightChip = ({ label, warn = false }) => (
   <span style={{
     fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '999px',
@@ -362,10 +342,6 @@ const InsightChip = ({ label, warn = false }) => (
   }}>
     {label}
   </span>
-);
-
-const StepArrow = () => (
-  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>→</span>
 );
 
 export default XAIPage;

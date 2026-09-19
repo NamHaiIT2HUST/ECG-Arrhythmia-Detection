@@ -35,18 +35,21 @@ const ReportButton = ({ chartElementRef }) => {
         onClick={() => setIsOpen(prev => !prev)}
         disabled={loading}
         style={{
-          padding: '8px 16px',
-          backgroundColor: loading ? '#475569' : '#10b981',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
+          padding: '7px 14px',
+          backgroundColor: 'transparent',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
           fontWeight: '600',
           cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.6 : 1,
           fontSize: '13px',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '7px',
         }}
+        onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--bg-color)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
       >
         {loading ? '⏳ Đang tạo...' : '📄 Xuất báo cáo'}
       </button>

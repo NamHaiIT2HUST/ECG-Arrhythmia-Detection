@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { usePatient } from '../context/PatientContext';
 import PatientCard from '../components/patient/PatientCard';
 import PatientForm from '../components/patient/PatientForm';
+import PatientDetailModal from '../components/patient/PatientDetailModal';
 import api from '../api/axios';
 
-const PatientPage = () => {
+const PatientPage = ({ setActiveTab }) => {
   const { patients, activePatient, selectPatient, clearActivePatient, deletePatient, seedDemoPatients } = usePatient();
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
@@ -12,6 +13,9 @@ const PatientPage = () => {
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedError, setSeedError] = useState(null);
   const [query, setQuery] = useState('');
+  // Bấm vào card chỉ MỞ XEM hồ sơ, không tự stream ngay - tránh bấm nhầm card gần nhau
+  // trong danh sách 48 bệnh nhân là theo dõi nhầm ca (xem PatientDetailModal.jsx).
+  const [detailPatient, setDetailPatient] = useState(null);
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredPatients = normalizedQuery
@@ -39,15 +43,22 @@ const PatientPage = () => {
       .catch(() => {});
   }, []);
 
-  const handleSelect = (patient) => {
-    if (activePatient?.id === patient.id) {
-      clearActivePatient();
-    } else {
-      selectPatient(patient);
-    }
+  // Bấm card = mở modal xem hồ sơ trước, không stream ngay lập tức nữa.
+  const handleCardClick = (patient) => setDetailPatient(patient);
+
+  const handleStartMonitoring = (patient) => {
+    selectPatient(patient);
+    setDetailPatient(null);
+    setActiveTab?.('dashboard');
+  };
+
+  const handleStopMonitoring = () => {
+    clearActivePatient();
+    setDetailPatient(null);
   };
 
   const handleEdit = (patient) => {
+    setDetailPatient(null);
     setEditingPatient(patient);
     setShowForm(true);
   };
@@ -109,7 +120,7 @@ const PatientPage = () => {
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏥</div>
           <h3 style={{ color: 'var(--text-main)', marginBottom: '8px' }}>Chưa có bệnh nhân nào</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '14px' }}>
-            Bấm "Thêm bệnh nhân" để tạo hồ sơ đầu tiên. Sau khi thêm, bấm vào card để bắt đầu theo dõi bệnh nhân đó trên Dashboard.
+            Bấm "Thêm bệnh nhân" để tạo hồ sơ đầu tiên. Sau khi thêm, bấm vào card để xem hồ sơ và bắt đầu theo dõi bệnh nhân đó.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={handleAddNew} style={{
@@ -193,7 +204,7 @@ const PatientPage = () => {
                   key={patient.id}
                   patient={patient}
                   isActive={activePatient?.id === patient.id}
-                  onSelect={handleSelect}
+                  onSelect={handleCardClick}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   latestPrediction={activePatient?.id === patient.id ? activePatient._latestPrediction : null}
@@ -202,6 +213,18 @@ const PatientPage = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal xem hồ sơ + bắt đầu/dừng theo dõi */}
+      {detailPatient && (
+        <PatientDetailModal
+          patient={detailPatient}
+          isActive={activePatient?.id === detailPatient.id}
+          onClose={() => setDetailPatient(null)}
+          onStartMonitoring={handleStartMonitoring}
+          onStopMonitoring={handleStopMonitoring}
+          onEdit={handleEdit}
+        />
       )}
 
       {/* Form modal */}

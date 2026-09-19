@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import HeartbeatLogo from '../icons/HeartbeatLogo';
+
+const COLLAPSE_STORAGE_KEY = 'ecg_sidebar_collapsed';
+const EXPANDED_WIDTH = 260;
+const COLLAPSED_WIDTH = 72;
 
 const iconProps = {
   width: 19,
@@ -12,6 +16,12 @@ const iconProps = {
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
 };
+
+const IconChevron = ({ collapsed }) => (
+  <svg {...iconProps} width={15} height={15} style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>
+    <path d="M15 6l-6 6 6 6" />
+  </svg>
+);
 
 const IconChart = () => (
   <svg {...iconProps}><path d="M4 19V9M11 19V5M18 19v-7" /></svg>
@@ -97,18 +107,51 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   // không cần vào đây trong lúc trực, tránh vô tình đổi cấu hình đang ảnh hưởng tới màn theo dõi.
   const sections = isAdmin ? ADMIN_SECTIONS : CLINICAL_SECTIONS;
 
+  // Thu gọn sidebar còn dải icon để nhường chỗ cho khung theo dõi ECG chính - máy monitor
+  // thật không có menu điều hướng chiếm không gian màn hình như 1 web app thông thường, và
+  // bác sĩ trực thường chỉ cần đúng 1 màn hình theo dõi to nhất có thể trong ca trực. Lưu vào
+  // localStorage để giữ nguyên lựa chọn qua các lần tải lại trang.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1'; } catch (e) { return false; }
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0'); } catch (e) {}
+      return next;
+    });
+  };
+
   return (
     <nav style={{
-      width: '260px',
-      minWidth: '260px',
+      width: collapsed ? `${COLLAPSED_WIDTH}px` : `${EXPANDED_WIDTH}px`,
+      minWidth: collapsed ? `${COLLAPSED_WIDTH}px` : `${EXPANDED_WIDTH}px`,
       backgroundColor: 'var(--sidebar-bg)',
       display: 'flex',
       flexDirection: 'column',
       padding: '22px 0 0',
       zIndex: 10,
+      position: 'relative',
+      transition: 'width 0.18s ease, min-width 0.18s ease',
     }}>
-      <div style={{ padding: '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        title={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+        style={{
+          position: 'absolute', top: '26px', right: '-12px', zIndex: 11,
+          width: '24px', height: '24px', borderRadius: '50%',
+          border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)',
+          color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+        }}
+      >
+        <IconChevron collapsed={collapsed} />
+      </button>
+
+      <div style={{ padding: collapsed ? '0 0 20px' : '0 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '11px' }}>
           <div style={{
             width: '38px', height: '38px', borderRadius: '11px', flexShrink: 0,
             background: 'linear-gradient(135deg, var(--primary), #7c3aed)',
@@ -117,27 +160,33 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           }}>
             <span style={{ width: '20px', height: '20px', display: 'inline-flex' }}><HeartbeatLogo /></span>
           </div>
-          <h2 style={{ margin: 0, color: '#ffffff', fontSize: '17px', fontWeight: '800', letterSpacing: '-0.03em' }}>
-            NEURO-ECG
-          </h2>
+          {!collapsed && (
+            <h2 style={{ margin: 0, color: '#ffffff', fontSize: '17px', fontWeight: '800', letterSpacing: '-0.03em' }}>
+              NEURO-ECG
+            </h2>
+          )}
         </div>
-        <p style={{ margin: '10px 0 0', fontSize: '11.5px', color: 'rgba(226,232,240,0.5)', letterSpacing: '0.02em' }}>
-          Nền tảng giám sát tim mạch
-        </p>
+        {!collapsed && (
+          <p style={{ margin: '10px 0 0', fontSize: '11.5px', color: 'rgba(226,232,240,0.5)', letterSpacing: '0.02em' }}>
+            Nền tảng giám sát tim mạch
+          </p>
+        )}
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '18px', padding: '0 14px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '18px', padding: collapsed ? '0 10px' : '0 14px', overflowY: 'auto' }}>
         {sections.map((section) => (
           <div key={section.label}>
-            <div style={{
-              padding: '0 14px 8px',
-              fontSize: '10.5px',
-              fontWeight: '700',
-              letterSpacing: '0.08em',
-              color: 'rgba(226,232,240,0.35)',
-            }}>
-              {section.label}
-            </div>
+            {!collapsed && (
+              <div style={{
+                padding: '0 14px 8px',
+                fontSize: '10.5px',
+                fontWeight: '700',
+                letterSpacing: '0.08em',
+                color: 'rgba(226,232,240,0.35)',
+              }}>
+                {section.label}
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
               {section.items.map(({ id, Icon, label }) => {
                 const isActive = activeTab === id;
@@ -145,11 +194,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                   <div
                     key={id}
                     onClick={() => setActiveTab(id)}
+                    title={collapsed ? label : undefined}
                     style={{
                       position: 'relative',
-                      padding: '11px 14px 11px 17px',
+                      padding: collapsed ? '11px' : '11px 14px 11px 17px',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: collapsed ? 'center' : 'flex-start',
                       gap: '12px',
                       cursor: 'pointer',
                       borderRadius: '9px',
@@ -175,7 +226,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     <span style={{ display: 'inline-flex', flexShrink: 0, color: isActive ? 'var(--primary)' : 'inherit' }}>
                       <Icon />
                     </span>
-                    {label}
+                    {!collapsed && label}
                   </div>
                 );
               })}
@@ -185,28 +236,32 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       </div>
 
       <div style={{
-        margin: '16px 14px 18px',
-        padding: '12px 14px',
+        margin: collapsed ? '16px 10px 18px' : '16px 14px 18px',
+        padding: collapsed ? '12px 0' : '12px 14px',
         borderRadius: '10px',
         backgroundColor: 'rgba(255,255,255,0.04)',
-        display: 'flex', alignItems: 'center', gap: '10px',
+        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '10px',
       }}>
-        <div style={{
-          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-          backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 'bold', fontSize: '12.5px',
-        }}>
+        <div
+          title={collapsed ? `${user?.username || 'Người dùng'} · ${ROLE_LABELS[user?.role] || user?.role || 'Khách'}` : undefined}
+          style={{
+            width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+            backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 'bold', fontSize: '12.5px',
+          }}>
           {user?.username ? user.username.substring(0, 2).toUpperCase() : 'NB'}
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.username || 'Người dùng'}
+        {!collapsed && (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.username || 'Người dùng'}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(226,232,240,0.5)' }}>
+              {ROLE_LABELS[user?.role] || user?.role || 'Khách'}
+            </div>
           </div>
-          <div style={{ fontSize: '11px', color: 'rgba(226,232,240,0.5)' }}>
-            {ROLE_LABELS[user?.role] || user?.role || 'Khách'}
-          </div>
-        </div>
+        )}
       </div>
     </nav>
   );

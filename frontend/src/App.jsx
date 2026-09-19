@@ -63,7 +63,7 @@ const InnerApp = ({ activeTab, setActiveTab }) => {
         <Header />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'dashboard' && <DashboardPage />}
-          {activeTab === 'patient' && <PatientPage />}
+          {activeTab === 'patient' && <PatientPage setActiveTab={setActiveTab} />}
           {activeTab === 'xai' && <XAIPage />}
           {activeTab === 'reports' && <ReportExporter />}
           {activeTab === 'settings' && isAdmin && <SettingsPage />}

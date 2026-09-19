@@ -60,44 +60,54 @@ const DashboardPage = () => {
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
 
-      {/* Thanh công cụ */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          {selectedPatient && <AlarmStatus />}
-          {selectedPatient && <MuteButton />}
-          {selectedPatient && (
-            <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
-              ● {connectionStatus}
-            </span>
+      {/* Thanh trạng thái hợp nhất: gộp định danh bệnh nhân + cụm trạng thái/hành động vào
+          CÙNG 1 khối duy nhất thay vì nhiều chip/nút rời rạc tự phong cách riêng (badge tròn,
+          nút xanh lá, nút xanh dương... không cùng 1 hệ thống) như trước - giữ nguyên toàn bộ
+          thông tin, chỉ tổ chức lại theo đúng phân cấp: cảnh báo mới cần màu mạnh/nổi bật,
+          còn lại (xuất báo cáo, chẩn đoán offline) là hành động phụ nên dùng nút viền đồng bộ. */}
+      <div className="card" style={{ padding: '14px 22px', display: 'flex', flexDirection: 'column', gap: selectedPatient ? '10px' : 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          {selectedPatient ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+                backgroundColor: 'var(--primary-bg)', color: 'var(--primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px',
+              }}>🧑‍⚕️</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedPatient.name}
+                  <span style={{ fontWeight: '500', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    {selectedPatient.age ? ` · ${selectedPatient.age} tuổi` : ''}{selectedPatient.gender ? ` · ${GENDER_LABEL[selectedPatient.gender] || selectedPatient.gender}` : ''} · Giường {selectedPatient.bedNumber}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  MIT-BIH #{selectedPatient.activeRecordId} · Phiên <SessionDuration startedAt={sessionStartedAt} /> · {totalBeats} nhịp đã phân tích
+                </div>
+              </div>
+            </div>
+          ) : (
+            <h2 style={{ margin: 0, fontSize: '15px', color: 'var(--text-muted)', fontWeight: '600' }}>Chưa chọn bệnh nhân theo dõi</h2>
           )}
-          {selectedPatient && <ReportButton chartElementRef={chartRef} />}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Chẩn đoán offline (CSV)
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {selectedPatient && <AlarmStatus connectionStatus={connectionStatus} />}
+            {selectedPatient && <MuteButton />}
+            {selectedPatient && <div style={{ width: '1px', height: '26px', backgroundColor: 'var(--border-color)' }} />}
+            {selectedPatient && <ReportButton chartElementRef={chartRef} />}
+            <ToolbarButton icon="🧪" label="Chẩn đoán offline (CSV)" onClick={() => setIsModalOpen(true)} />
+          </div>
         </div>
+
+        {selectedPatient && (
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '18px', flexWrap: 'wrap', paddingLeft: '52px' }}>
+            <span>🕒 <LiveClock /></span>
+            <span>Ngưỡng lọc AI: <strong style={{ color: 'var(--text-main)' }}>{confidenceThreshold ? `${Math.round(confidenceThreshold * 100)}%` : 'Không lọc'}</strong></span>
+          </div>
+        )}
       </div>
 
       <UploadDiagnosisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-
-      {selectedPatient && (
-        <SessionInfoBar
-          patient={selectedPatient}
-          sessionStartedAt={sessionStartedAt}
-          totalBeats={totalBeats}
-          confidenceThreshold={confidenceThreshold}
-        />
-      )}
 
       {!selectedPatient ? (
         // Đúng luồng lâm sàng: phải biết đang theo dõi bệnh nhân nào trước khi hiện ECG,
@@ -176,17 +186,34 @@ const DashboardPage = () => {
   );
 };
 
-// Badge cấp cảnh báo hiện tại - chỉ hiện trong lúc theo dõi 1 bệnh nhân (không đặt ở Header
-// nữa vì ngoài lúc theo dõi nhịp tim, mức cảnh báo chưa có ý nghĩa gì để hiện mọi lúc).
-const AlarmStatus = () => {
+const GENDER_LABEL = { M: 'Nam', F: 'Nữ', Other: 'Khác' };
+
+// Cụm trạng thái hợp nhất: mức cảnh báo (màu sắc mạnh, đúng phân cấp - đây mới là thứ quan
+// trọng nhất trên toàn thanh công cụ) + trạng thái kết nối gộp làm 1 pill duy nhất, thay vì 2
+// khối tách rời như trước (badge tròn riêng + dòng chữ "● Đã kết nối" trôi nổi riêng).
+const AlarmStatus = ({ connectionStatus }) => {
   const { currentAlarmLevel } = useAlarm();
-  const levelIcon = currentAlarmLevel >= 3 ? '🔴' : (currentAlarmLevel === 2 ? '🟡' : '🟢');
-  const levelText = currentAlarmLevel >= 3 ? 'Cấp 3' : (currentAlarmLevel === 2 ? 'Cấp 2' : 'Bình thường');
+  const isDanger = currentAlarmLevel >= 3;
+  const isWarning = currentAlarmLevel === 2;
+  const color = isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--success)';
+  const levelText = isDanger ? 'Cấp 3 · Khẩn cấp' : isWarning ? 'Cấp 2 · Cảnh báo' : 'Bình thường';
+  const isConnected = connectionStatus === 'Đã kết nối';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-      <div style={{ fontSize: 16 }}>{levelIcon}</div>
-      <div style={{ fontSize: 13, color: currentAlarmLevel >= 3 ? '#ef4444' : (currentAlarmLevel === 2 ? '#f59e0b' : '#10b981'), fontWeight: 600 }}>{levelText}</div>
+    <div
+      className={isDanger ? 'pulse-log-danger' : undefined}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', borderRadius: '8px',
+        backgroundColor: isDanger ? 'var(--danger-bg)' : isWarning ? 'rgba(245,158,11,0.12)' : 'var(--card-bg)',
+        border: `1px solid ${color}`,
+      }}
+    >
+      <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+      <span style={{ fontSize: 13, color, fontWeight: 700 }}>{levelText}</span>
+      <span style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
+      <span style={{ fontSize: 12, color: isConnected ? 'var(--text-muted)' : 'var(--danger)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+        {isConnected ? '● Đã kết nối' : `⚠ ${connectionStatus}`}
+      </span>
     </div>
   );
 };
@@ -200,13 +227,13 @@ const MuteButton = () => {
 
   if (isMuted) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--warning)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px 7px 14px', borderRadius: '8px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--warning)' }}>
         <span style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 600 }}>
           🔇 {Math.floor(snoozeCountdown / 60)}:{String(snoozeCountdown % 60).padStart(2, '0')}
         </span>
         <button
           onClick={unmuteAlarm}
-          style={{ padding: '3px 10px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+          style={{ padding: '4px 11px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
         >
           🔔 Bật lại
         </button>
@@ -214,58 +241,55 @@ const MuteButton = () => {
     );
   }
 
+  return <ToolbarButton icon="🔇" label="Tắt tiếng 2 phút" onClick={muteAlarm} title="Tắt tiếng cảnh báo trong 2 phút" tone="warning" />;
+};
+
+// Hệ nút hành động phụ dùng CHUNG 1 kiểu (viền mảnh + icon + nhãn) cho mọi hành động thứ cấp
+// trên toolbar (xuất báo cáo, chẩn đoán offline...) - trước đây mỗi nút tự chọn màu nền đặc
+// riêng (xanh lá, xanh dương...) khiến chúng trông như đến từ nhiều bộ giao diện khác nhau.
+const ToolbarButton = ({ icon, label, onClick, title, tone = 'default' }) => {
+  const toneColor = tone === 'warning' ? 'var(--warning)' : 'var(--text-main)';
   return (
     <button
-      onClick={muteAlarm}
-      title="Tắt tiếng cảnh báo trong 2 phút"
-      style={{ padding: '6px 12px', backgroundColor: 'transparent', color: 'var(--warning)', border: '1px solid var(--warning)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+      type="button"
+      onClick={onClick}
+      title={title}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '7px',
+        padding: '7px 14px', borderRadius: '8px', cursor: 'pointer',
+        backgroundColor: 'transparent', border: `1px solid ${tone === 'warning' ? 'var(--warning)' : 'var(--border-color)'}`,
+        color: toneColor, fontWeight: '600', fontSize: '13px',
+        transition: 'background-color 0.15s ease',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
-      🔇 Tắt tiếng 2 phút
+      <span>{icon}</span>
+      {label}
     </button>
   );
 };
 
-const GENDER_LABEL = { M: 'Nam', F: 'Nữ', Other: 'Khác' };
-
-// Dải thông tin phiên theo dõi - gộp định danh bệnh nhân (giống cách máy ECG giấy luôn in
-// patient info ngay trên bản ghi), đồng hồ thời gian thực, thời lượng phiên và tổng số nhịp đã
-// phân tích, cùng ngưỡng lọc cảnh báo AI hiện tại (đọc được mà không cần vào Cài Đặt, giờ đã
-// admin-only). Thay cho dòng "Đang theo dõi: X" đơn giản trước đây.
-const SessionInfoBar = ({ patient, sessionStartedAt, totalBeats, confidenceThreshold }) => {
+// Đồng hồ thời gian thực nhỏ gọn - tách riêng để chỉ đúng phần này re-render mỗi giây,
+// không kéo theo toàn bộ thanh trạng thái phía trên vẽ lại 60 lần/phút.
+const LiveClock = () => {
   const [now, setNow] = useState(Date.now());
-
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
+  return new Date(now).toLocaleTimeString('vi-VN');
+};
 
-  const elapsedSec = sessionStartedAt ? Math.max(0, Math.floor((now - sessionStartedAt) / 1000)) : 0;
-  const durationText = `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`;
-  const clockText = new Date(now).toLocaleTimeString('vi-VN');
-  const thresholdText = confidenceThreshold ? `${Math.round(confidenceThreshold * 100)}%` : 'Không lọc';
-
-  return (
-    <div className="card" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 24px', fontSize: '12.5px' }}>
-      <div style={{ color: 'var(--text-main)', fontWeight: '600' }}>
-        🧑‍⚕️ {patient.name}{patient.age ? ` · ${patient.age} tuổi` : ''}{patient.gender ? ` · ${GENDER_LABEL[patient.gender] || patient.gender}` : ''} · Giường {patient.bedNumber}
-      </div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        Bản ghi: <strong style={{ color: 'var(--text-main)' }}>MIT-BIH #{patient.activeRecordId}</strong>
-      </div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        🕒 {clockText}
-      </div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        Thời lượng phiên: <strong style={{ color: 'var(--text-main)' }}>{durationText}</strong>
-      </div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        Tổng nhịp đã phân tích: <strong style={{ color: 'var(--text-main)' }}>{totalBeats}</strong>
-      </div>
-      <div style={{ color: 'var(--text-muted)' }}>
-        Ngưỡng lọc AI: <strong style={{ color: 'var(--text-main)' }}>{thresholdText}</strong>
-      </div>
-    </div>
-  );
+// Thời lượng phiên theo dõi (mm:ss) - tách riêng cùng lý do với LiveClock ở trên.
+const SessionDuration = ({ startedAt }) => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const elapsedSec = startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
+  return `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`;
 };
 
 export default DashboardPage;
