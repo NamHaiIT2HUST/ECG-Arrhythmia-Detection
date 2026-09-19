@@ -1,7 +1,6 @@
 import React from 'react';
-import { getAamiCode } from '../../constants/alarmLevels';
 
-const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel, latency, latencyE2e, bpm, hrv_sdnn, hrv_rmssd, confidence, afibSuspected, afibScore, tachycardiaSuspected }) => {
+const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel, bpm, hrv_sdnn, hrv_rmssd, confidence, afibSuspected, afibScore, tachycardiaSuspected }) => {
   // Dùng chung currentAlarmLevel/currentAlarmLabel từ AlarmContext (nguồn duy nhất quyết định
   // còi/màu, xem AlarmContext.jsx:triggerAlarm) thay vì tự tính lại isDanger từ latestPrediction
   // + afibSuspected/tachycardiaSuspected - trước đây 2 nguồn lệch nhau khiến card tô ĐỎ (do
@@ -10,12 +9,13 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
   const isDanger = currentAlarmLevel === 3;
   const isWarning = currentAlarmLevel === 2;
   const aiColor = isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--text-main)';
-  // Ngưỡng KPI cốt lõi của dự án: tổng độ trễ hệ thống (End-to-End) phải dưới 2 giây - xem
-  // Project Definition mục "Đánh giá toàn diện hệ thống".
-  const isLatencyOverBudget = latencyE2e > 2000;
 
+  // Độ trễ xử lý (E2E/AI) đã CHUYỂN sang hiển thị dạng chỉ báo nhỏ trong toolbar
+  // (DashboardPage.jsx) thay vì 1 thẻ riêng ở đây - đây là số liệu hiệu năng HỆ THỐNG, không
+  // phải thông tin lâm sàng về bệnh nhân, nên không nên đứng ngang hàng thị giác với BPM/HRV/
+  // chẩn đoán AI trên hàng chỉ số chính mà bác sĩ nhìn vào để ra quyết định.
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
 
       <div className="card" style={{
         padding: '15px 20px',
@@ -33,21 +33,16 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
         <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: aiColor }}>
           {currentAlarmLabel || latestPrediction}
         </p>
-        {/* Nhãn AAMI thô của đúng nhịp hiện tại - luôn hiện, kể cả khi tiêu đề trên đang phản
-            ánh 1 điều kiện khác (AFib/tachycardia) chứ không phải phân loại nhịp đơn lẻ này. */}
+        {/* Phân loại hình dạng của đúng nhịp vừa ghi nhận - luôn hiện, kể cả khi tiêu đề trên
+            đang phản ánh 1 điều kiện khác (AFib/tachycardia) chứ không phải phân loại nhịp đơn
+            lẻ này. Bỏ nhãn "(AAMI)" và mã chữ cái viết tắt (thuật ngữ phân loại học thuật, không
+            cần thiết với bác sĩ) - chỉ giữ đúng tên lâm sàng. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Nhịp hiện tại (AAMI):</span>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Nhịp vừa ghi nhận:</span>
           <span style={{ fontSize: '11.5px', color: 'var(--text-main)', fontWeight: '600' }}>{latestPrediction}</span>
-          <span style={{
-            fontSize: '11px', fontWeight: '700', fontFamily: 'monospace',
-            color: 'var(--text-muted)', border: '1px solid var(--border-color)',
-            borderRadius: '4px', padding: '0px 5px',
-          }}>
-            {getAamiCode(latestPrediction)}
-          </span>
         </div>
         {Boolean(afibSuspected) && (
-          <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+          <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: 'var(--danger)', background: 'var(--danger-bg)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
             ⚠️ Nghi ngờ Rung Nhĩ (score {Number(afibScore ?? 0).toFixed(2)})
           </div>
         )}
@@ -119,28 +114,6 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
           </p>
           <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>%</span>
         </div>
-      </div>
-
-      <div className="card" style={{
-        padding: '15px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: '8px',
-        borderLeft: `4px solid ${isLatencyOverBudget ? 'var(--danger)' : 'var(--success)'}`
-      }}>
-        <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          ⏱️ Độ trễ xử lý
-        </h3>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-          <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: isLatencyOverBudget ? 'var(--danger)' : 'var(--text-main)' }}>
-            {latencyE2e ? latencyE2e.toFixed(0) : '--'}
-          </p>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>ms (E2E)</span>
-        </div>
-        <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-muted)' }}>
-          AI: {latency ? `${latency.toFixed(1)} ms` : '--'} · mục tiêu &lt;2000ms
-        </p>
       </div>
 
     </div>

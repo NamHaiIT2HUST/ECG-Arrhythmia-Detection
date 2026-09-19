@@ -13,7 +13,14 @@ const MONITOR_TRACE_2 = '#f5b942';
 const MONITOR_GRID = 'rgba(34, 255, 136, 0.12)';
 const MONITOR_TEXT = 'rgba(226, 253, 238, 0.55)';
 
-const ECGChart = ({ xData, yData, yData2 = [], lead1Name = null, lead2Name = null, heatmap = null }) => {
+// "MLII" là tên nội bộ của PhysioNet/MIT-BIH ("Modified Lead II" - vị trí điện cực Holter cụ
+// thể), bác sĩ đọc ECG chỉ biết "Lead II" - đổi tên hiển thị cho đúng ngôn ngữ lâm sàng, không
+// đổi tên các lead ngực chuẩn khác (V1/V2/V4/V5...) vì chúng đã đúng quy ước rồi.
+const formatLeadName = (name) => (name === 'MLII' ? 'II' : name);
+
+const ECGChart = ({ xData, yData, yData2 = [], lead1Name: rawLead1Name = null, lead2Name: rawLead2Name = null, heatmap = null }) => {
+  const lead1Name = formatLeadName(rawLead1Name);
+  const lead2Name = formatLeadName(rawLead2Name);
   // Đa số bản ghi MIT-BIH có 2 kênh (vd MLII + V1/V5) - kênh 2 KHÔNG dùng để chẩn đoán AI (vẫn
   // là kênh 1 duy nhất), chỉ hiển thị thêm 1 dải sóng tham chiếu như máy Holter 2 kênh thật,
   // giúp bác sĩ đối chiếu hình dạng nhịp thay vì chỉ tin vào đúng 1 góc nhìn - xem
@@ -57,7 +64,7 @@ const ECGChart = ({ xData, yData, yData2 = [], lead1Name = null, lead2Name = nul
           <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
             {hasLead2
               ? `2 kênh (Lead ${lead1Name || 'II'} + ${lead2Name}) — sàng lọc rối loạn nhịp, không thay thế ECG 12 chuyển đạo chẩn đoán đầy đủ.`
-              : `Đơn kênh (Lead ${lead1Name || 'II/MLII'}) — sàng lọc rối loạn nhịp, không thay thế ECG 12 chuyển đạo chẩn đoán đầy đủ.`}
+              : `Đơn kênh (Lead ${lead1Name || 'II'}) — sàng lọc rối loạn nhịp, không thay thế ECG 12 chuyển đạo chẩn đoán đầy đủ.`}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginTop: '2px' }}>

@@ -19,7 +19,6 @@ const DashboardPage = () => {
     lead2Name,
     currentHeatmap,
     latestPrediction,
-    latency,
     latencyE2e,
     bpm,
     hrvSdnn,
@@ -103,6 +102,12 @@ const DashboardPage = () => {
           <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '18px', flexWrap: 'wrap', paddingLeft: '52px' }}>
             <span>🕒 <LiveClock /></span>
             <span>Ngưỡng lọc AI: <strong style={{ color: 'var(--text-main)' }}>{confidenceThreshold ? `${Math.round(confidenceThreshold * 100)}%` : 'Không lọc'}</strong></span>
+            {/* Độ trễ xử lý là chỉ số HIỆU NĂNG HỆ THỐNG (không phải thông tin bệnh nhân) - đặt
+                cùng hàng meta nhỏ/mờ này thay vì thẻ riêng to bằng BPM/HRV, để không đánh lạc
+                hướng bác sĩ khỏi các chỉ số lâm sàng thật sự cần ra quyết định. */}
+            <span title="Thời gian từ lúc phát hiện đỉnh R đến khi gửi kết quả - chỉ số hiệu năng hệ thống">
+              Độ trễ hệ thống: <strong style={{ color: latencyE2e > 2000 ? 'var(--danger)' : 'var(--text-main)' }}>{latencyE2e ? `${latencyE2e.toFixed(0)} ms` : '--'}</strong>
+            </span>
           </div>
         )}
       </div>
@@ -167,8 +172,6 @@ const DashboardPage = () => {
             latestPrediction={latestPrediction}
             currentAlarmLevel={currentAlarmLevel}
             currentAlarmLabel={currentAlarmLabel}
-            latency={latency}
-            latencyE2e={latencyE2e}
             bpm={bpm}
             hrv_sdnn={hrvSdnn}
             hrv_rmssd={hrvRmssd}
