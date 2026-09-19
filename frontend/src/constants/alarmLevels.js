@@ -68,6 +68,20 @@ export const getAlarmLevel = (prediction) => {
 };
 
 /**
+ * Trích mã AAMI viết tắt (N/S/V/F/Q) từ nhãn hiển thị tiếng Việt, vd "CẢNH BÁO: NHỊP THẤT (V)"
+ * → "V". Tận dụng luôn chuỗi nhãn đã có (ký tự trong ngoặc đơn chính là mã AAMI gốc mà
+ * inference_service.py dùng để gán nhãn), không cần thêm 1 bảng map riêng dễ bị lệch dữ liệu.
+ * @param {string} prediction — nhãn từ WS payload
+ * @returns {string} mã 1 ký tự AAMI, mặc định 'N' nếu không nhận ra
+ */
+export const getAamiCode = (prediction) => {
+  if (!prediction) return 'N';
+  if (prediction === 'BÌNH THƯỜNG') return 'N';
+  const match = prediction.match(/\(([A-Z])\)/);
+  return match ? match[1] : 'N';
+};
+
+/**
  * Mức cảnh báo cho các điều kiện KHÔNG phải nhãn AAMI từng nhịp (afib_suspected/
  * tachycardia_suspected từ payload WS) — dùng chung nguồn duy nhất này với ALARM_LEVELS,
  * cùng cơ chế sound/push, để AlarmContext.triggerAlarm xử lý đồng nhất cả 2 loại điều kiện.

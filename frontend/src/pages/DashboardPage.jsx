@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StatCards from '../components/dashboard/StatCards';
 import ECGChart from '../components/dashboard/ECGChart';
 import LoadingSpinner from '../components/dashboard/LoadingSpinner';
@@ -17,12 +17,17 @@ const DashboardPage = () => {
     currentHeatmap,
     latestPrediction,
     latency,
+    latencyE2e,
     bpm,
     hrvSdnn,
+    hrvRmssd,
     confidence,
     afibSuspected,
     afibScore,
     tachycardiaSuspected,
+    sessionStartedAt,
+    totalBeats,
+    confidenceThreshold,
   } = useMonitoring();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,17 +57,10 @@ const DashboardPage = () => {
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
 
       {/* Thanh công cụ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ flex: 1 }}>
-          {selectedPatient && (
-            <div style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: '600' }}>
-              📡 Đang theo dõi: {selectedPatient.name} · Giường {selectedPatient.bedNumber}
-            </div>
-          )}
-        </div>
-
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           {selectedPatient && <AlarmStatus />}
+          {selectedPatient && <MuteButton />}
           {selectedPatient && (
             <span style={{ fontSize: '14px', color: connectionStatus === 'Đã kết nối' ? '#10b981' : 'var(--danger)' }}>
               ● {connectionStatus}
@@ -87,6 +85,15 @@ const DashboardPage = () => {
       </div>
 
       <UploadDiagnosisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      {selectedPatient && (
+        <SessionInfoBar
+          patient={selectedPatient}
+          sessionStartedAt={sessionStartedAt}
+          totalBeats={totalBeats}
+          confidenceThreshold={confidenceThreshold}
+        />
+      )}
 
       {!selectedPatient ? (
         // Đúng luồng lâm sàng: phải biết đang theo dõi bệnh nhân nào trước khi hiện ECG,
@@ -145,8 +152,10 @@ const DashboardPage = () => {
           <StatCards
             latestPrediction={latestPrediction}
             latency={latency}
+            latencyE2e={latencyE2e}
             bpm={bpm}
             hrv_sdnn={hrvSdnn}
+            hrv_rmssd={hrvRmssd}
             confidence={confidence}
             afibSuspected={afibSuspected}
             afibScore={afibScore}
@@ -172,6 +181,83 @@ const AlarmStatus = () => {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
       <div style={{ fontSize: 16 }}>{levelIcon}</div>
       <div style={{ fontSize: 13, color: currentAlarmLevel >= 3 ? '#ef4444' : (currentAlarmLevel === 2 ? '#f59e0b' : '#10b981'), fontWeight: 600 }}>{levelText}</div>
+    </div>
+  );
+};
+
+// Nút tắt tiếng cảnh báo ngay trên màn hình theo dõi - trước đây chức năng này chỉ có trong
+// Cài Đặt Hệ Thống, nhưng trang đó vừa bị khoá admin-only nên bác sĩ/y tá đang trực không còn
+// cách nào tắt còi khẩn cấp. Logic mute/unmute (tự bật lại sau 2 phút, chuẩn IEC 60601-1-8)
+// giữ nguyên trong AlarmContext, ở đây chỉ là 1 nút gọn dùng lại state có sẵn.
+const MuteButton = () => {
+  const { isMuted, snoozeCountdown, muteAlarm, unmuteAlarm } = useAlarm();
+
+  if (isMuted) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: '6px', backgroundColor: 'var(--card-bg)', border: '1px solid var(--warning)' }}>
+        <span style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 600 }}>
+          🔇 {Math.floor(snoozeCountdown / 60)}:{String(snoozeCountdown % 60).padStart(2, '0')}
+        </span>
+        <button
+          onClick={unmuteAlarm}
+          style={{ padding: '3px 10px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+        >
+          🔔 Bật lại
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={muteAlarm}
+      title="Tắt tiếng cảnh báo trong 2 phút"
+      style={{ padding: '6px 12px', backgroundColor: 'transparent', color: 'var(--warning)', border: '1px solid var(--warning)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+    >
+      🔇 Tắt tiếng 2 phút
+    </button>
+  );
+};
+
+const GENDER_LABEL = { M: 'Nam', F: 'Nữ', Other: 'Khác' };
+
+// Dải thông tin phiên theo dõi - gộp định danh bệnh nhân (giống cách máy ECG giấy luôn in
+// patient info ngay trên bản ghi), đồng hồ thời gian thực, thời lượng phiên và tổng số nhịp đã
+// phân tích, cùng ngưỡng lọc cảnh báo AI hiện tại (đọc được mà không cần vào Cài Đặt, giờ đã
+// admin-only). Thay cho dòng "Đang theo dõi: X" đơn giản trước đây.
+const SessionInfoBar = ({ patient, sessionStartedAt, totalBeats, confidenceThreshold }) => {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const elapsedSec = sessionStartedAt ? Math.max(0, Math.floor((now - sessionStartedAt) / 1000)) : 0;
+  const durationText = `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`;
+  const clockText = new Date(now).toLocaleTimeString('vi-VN');
+  const thresholdText = confidenceThreshold ? `${Math.round(confidenceThreshold * 100)}%` : 'Không lọc';
+
+  return (
+    <div className="card" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 24px', fontSize: '12.5px' }}>
+      <div style={{ color: 'var(--text-main)', fontWeight: '600' }}>
+        🧑‍⚕️ {patient.name}{patient.age ? ` · ${patient.age} tuổi` : ''}{patient.gender ? ` · ${GENDER_LABEL[patient.gender] || patient.gender}` : ''} · Giường {patient.bedNumber}
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>
+        Bản ghi: <strong style={{ color: 'var(--text-main)' }}>MIT-BIH #{patient.activeRecordId}</strong>
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>
+        🕒 {clockText}
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>
+        Thời lượng phiên: <strong style={{ color: 'var(--text-main)' }}>{durationText}</strong>
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>
+        Tổng nhịp đã phân tích: <strong style={{ color: 'var(--text-main)' }}>{totalBeats}</strong>
+      </div>
+      <div style={{ color: 'var(--text-muted)' }}>
+        Ngưỡng lọc AI: <strong style={{ color: 'var(--text-main)' }}>{thresholdText}</strong>
+      </div>
     </div>
   );
 };

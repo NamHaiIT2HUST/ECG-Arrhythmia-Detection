@@ -29,12 +29,16 @@ export const MonitoringProvider = ({ children }) => {
 
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
   const [latency, setLatency] = useState(0);
+  const [latencyE2e, setLatencyE2e] = useState(0);
   const [bpm, setBpm] = useState(null);
   const [hrvSdnn, setHrvSdnn] = useState(null);
+  const [hrvRmssd, setHrvRmssd] = useState(null);
   const [confidence, setConfidence] = useState(null);
   const [afibSuspected, setAfibSuspected] = useState(false);
   const [afibScore, setAfibScore] = useState(0);
   const [tachycardiaSuspected, setTachycardiaSuspected] = useState(false);
+  const [sessionStartedAt, setSessionStartedAt] = useState(null);
+  const [totalBeats, setTotalBeats] = useState(0);
 
   const { addAnomaly, clearHistory } = useAnomaly();
   const { selectedPatient } = usePatient();
@@ -109,12 +113,18 @@ export const MonitoringProvider = ({ children }) => {
     setCurrentHeatmap(null);
     setLatestPrediction('Đang tải...');
     setLatency(0);
+    setLatencyE2e(0);
     setBpm(null);
     setHrvSdnn(null);
+    setHrvRmssd(null);
     setConfidence(null);
     setAfibSuspected(false);
     setAfibScore(0);
     setTachycardiaSuspected(false);
+    // Đổi bệnh nhân/bản ghi = bắt đầu 1 phiên theo dõi mới - đặt lại mốc giờ bắt đầu và số nhịp
+    // đã phân tích, để dải thông tin phiên trên Dashboard không cộng dồn nhầm giữa 2 bệnh nhân.
+    setSessionStartedAt(selectedPatient ? Date.now() : null);
+    setTotalBeats(0);
     triggerAlarmRef.current('BÌNH THƯỜNG', 0, 1); // tắt còi/badge cảnh báo của bản ghi cũ ngay lập tức
     // Đổi bệnh nhân/bản ghi = phiên theo dõi mới - xoá luôn lịch sử cảnh báo của bệnh nhân cũ,
     // nếu không trang XAI/Báo cáo sẽ lẫn cảnh báo của nhiều bệnh nhân khác nhau trong cùng 1
@@ -133,18 +143,21 @@ export const MonitoringProvider = ({ children }) => {
     }
 
     const handleNewData = (data) => {
-      const { chunk, prediction, latency_ms, heatmap, anomaly_id, bpm, hrv_sdnn, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
+      const { chunk, prediction, latency_ms, latency_e2e_ms, heatmap, anomaly_id, bpm, hrv_sdnn, hrv_rmssd, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
 
       setLatency(latency_ms);
+      if (latency_e2e_ms !== undefined) setLatencyE2e(latency_e2e_ms);
       setLatestPrediction(prediction);
       if (bpm !== undefined) setBpm(bpm);
       if (hrv_sdnn !== undefined) setHrvSdnn(hrv_sdnn);
+      if (hrv_rmssd !== undefined) setHrvRmssd(hrv_rmssd);
       if (confidence !== undefined) setConfidence(confidence);
       if (afib_suspected !== undefined) setAfibSuspected(afib_suspected);
       if (afib_score !== undefined) setAfibScore(afib_score);
       if (tachycardia_suspected !== undefined) setTachycardiaSuspected(tachycardia_suspected);
 
       if (is_new_beat) {
+        setTotalBeats(prev => prev + 1);
         // Gọi trigger alarm mỗi khi có 1 nhịp mới - kể cả lúc AAMI là Bình thường (heatmap
         // null), vì afib_suspected/tachycardia_suspected có thể đang true độc lập với nhãn
         // AAMI của đúng nhịp này (rung nhĩ/nhịp nhanh là điều kiện theo nhịp điệu nhiều nhịp,
@@ -265,12 +278,17 @@ export const MonitoringProvider = ({ children }) => {
     currentHeatmap,
     latestPrediction,
     latency,
+    latencyE2e,
     bpm,
     hrvSdnn,
+    hrvRmssd,
     confidence,
     afibSuspected,
     afibScore,
     tachycardiaSuspected,
+    sessionStartedAt,
+    totalBeats,
+    confidenceThreshold: settings.confidenceThreshold,
   };
 
   return (
