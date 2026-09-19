@@ -206,14 +206,14 @@ const SettingsPage = () => {
           <label style={labelStyle}>Trạng thái âm thanh cảnh báo</label>
           {isMuted ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#f59e0b', fontWeight: '600' }}>
+              <span style={{ fontSize: '14px', color: 'var(--warning)', fontWeight: '600' }}>
                 🔇 Đang tắt tiếng — còn {Math.floor(snoozeCountdown / 60)}:{String(snoozeCountdown % 60).padStart(2, '0')} phút
               </span>
               <button
                 id="unmute-btn"
                 onClick={unmuteAlarm}
                 style={{
-                  padding: '6px 14px', backgroundColor: '#10b981', color: 'white',
+                  padding: '6px 14px', backgroundColor: 'var(--success)', color: 'white',
                   border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'
                 }}
               >
@@ -222,12 +222,12 @@ const SettingsPage = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '14px', color: '#10b981' }}>🔔 Đang bật</span>
+              <span style={{ fontSize: '14px', color: 'var(--success)' }}>🔔 Đang bật</span>
               <button
                 id="mute-btn"
                 onClick={muteAlarm}
                 style={{
-                  padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white',
+                  padding: '6px 14px', backgroundColor: 'var(--warning)', color: 'white',
                   border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'
                 }}
               >
@@ -248,7 +248,7 @@ const SettingsPage = () => {
           <div>
             <p style={{ margin: '0 0 4px', fontSize: '14px', color: 'var(--text-main)' }}>
               Trạng thái quyền: <strong style={{
-                color: notifStatus === 'granted' ? '#10b981' : notifStatus === 'denied' ? '#ef4444' : '#f59e0b'
+                color: notifStatus === 'granted' ? 'var(--success)' : notifStatus === 'denied' ? 'var(--danger)' : 'var(--warning)'
               }}>
                 {notifStatus === 'granted' ? '✅ Đã cấp quyền' : notifStatus === 'denied' ? '❌ Bị từ chối' : '⏳ Chưa xin'}
               </strong>
@@ -271,7 +271,7 @@ const SettingsPage = () => {
             </button>
           )}
           {notifStatus === 'denied' && (
-            <p style={{ ...descStyle, color: '#ef4444', marginLeft: '16px', whiteSpace: 'nowrap' }}>
+            <p style={{ ...descStyle, color: 'var(--danger)', marginLeft: '16px', whiteSpace: 'nowrap' }}>
               Vào Settings trình duyệt để cấp lại.
             </p>
           )}
@@ -293,7 +293,7 @@ const SettingsPage = () => {
           id="save-settings-btn"
           onClick={handleSave}
           style={{
-            padding: '10px 24px', backgroundColor: saved ? '#10b981' : 'var(--primary)',
+            padding: '10px 24px', backgroundColor: saved ? 'var(--success)' : 'var(--primary)',
             color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600',
             transition: 'background-color 0.2s ease',
           }}

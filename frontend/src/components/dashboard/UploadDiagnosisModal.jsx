@@ -139,7 +139,7 @@ const UploadDiagnosisModal = ({ isOpen, onClose }) => {
               <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: 'var(--text-main)' }}>Phân bố Nhịp tim</h3>
               {Object.entries(report.class_counts).map(([label, count]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '14px' }}>
-                  <span style={{ color: label === 'BÌNH THƯỜNG' ? '#10b981' : 'var(--danger)' }}>{label}</span>
+                  <span style={{ color: label === 'BÌNH THƯỜNG' ? 'var(--success)' : 'var(--danger)' }}>{label}</span>
                   <span>{count} nhịp ({report.class_percentages[label]}%)</span>
                 </div>
               ))}

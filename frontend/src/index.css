@@ -21,6 +21,9 @@
   --success: #17b26a;
   --warning: #f59e0b;
   --danger: #ef4444;
+  /* Accent trung tính cho các chỉ số không mang ý nghĩa cảnh báo (vd viền thẻ HRV) - KHÔNG đổi
+     theo theme sáng/tối, chỉ để phân biệt trực quan các thẻ chỉ số với nhau. */
+  --accent-info: #06b6d4;
   --border-color: rgba(148, 163, 184, 0.25);
   --shadow-soft: 0 20px 45px rgba(14, 30, 66, 0.16);
 
@@ -48,6 +51,7 @@
   --text-sidebar-active: #ffffff;
   --primary-bg: rgba(47, 109, 246, 0.1);
   --success-bg: rgba(23, 178, 106, 0.1);
+  --warning-bg: rgba(245, 158, 11, 0.1);
   --danger-bg: rgba(239, 68, 68, 0.08);
 }
 
@@ -1009,6 +1013,7 @@ button {
     --text-sidebar-active: #ffffff;
     --primary-bg: rgba(96, 165, 250, 0.16);
     --success-bg: rgba(23, 178, 106, 0.16);
+    --warning-bg: rgba(245, 158, 11, 0.16);
     --danger-bg: rgba(239, 68, 68, 0.16);
   }
 }
@@ -1042,5 +1047,6 @@ button {
   --text-sidebar-active: #ffffff;
   --primary-bg: rgba(96, 165, 250, 0.16);
   --success-bg: rgba(23, 178, 106, 0.16);
+  --warning-bg: rgba(245, 158, 11, 0.16);
   --danger-bg: rgba(239, 68, 68, 0.16);
 }

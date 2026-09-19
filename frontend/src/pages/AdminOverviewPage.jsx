@@ -69,7 +69,7 @@ const AdminOverviewPage = () => {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger)', fontSize: '13px' }}>
+        <div style={{ padding: '12px 16px', borderRadius: '8px', background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '13px' }}>
           {error}
         </div>
       )}
@@ -89,14 +89,14 @@ const AdminOverviewPage = () => {
               label="Bệnh nhân đang quản lý"
               value={patients.length}
               unit="bệnh nhân"
-              accent="#10b981"
+              accent="var(--success)"
               note="Theo dữ liệu hồ sơ bệnh nhân đang lưu trên trình duyệt này."
             />
             <StatCard
               label="Cảnh báo bất thường đã ghi nhận"
               value={stats?.total_anomalies ?? '--'}
               unit="sự kiện"
-              accent="#f59e0b"
+              accent="var(--warning)"
             />
           </div>
 

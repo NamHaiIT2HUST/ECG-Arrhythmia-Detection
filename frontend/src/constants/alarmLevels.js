@@ -8,8 +8,6 @@ export const ALARM_LEVELS = {
   'BÌNH THƯỜNG': {
     level: 1,
     color: 'green',
-    colorHex: '#10b981',
-    bgHex: '#ecfdf5',
     label: 'Bình thường',
     sound: false,
     push: false,
@@ -18,8 +16,6 @@ export const ALARM_LEVELS = {
   'CẢNH BÁO: TRÊN THẤT (S)': {
     level: 2,
     color: 'yellow',
-    colorHex: '#f59e0b',
-    bgHex: '#fffbeb',
     label: 'Chú ý — Trên thất (SVPB)',
     sound: false,
     push: false,
@@ -28,8 +24,6 @@ export const ALARM_LEVELS = {
   'CẢNH BÁO: CHƯA RÕ (Q)': {
     level: 2,
     color: 'yellow',
-    colorHex: '#f59e0b',
-    bgHex: '#fffbeb',
     label: 'Chú ý — Chưa phân loại (Q)',
     sound: false,
     push: false,
@@ -38,8 +32,6 @@ export const ALARM_LEVELS = {
   'CẢNH BÁO: NHỊP THẤT (V)': {
     level: 3,
     color: 'red',
-    colorHex: '#ef4444',
-    bgHex: '#fef2f2',
     label: '🚨 Khẩn cấp — Ngoại tâm thu thất (PVC)',
     sound: true,
     push: true,
@@ -48,8 +40,6 @@ export const ALARM_LEVELS = {
   'CẢNH BÁO: HỢP NHẤT (F)': {
     level: 3,
     color: 'red',
-    colorHex: '#ef4444',
-    bgHex: '#fef2f2',
     label: '🚨 Khẩn cấp — Nhịp hợp nhất (Fusion)',
     sound: true,
     push: true,

@@ -165,19 +165,21 @@ const PatientPage = ({ setActiveTab }) => {
             />
           </div>
 
-          {/* Active patient banner */}
+          {/* Active patient banner - trước đây dùng màu hex cứng (nền xanh dương nhạt kiểu
+              light-mode) không đổi theo theme, nên ở dark mode nó nổi lên như 1 khối trắng lạc
+              lõng giữa nền tối. Đổi sang token --primary-bg/--primary để tự khớp theme. */}
           {activePatient && (
             <div style={{
-              backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+              backgroundColor: 'var(--primary-bg)', border: '1px solid var(--primary)',
               borderRadius: '8px', padding: '12px 16px',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
-              <span style={{ fontSize: '14px', color: '#1d4ed8', fontWeight: '500' }}>
+              <span style={{ fontSize: '14px', color: 'var(--primary-strong)', fontWeight: '500' }}>
                 📡 Dashboard đang stream bản ghi MIT-BIH <strong>#{activePatient.activeRecordId}</strong> cho bệnh nhân <strong>{activePatient.name}</strong> (Giường {activePatient.bedNumber})
               </span>
               <button
                 onClick={clearActivePatient}
-                style={{ background: 'none', border: '1px solid #93c5fd', borderRadius: '5px', color: '#1d4ed8', padding: '4px 12px', cursor: 'pointer', fontSize: '13px' }}
+                style={{ background: 'none', border: '1px solid var(--primary)', borderRadius: '5px', color: 'var(--primary-strong)', padding: '4px 12px', cursor: 'pointer', fontSize: '13px' }}
               >
                 Hủy chọn
               </button>

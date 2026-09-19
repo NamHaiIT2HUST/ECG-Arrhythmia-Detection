@@ -52,7 +52,7 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
           </div>
         )}
         {Boolean(tachycardiaSuspected) && (
-          <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+          <div style={{ marginTop: '4px', fontSize: '12px', fontWeight: '700', color: 'var(--warning)', background: 'var(--warning-bg)', borderRadius: '999px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
             ⚡ Nhịp Tim Nhanh Bất Thường (≥100 bpm)
           </div>
         )}
@@ -64,7 +64,7 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
         flexDirection: 'column',
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #22c55e'
+        borderLeft: '4px solid var(--success)'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           💓 Nhịp tim (BPM)
@@ -86,7 +86,7 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
         flexDirection: 'column', 
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #06b6d4'
+        borderLeft: '4px solid var(--accent-info)'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           📈 HRV (SDNN)
@@ -108,7 +108,7 @@ const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel,
         flexDirection: 'column',
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #f59e0b'
+        borderLeft: '4px solid var(--warning)'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           🎯 Độ tin cậy AI

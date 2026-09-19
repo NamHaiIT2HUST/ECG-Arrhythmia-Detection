@@ -145,7 +145,7 @@ const AdminUsersPage = () => {
           </button>
         </form>
         {formError && (
-          <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '6px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger)', fontSize: '13px' }}>
+          <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '6px', background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '13px' }}>
             {formError}
           </div>
         )}
@@ -156,7 +156,7 @@ const AdminUsersPage = () => {
           Danh sách tài khoản ({users.length})
         </h3>
         {listError && (
-          <div style={{ padding: '10px 14px', borderRadius: '6px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>
+          <div style={{ padding: '10px 14px', borderRadius: '6px', background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>
             {listError}
           </div>
         )}

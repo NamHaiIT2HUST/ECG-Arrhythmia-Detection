@@ -91,21 +91,21 @@ const Header = () => {
                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>{user?.username || 'Người dùng'}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user?.role || 'Khách'}</div>
               </div>
-              <button 
-                onClick={logout} 
-                style={{ 
-                  padding: '8px', borderRadius: '4px', border: '1px solid #ef4444', 
-                  background: 'transparent', color: '#ef4444', 
+              <button
+                onClick={logout}
+                style={{
+                  padding: '8px', borderRadius: '4px', border: '1px solid var(--danger)',
+                  background: 'transparent', color: 'var(--danger)',
                   cursor: 'pointer', fontWeight: '500', textAlign: 'center',
                   width: '100%', transition: 'all 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.background = '#ef4444';
+                  e.target.style.background = 'var(--danger)';
                   e.target.style.color = '#ffffff';
                 }}
                 onMouseOut={(e) => {
                   e.target.style.background = 'transparent';
-                  e.target.style.color = '#ef4444';
+                  e.target.style.color = 'var(--danger)';
                 }}
               >
                 Đăng xuất
