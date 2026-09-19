@@ -4,8 +4,12 @@ import { useTheme } from '../context/ThemeContext';
 
 const SETTINGS_KEY = 'ecg_settings';
 
+// wsUrl mặc định để TRỐNG (không phải "ws://localhost:8000" như trước) - nghĩa là tự dùng
+// cùng địa chỉ với trang web đang mở, qua nginx reverse proxy (xem frontend/src/utils/serverUrl.js).
+// Hardcode "localhost" trước đây khiến bất kỳ ai KHÔNG PHẢI đang ngồi đúng máy chạy backend mở
+// trang lên đều không kết nối được - mà ô cấu hình để tự sửa lại chỉ admin mới thấy.
 const defaultSettings = {
-  wsUrl: 'ws://localhost:8000',
+  wsUrl: '',
   confidenceThreshold: 0, // 0-1 (0 = không lọc)
   notificationEnabled: false,
 };
@@ -116,17 +120,20 @@ const SettingsPage = () => {
           🔌 Kết nối Backend
         </h3>
         <div>
-          <label style={labelStyle}>Địa chỉ WebSocket Server</label>
+          <label style={labelStyle}>Địa chỉ WebSocket Server (nâng cao)</label>
           <input
             id="ws-url-input"
             type="text"
             style={inputStyle}
             value={settings.wsUrl}
             onChange={e => update('wsUrl', e.target.value)}
-            placeholder="ws://localhost:8000"
+            placeholder="Để trống = dùng cùng địa chỉ với trang web đang mở"
           />
           <p style={descStyle}>
-            Dashboard sẽ kết nối WebSocket tới địa chỉ này. Mặc định: <code>ws://localhost:8000</code>. Đổi khi deploy lên server khác.
+            Để trống là đúng cho hầu hết trường hợp — Dashboard tự kết nối cùng địa chỉ với
+            trang web (qua proxy Nginx), nên bất kỳ ai mở đúng địa chỉ trang cũng dùng được,
+            không cần chỉnh gì. Chỉ điền vào đây khi backend nằm ở 1 địa chỉ KHÁC với chính
+            trang web này (vd <code>ws://192.168.1.10:8000</code>).
           </p>
         </div>
       </div>

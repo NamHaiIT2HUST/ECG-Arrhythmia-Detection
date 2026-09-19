@@ -54,11 +54,13 @@ Dữ liệu SQLite (`backend/db/ecg_system.db`) được mount từ host nên **
 - `frontend` (`frontend.Dockerfile`): build 2 giai đoạn — Node 20 build React, rồi chỉ đóng
   gói file tĩnh vào Nginx (image cuối không có Node). Publish ra host port **80**.
 
-**⚠️ Lưu ý**: frontend hiện tại (`frontend/src/api/axios.js`, `DashboardPage.jsx`) hardcode gọi
-thẳng `http://localhost:8000` cho cả REST lẫn WebSocket — CHƯA đi qua reverse proxy `/api`,
-`/ws` mà `nginx.conf` đã cấu hình sẵn. Vì vậy port 8000 của backend vẫn phải publish ra host
-song song với port 80 của frontend. Khi frontend đổi sang gọi đường dẫn tương đối, không cần
-sửa `nginx.conf` — chỉ cần sửa code frontend.
+**Truy cập từ nhiều máy khác nhau (LAN/nội bộ)**: frontend gọi API/WebSocket bằng đường dẫn
+TƯƠNG ĐỐI (`frontend/src/utils/serverUrl.js`), tự khớp với origin đang mở trang, được
+`nginx.conf` proxy `/api`, `/ws` sang backend. Nghĩa là bất kỳ máy nào trong cùng mạng LAN mở
+`http://<IP-máy-chủ>` (thay vì `localhost`) đều dùng được ngay, không cần đổi cấu hình gì —
+kể cả tài khoản không phải admin (trước đây phải sửa "Địa chỉ WebSocket Server" ở Cài Đặt Hệ
+Thống, nhưng trang đó chỉ admin mới thấy, nên các role khác không tự sửa được). Tìm IP LAN của
+máy chủ bằng `ipconfig` (Windows, tìm dòng "IPv4 Address") hoặc `ip addr` (Linux/Mac).
 
 ## 3. Biến môi trường có thể tuỳ chỉnh
 
@@ -105,8 +107,9 @@ cd frontend
 npm install
 npm run dev
 ```
-Frontend chạy tại `http://localhost:5173`, gọi thẳng backend tại `http://localhost:8000`
-(không qua Nginx — chỉ Docker Compose mới có Nginx).
+Frontend chạy tại `http://localhost:5173`, gọi API/WS bằng đường dẫn tương đối, được Vite dev
+server tự proxy sang `http://localhost:8000` (`frontend/vite.config.js::server.proxy` — tương
+đương vai trò Nginx bên Docker Compose, chỉ khác là dùng lúc `npm run dev`).
 
 ## 5. Các vấn đề đã gặp thực tế khi làm CP6.3 & cách xử lý
 

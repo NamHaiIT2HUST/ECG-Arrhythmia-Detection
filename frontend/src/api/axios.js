@@ -1,19 +1,17 @@
 import axios from 'axios';
+import { resolveHttpBase } from '../utils/serverUrl';
 
-// Derive REST base URL from saved settings (wsUrl) when possible.
-// If user configured wsUrl like `ws://localhost:8000`, convert to `http://localhost:8000`.
+// Suy ra REST base URL từ settings đã lưu (wsUrl) nếu admin đã cấu hình riêng; mặc định dùng
+// cùng origin với trang web đang mở (xem utils/serverUrl.js để biết lý do đổi từ hardcode
+// "http://localhost:8000" trước đây - vốn khiến máy khác mở trang không gọi được backend).
 const getDefaultBase = () => {
   try {
     const raw = localStorage.getItem('ecg_settings');
-    if (!raw) return 'http://localhost:8000';
-    const settings = JSON.parse(raw);
-    if (settings.wsUrl) {
-      return settings.wsUrl.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:');
-    }
+    const settings = raw ? JSON.parse(raw) : {};
+    return resolveHttpBase(settings.wsUrl);
   } catch (e) {
-    // ignore
+    return resolveHttpBase(null);
   }
-  return 'http://localhost:8000';
 };
 
 const api = axios.create({

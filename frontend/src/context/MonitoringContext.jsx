@@ -4,6 +4,7 @@ import { usePatient } from './PatientContext';
 import { useAlarm } from './AlarmContext';
 import { useAuth } from './AuthContext';
 import { loadSettings } from '../pages/SettingsPage';
+import { resolveWsBase } from '../utils/serverUrl';
 
 const MonitoringContext = createContext();
 
@@ -225,7 +226,7 @@ export const MonitoringProvider = ({ children }) => {
         try { ws.close(); } catch (e) {}
       }
 
-      const base = `${settings.wsUrl}/ws/ecg`;
+      const base = `${resolveWsBase(settings.wsUrl)}/ws/ecg`;
       let qs = '';
       if (selectedRecord) qs += `?record=${selectedRecord}`;
       if (selectedPatient?.remoteId) qs += `${qs ? '&' : '?'}patient_id=${selectedPatient.remoteId}`;

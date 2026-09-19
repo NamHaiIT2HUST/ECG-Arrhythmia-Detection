@@ -8,7 +8,10 @@ services:
       context: .
       dockerfile: backend.Dockerfile
     ports:
-      - "8000:8000"  # publish ra host vì frontend hiện hardcode gọi http://localhost:8000 (xem nginx.conf)
+      # Frontend giờ gọi qua đường dẫn tương đối, proxy qua Nginx (container frontend) sang
+      # backend:8000 trong mạng nội bộ Docker - không còn PHỤ THUỘC port này publish ra host.
+      # Vẫn giữ publish để tiện gọi thẳng API/debug từ máy host khi cần (vd curl localhost:8000/api/records).
+      - "8000:8000"
     volumes:
       - ./saved_models:/app/saved_models
       - ./data/raw:/app/data/raw
@@ -20,7 +23,9 @@ services:
       context: .
       dockerfile: frontend.Dockerfile
     ports:
-      - "80:80"
+      # Đổi "8080:80" -> "80:80" khi deploy trên máy chủ có cổng 80 trống (chuẩn thông thường).
+      # Đang để 8080 vì máy dev đang test có 1 tiến trình khác (Apache trong WSL2) chiếm cổng 80.
+      - "8080:80"
     depends_on:
       - backend
     restart: unless-stopped
