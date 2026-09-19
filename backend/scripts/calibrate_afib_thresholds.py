@@ -106,7 +106,6 @@ def _evaluate_thresholds(afdb_dir: Path) -> None:
 
     all_scores: list[float] = []
     all_labels: list[int] = []
-    rhythms_seen: dict[str, int] = {}
 
     for dat_file in dat_files:
         try:
