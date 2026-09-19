@@ -35,6 +35,7 @@ const DashboardPage = () => {
   const [seedError, setSeedError] = useState(null);
 
   const { patients, selectedPatient, setSelectedPatient, seedDemoPatients } = usePatient();
+  const { currentAlarmLevel, currentAlarmLabel } = useAlarm();
 
   // Ref cho báo cáo PDF - trỏ tới DOM đang render hiện tại nên phải ở lại component (không
   // chuyển vào MonitoringContext cùng phần dữ liệu stream).
@@ -151,6 +152,8 @@ const DashboardPage = () => {
         <>
           <StatCards
             latestPrediction={latestPrediction}
+            currentAlarmLevel={currentAlarmLevel}
+            currentAlarmLabel={currentAlarmLabel}
             latency={latency}
             latencyE2e={latencyE2e}
             bpm={bpm}

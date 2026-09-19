@@ -1,42 +1,47 @@
 import React from 'react';
-import { getAlarmLevel, getAamiCode } from '../../constants/alarmLevels';
+import { getAamiCode } from '../../constants/alarmLevels';
 
-const StatCards = ({ latestPrediction, latency, latencyE2e, bpm, hrv_sdnn, hrv_rmssd, confidence, afibSuspected, afibScore, tachycardiaSuspected }) => {
-  const isDanger = getAlarmLevel(latestPrediction).level === 3 || Boolean(afibSuspected) || Boolean(tachycardiaSuspected);
+const StatCards = ({ latestPrediction, currentAlarmLevel = 0, currentAlarmLabel, latency, latencyE2e, bpm, hrv_sdnn, hrv_rmssd, confidence, afibSuspected, afibScore, tachycardiaSuspected }) => {
+  // Dùng chung currentAlarmLevel/currentAlarmLabel từ AlarmContext (nguồn duy nhất quyết định
+  // còi/màu, xem AlarmContext.jsx:triggerAlarm) thay vì tự tính lại isDanger từ latestPrediction
+  // + afibSuspected/tachycardiaSuspected - trước đây 2 nguồn lệch nhau khiến card tô ĐỎ (do
+  // AFib/tachycardia) nhưng chữ chính vẫn in "BÌNH THƯỜNG" của riêng nhãn AAMI từng nhịp, nhìn
+  // mâu thuẫn và gây hoang mang cho bác sĩ.
+  const isDanger = currentAlarmLevel === 3;
+  const isWarning = currentAlarmLevel === 2;
+  const aiColor = isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--text-main)';
   // Ngưỡng KPI cốt lõi của dự án: tổng độ trễ hệ thống (End-to-End) phải dưới 2 giây - xem
   // Project Definition mục "Đánh giá toàn diện hệ thống".
   const isLatencyOverBudget = latencyE2e > 2000;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px' }}>
-      
-      <div className="card" style={{ 
-        padding: '15px 20px', 
-        display: 'flex', 
-        flexDirection: 'column', 
+
+      <div className="card" style={{
+        padding: '15px 20px',
+        display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         gap: '8px',
-        backgroundColor: isDanger ? 'var(--danger-bg)' : 'var(--card-bg)',
-        borderLeft: isDanger ? '4px solid var(--danger)' : '4px solid var(--primary)',
+        backgroundColor: isDanger ? 'var(--danger-bg)' : isWarning ? 'rgba(245,158,11,0.08)' : 'var(--card-bg)',
+        borderLeft: `4px solid ${isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--primary)'}`,
         gridColumn: 'span 2'
       }}>
-        <h3 style={{ margin: 0, fontSize: '13px', color: isDanger ? 'var(--danger)' : 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        <h3 style={{ margin: 0, fontSize: '13px', color: isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           🤖 Phân Tích AI
         </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <p style={{
-            margin: 0,
-            fontSize: '22px',
-            fontWeight: '700',
-            color: isDanger ? 'var(--danger)' : 'var(--text-main)'
-          }}>
-            {latestPrediction}
-          </p>
+        <p style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: aiColor }}>
+          {currentAlarmLabel || latestPrediction}
+        </p>
+        {/* Nhãn AAMI thô của đúng nhịp hiện tại - luôn hiện, kể cả khi tiêu đề trên đang phản
+            ánh 1 điều kiện khác (AFib/tachycardia) chứ không phải phân loại nhịp đơn lẻ này. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Nhịp hiện tại (AAMI):</span>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-main)', fontWeight: '600' }}>{latestPrediction}</span>
           <span style={{
-            fontSize: '12px', fontWeight: '700', fontFamily: 'monospace',
-            color: isDanger ? 'var(--danger)' : 'var(--text-muted)',
-            border: `1px solid ${isDanger ? 'var(--danger)' : 'var(--border-color)'}`,
-            borderRadius: '4px', padding: '1px 6px',
+            fontSize: '11px', fontWeight: '700', fontFamily: 'monospace',
+            color: 'var(--text-muted)', border: '1px solid var(--border-color)',
+            borderRadius: '4px', padding: '0px 5px',
           }}>
             {getAamiCode(latestPrediction)}
           </span>

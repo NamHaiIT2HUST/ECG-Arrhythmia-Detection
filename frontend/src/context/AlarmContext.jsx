@@ -12,6 +12,7 @@ export const AlarmProvider = ({ children }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [snoozeCountdown, setSnoozeCountdown] = useState(0); // giây còn lại
   const [currentAlarmLevel, setCurrentAlarmLevel] = useState(0);
+  const [currentAlarmLabel, setCurrentAlarmLabel] = useState(ALARM_LEVELS['BÌNH THƯỜNG'].label);
   const muteTimerRef = useRef(null);
   const countdownTimerRef = useRef(null);
 
@@ -69,10 +70,14 @@ export const AlarmProvider = ({ children }) => {
     if (extras.afibSuspected) candidates.push(EXTRA_CONDITIONS.afib);
     if (extras.tachycardiaSuspected) candidates.push(EXTRA_CONDITIONS.tachycardia);
 
-    // Điều kiện nào mức độ cao nhất thắng, quyết định âm thanh/push/label hiển thị.
+    // Điều kiện nào mức độ cao nhất thắng, quyết định âm thanh/push/label hiển thị. Đây là
+    // NGUỒN DUY NHẤT quyết định "đang cảnh báo vì cái gì" - StatCards dùng chung currentAlarmLevel
+    // + currentAlarmLabel này để hiện tiêu đề card AI, tránh tình trạng card tô đỏ (do AFib/
+    // tachycardia) nhưng chữ chính vẫn in "BÌNH THƯỜNG" của riêng nhãn AAMI từng nhịp.
     const winner = candidates.reduce((max, c) => (c.level > max.level ? c : max));
 
     setCurrentAlarmLevel(winner.level);
+    setCurrentAlarmLabel(winner.label);
 
     if (winner.level < 2) {
       stopAlarm();
@@ -115,6 +120,7 @@ export const AlarmProvider = ({ children }) => {
       isMuted,
       snoozeCountdown,
       currentAlarmLevel,
+      currentAlarmLabel,
       muteAlarm,
       unmuteAlarm,
       triggerAlarm,

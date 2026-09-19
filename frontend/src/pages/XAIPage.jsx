@@ -1,10 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAnomaly } from '../context/AnomalyContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { ALARM_LEVELS } from '../constants/alarmLevels';
+import { usePatient } from '../context/PatientContext';
+import { ALARM_LEVELS, getAamiCode } from '../constants/alarmLevels';
 import api from '../api/axios';
 import Plot from 'react-plotly.js';
+
+// Ngưỡng heatmap được coi là "AI tập trung cao" khi tính thống kê thật từ dữ liệu Grad-CAM -
+// dùng để mô tả CHÍNH XÁC từng ca thay vì 1 câu kết luận mẫu giống hệt nhau cho mọi trường hợp.
+const HIGH_ATTENTION_THRESHOLD = 0.7;
+const WINDOW_SIZE = 187;
+const CENTER_INDEX = Math.floor(WINDOW_SIZE / 2); // đỉnh R luôn được căn giữa cửa sổ cắt nhịp
+
+// Tính toán thống kê THẬT từ mảng heatmap của đúng ca đang xem - thay cho đoạn văn mẫu tĩnh
+// trước đây (giống hệt nhau ở mọi ca, không phản ánh dữ liệu thực), giúp bác sĩ đối chiếu lâm
+// sàng đúng với ca cụ thể thay vì đọc 1 câu chung chung.
+const computeHeatmapInsight = (heatmap) => {
+  if (!heatmap || heatmap.length === 0) return null;
+  let peakIdx = 0;
+  let highCount = 0;
+  for (let i = 0; i < heatmap.length; i++) {
+    if (heatmap[i] > heatmap[peakIdx]) peakIdx = i;
+    if (heatmap[i] >= HIGH_ATTENTION_THRESHOLD) highCount += 1;
+  }
+  const distanceFromCenter = Math.abs(peakIdx - CENTER_INDEX);
+  return {
+    peakIdx,
+    peakValue: heatmap[peakIdx],
+    highAttentionPct: Math.round((highCount / heatmap.length) * 100),
+    isNearRPeak: distanceFromCenter <= 20, // ~20 mẫu ~ 55ms ở 360Hz, đủ hẹp quanh QRS trung tâm
+  };
+};
 
 const CORRECTABLE_LABELS = Object.keys(ALARM_LEVELS);
 
@@ -110,10 +137,13 @@ const VerifyPanel = ({ anomaly, onVerified }) => {
 const XAIPage = () => {
   const { anomalyHistory, selectedAnomaly, setSelectedAnomaly, updateAnomaly } = useAnomaly();
   const { isDarkActive } = useTheme();
+  const { selectedPatient } = usePatient();
+
+  const insight = useMemo(() => computeHeatmapInsight(selectedAnomaly?.heatmap), [selectedAnomaly]);
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
-      
+
       <div className="card" style={{ padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: '0 0 5px 0', color: 'var(--text-main)', fontSize: '20px' }}>🧠 Trạm Phân Tích XAI (Explainable AI)</h2>
@@ -121,6 +151,13 @@ const XAIPage = () => {
             Xem AI đang "nhìn" vào đâu trên sóng ECG để đưa ra chẩn đoán, và xác nhận/sửa lại
             nếu chưa đúng — dữ liệu này giúp cải thiện mô hình trong tương lai.
           </p>
+          {/* Luôn hiện rõ đang xem cảnh báo của bệnh nhân nào - an toàn lâm sàng, tránh nhầm
+              lẫn dữ liệu giữa các bệnh nhân khi bác sĩ theo dõi nhiều ca trong ca trực. */}
+          {selectedPatient && (
+            <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: 'var(--primary)', fontWeight: '600' }}>
+              🧑‍⚕️ {selectedPatient.name} · Giường {selectedPatient.bedNumber}
+            </p>
+          )}
         </div>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tổng số nhịp lỗi đã lưu:</span>
@@ -163,9 +200,20 @@ const XAIPage = () => {
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--danger)', marginBottom: '4px' }}>🚨 {item.prediction}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--danger)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      🚨 {item.prediction}
+                    </span>
+                    <span style={{
+                      fontSize: '10.5px', fontWeight: '700', fontFamily: 'monospace', flexShrink: 0,
+                      color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '4px', padding: '0 4px',
+                    }}>
+                      {getAamiCode(item.prediction)}
+                    </span>
+                  </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
                     <span>{item.time}</span>
+                    {item.confidence != null && <span>Độ tin cậy: {(item.confidence * 100).toFixed(0)}%</span>}
                     <span>{item.latency} ms</span>
                   </div>
                 </div>
@@ -252,8 +300,18 @@ const XAIPage = () => {
             <>
               <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--danger-bg)', borderRadius: '6px', border: '1px solid var(--danger)' }}>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', lineHeight: 1.5 }}>
-                  <strong>Kết luận XAI:</strong> Mô hình ResNet1D đã tập trung sự chú ý cao nhất vào các vùng màu đỏ sậm (giá trị heatmap ≈ 1.0).
-                  Điều này khớp với đặc trưng lâm sàng của phức bộ QRS dị dạng dãn rộng trong nhịp <strong>{selectedAnomaly.prediction}</strong>.
+                  <strong>Chẩn đoán AI:</strong> {selectedAnomaly.prediction}
+                  {selectedAnomaly.confidence != null && ` (độ tin cậy ${(selectedAnomaly.confidence * 100).toFixed(1)}%)`}.
+                  {insight && (
+                    <>
+                      {' '}Mô hình tập trung <strong>{insight.highAttentionPct}%</strong> cửa sổ tín hiệu vào vùng chú ý
+                      cao (heatmap ≥ {HIGH_ATTENTION_THRESHOLD}), đỉnh chú ý mạnh nhất tại mẫu <strong>#{insight.peakIdx}</strong> (giá
+                      trị {insight.peakValue.toFixed(2)}) —
+                      {insight.isNearRPeak
+                        ? ' nằm quanh vị trí đỉnh R ở giữa cửa sổ, khớp với vị trí phức bộ QRS.'
+                        : ' lệch khỏi vị trí đỉnh R ở giữa cửa sổ, có thể mô hình đang xét vùng sóng P/T lân cận thay vì chính QRS — nên bác sĩ đối chiếu kỹ hơn.'}
+                    </>
+                  )}
                 </p>
               </div>
               <p style={{ margin: '14px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
