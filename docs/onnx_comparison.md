@@ -1,12 +1,12 @@
 # So sánh ResNet1D: PyTorch vs ONNX (FP32) vs ONNX (INT8 quantized)
 
-**Ngày tạo**: 2026-08-30 23:49:51
+**Ngày tạo**: 2026-09-19 13:17:55
 
 | Định dạng | Kích thước file | Latency TB (200 lần, batch=1, CPU) | Accuracy end-to-end* |
 |:---|---:|---:|---:|
-| PyTorch FP32 (.pth) | 2734.9 KB | 1.0817 ms | 94.33% (baseline) |
-| ONNX FP32 (.onnx) | 2703.4 KB | 0.2691 ms | 94.33% (F1-macro 60.27%) |
-| ONNX INT8 quantized (.onnx) | 697.3 KB | 1.0027 ms | 94.18% (F1-macro 59.97%) |
+| PyTorch FP32 (.pth) | 2735.5 KB | 1.1392 ms | 94.33% (baseline) |
+| ONNX FP32 (.onnx) | 2703.4 KB | 0.2918 ms | 94.11% (F1-macro 61.28%) |
+| ONNX INT8 quantized (.onnx) | 697.3 KB | 1.0899 ms | 93.66% (F1-macro 61.18%) |
 
 \* Đo bằng `backend/scripts/validate_onnx_classification.py` — chạy end-to-end (tín hiệu thô → lọc nhiễu → Pan-Tompkins → cắt nhịp → model → so nhãn bác sĩ) trên 8 bản ghi MIT-BIH, cùng bộ dữ liệu dùng để đo baseline PyTorch trong `validate_classification.py`.
 
@@ -16,8 +16,8 @@ Kỳ vọng ban đầu (`plan.md`) là lượng hoá INT8 giúp tăng tốc 3-5 
 
 **Kết luận thực tế cho mục tiêu Edge AI của CP6.1**:
 - Mục tiêu **kích thước** (`plan.md`: "< 700KB") đã đạt: 697.3KB.
-- Mục tiêu **độ chính xác** đạt: INT8 chỉ rớt 0.15 điểm % so PyTorch gốc, trong ngưỡng chấp nhận 2 điểm %.
-- Mục tiêu **tốc độ trên CPU dev** không chắc đạt bằng INT8 — nhưng **ONNX FP32 luôn nhanh hơn PyTorch gốc rõ rệt** (1.08ms → 0.27ms) mà không đổi gì về độ chính xác hay kích thước, nên nếu chỉ cần tối ưu tốc độ (không cần thu nhỏ file), **ONNX FP32 là lựa chọn tốt hơn INT8 trên phần cứng này**.
+- Mục tiêu **độ chính xác** đạt: INT8 chỉ rớt 0.67 điểm % so PyTorch gốc, trong ngưỡng chấp nhận 2 điểm %.
+- Mục tiêu **tốc độ trên CPU dev** không chắc đạt bằng INT8 — nhưng **ONNX FP32 luôn nhanh hơn PyTorch gốc rõ rệt** (1.14ms → 0.29ms) mà không đổi gì về độ chính xác hay kích thước, nên nếu chỉ cần tối ưu tốc độ (không cần thu nhỏ file), **ONNX FP32 là lựa chọn tốt hơn INT8 trên phần cứng này**.
 - Nếu mục tiêu thật sự là triển khai lên thiết bị edge có tăng tốc INT8 phần cứng (Raspberry Pi 4+ dùng ARM NEON dot-product, Jetson Nano dùng TensorRT INT8, ...), cần đo lại latency TRÊN CHÍNH thiết bị đó — số liệu latency ở đây chỉ phản ánh đúng CPU máy dev, không đại diện cho edge device thật.
 
 ## Cách tái tạo
