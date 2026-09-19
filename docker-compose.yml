@@ -23,9 +23,12 @@ services:
       context: .
       dockerfile: frontend.Dockerfile
     ports:
-      # Đổi "8080:80" -> "80:80" khi deploy trên máy chủ có cổng 80 trống (chuẩn thông thường).
-      # Đang để 8080 vì máy dev đang test có 1 tiến trình khác (Apache trong WSL2) chiếm cổng 80.
-      - "8080:80"
+      # Mặc định cổng 80 (CI và triển khai thật đều mong đợi đúng cổng này, xem
+      # .github/workflows/ci-cd.yml mục "docker compose smoke test"). Máy nào bị xung đột cổng
+      # 80 với tiến trình khác (từng gặp: Apache trong WSL2) tự đặt biến môi trường riêng
+      # TRƯỚC khi chạy, KHÔNG sửa file này: `FRONTEND_PORT=8080 docker compose up -d`
+      # (Windows PowerShell: `$env:FRONTEND_PORT=8080; docker compose up -d`).
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
     restart: unless-stopped
