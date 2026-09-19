@@ -18,6 +18,26 @@ const MONITOR_TEXT = 'rgba(226, 253, 238, 0.55)';
 // đổi tên các lead ngực chuẩn khác (V1/V2/V4/V5...) vì chúng đã đúng quy ước rồi.
 const formatLeadName = (name) => (name === 'MLII' ? 'II' : name);
 
+// Trước đây cả 2 kênh dùng chung 1 khung trục y cố định [-2, 4] - hợp lý với biên độ điển hình
+// của Lead II/MLII, nhưng một số đạo trình khác (vd V2) có biên độ điện thế lớn hơn hẳn (gấp
+// nhiều lần) đạo trình còn lại (vd V5) ở CÙNG 1 bệnh nhân - dùng chung khung cố định khiến kênh
+// biên độ nhỏ bị "đè bẹp" nhìn gần như phẳng dù dữ liệu vẫn đúng. Giờ mỗi kênh tự co giãn theo
+// đúng biên độ thật đang hiển thị (min/max của đúng đoạn 10 giây đang xem), có đệm 2 đầu để
+// đỉnh/đáy sóng không dính sát viền khung.
+const computeAmplitudeRange = (data, fallback = [-2, 4]) => {
+  if (!data || data.length === 0) return fallback;
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min === max) return fallback;
+  const pad = (max - min) * 0.15;
+  return [min - pad, max + pad];
+};
+
 const ECGChart = ({ xData, yData, yData2 = [], lead1Name: rawLead1Name = null, lead2Name: rawLead2Name = null, heatmap = null }) => {
   const lead1Name = formatLeadName(rawLead1Name);
   const lead2Name = formatLeadName(rawLead2Name);
@@ -26,6 +46,8 @@ const ECGChart = ({ xData, yData, yData2 = [], lead1Name: rawLead1Name = null, l
   // giúp bác sĩ đối chiếu hình dạng nhịp thay vì chỉ tin vào đúng 1 góc nhìn - xem
   // data_streamer.py và câu hỏi "sao chỉ hiện 1 dòng so với máy 12 lead" đã trao đổi.
   const hasLead2 = Array.isArray(yData2) && yData2.length > 0;
+  const yRange1 = computeAmplitudeRange(yData);
+  const yRange2 = computeAmplitudeRange(yData2);
 
   const shapes = [];
 
@@ -124,10 +146,10 @@ const ECGChart = ({ xData, yData, yData2 = [], lead1Name: rawLead1Name = null, l
             // Có kênh 2: chia dọc thành 2 dải xếp chồng dùng CHUNG 1 trục x (giống bản in Holter
             // 2 kênh thật) - yaxis (trên) là kênh chẩn đoán chính, yaxis2 (dưới) là kênh tham chiếu.
             yaxis: hasLead2
-              ? { domain: [0.56, 1], showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: [-2.0, 4.0], title: { text: lead1Name || 'Lead 1', font: { size: 10, color: MONITOR_TEXT } } }
-              : { showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: [-2.0, 4.0] },
+              ? { domain: [0.56, 1], showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: yRange1, title: { text: lead1Name || 'Lead 1', font: { size: 10, color: MONITOR_TEXT } } }
+              : { showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: yRange1 },
             ...(hasLead2 ? {
-              yaxis2: { domain: [0, 0.44], showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: [-2.0, 4.0], title: { text: lead2Name || 'Lead 2', font: { size: 10, color: MONITOR_TEXT } } },
+              yaxis2: { domain: [0, 0.44], showgrid: true, gridcolor: MONITOR_GRID, zeroline: true, zerolinecolor: MONITOR_GRID, range: yRange2, title: { text: lead2Name || 'Lead 2', font: { size: 10, color: MONITOR_TEXT } } },
             } : {}),
             margin: { l: 30, r: 10, t: 10, b: 30 },
           }}
