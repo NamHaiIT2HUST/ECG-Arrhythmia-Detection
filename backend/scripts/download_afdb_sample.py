@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
         "--dl-dir",
         type=str,
         default=None,
-        help="Thư mục lưu dữ liệu, mặc định là <repo>/data/raw",
+        help="Thư mục lưu dữ liệu, mặc định là <repo>/data/raw/afdb",
     )
     return parser.parse_args()
 
@@ -51,7 +51,14 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[2]
-    dl_dir = Path(args.dl_dir).resolve() if args.dl_dir else repo_root / "data" / "raw"
+    # BUG ĐÃ SỬA: `wfdb.dl_database(db_dir, dl_dir, ...)` ghi file THẲNG vào `dl_dir`,
+    # KHÔNG tự tạo thư mục con tên `db_dir` như code cũ giả định — bản trước truyền
+    # `dl_dir=data/raw` nên mọi file .hea/.dat/.atr rơi thẳng vào data/raw/, lẫn với
+    # các bộ dữ liệu khác (kaggle_csv/, physionet_mitdb/, svdb/...), và script hiệu
+    # chỉnh (`calibrate_afib_thresholds.py`, mặc định tìm ở data/raw/afdb/) không bao
+    # giờ thấy được. Giờ mặc định đích tải thẳng là data/raw/afdb đúng như nơi script
+    # hiệu chỉnh tìm.
+    dl_dir = Path(args.dl_dir).resolve() if args.dl_dir else repo_root / "data" / "raw" / "afdb"
     dl_dir.mkdir(parents=True, exist_ok=True)
 
     records = [str(r).strip() for r in args.records if str(r).strip()]
@@ -67,11 +74,8 @@ def main() -> None:
         raise RuntimeError(f"Không thể tải dữ liệu AFDB: {exc}") from exc
 
     print("[AFDB] Tải xong.")
-    print("[AFDB] Kiểm tra nhanh: các file sẽ nằm trong thư mục data/raw/afdb/ ...")
-    afdb_dir = dl_dir / "afdb"
-    if afdb_dir.exists():
-        children = sorted(p.name for p in afdb_dir.iterdir())[:10]
-        print(f"[AFDB] Ví dụ nội dung trong {afdb_dir}: {children}")
+    children = sorted(p.name for p in dl_dir.iterdir())[:10]
+    print(f"[AFDB] Ví dụ nội dung trong {dl_dir}: {children}")
 
 
 if __name__ == "__main__":

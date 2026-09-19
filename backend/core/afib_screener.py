@@ -11,6 +11,18 @@ class AfibScreener:
     để cảnh báo khi RR không đều "irregularly irregular" như rung nhĩ.
     """
 
+    # threshold=0.62 vẫn là giá trị CHỌN TAY theo trực giác, CHƯA qua kiểm chứng thống
+    # kê đáng tin — xem backend/scripts/calibrate_afib_thresholds.py (đã sửa đúng
+    # phương pháp: đọc nhãn nhịp điệu thật từ AFDB thay vì giả định tất cả là AFib).
+    # Đã thử chạy calibrate trên 1 đoạn ngắn (~10 phút, record AFDB 04015) do môi
+    # trường tải dữ liệu quá chậm lúc thử (~7.6KB/s, không tải nổi bản ghi đầy đủ
+    # ~27MB) — kết quả KHÔNG đủ tin cậy để đổi ngưỡng (Youden's J ~0, gần như ngẫu
+    # nhiên), nhưng phát hiện điều đáng chú ý: các hằng số bão hoà công thức
+    # (irregularity/0.25, pnn50/35, rmssd/120 bên dưới _compute_metrics) có thể đang
+    # quá NHẠY — ở đúng bệnh nhân AFDB 04015 này, ngay cả đoạn nhịp "N" (không AFib)
+    # cũng đã cho điểm 0.8-1.0 (bão hoà), gần bằng đoạn AFib thật. Cần chạy lại
+    # calibrate_afib_thresholds.py với ĐẦY ĐỦ nhiều bản ghi AFDB (không bị cắt ngắn
+    # vì mạng chậm) trước khi đổi threshold này dựa trên số liệu thật.
     def __init__(self, fs=360, max_history=50, threshold=0.62):
         self.fs = fs
         self.max_history = max_history
