@@ -25,6 +25,9 @@ export const MonitoringProvider = ({ children }) => {
 
   const [xData, setXData] = useState([]);
   const [yData, setYData] = useState([]);
+  const [yData2, setYData2] = useState([]);
+  const [lead1Name, setLead1Name] = useState(null);
+  const [lead2Name, setLead2Name] = useState(null);
   const [currentHeatmap, setCurrentHeatmap] = useState(null);
 
   const [latestPrediction, setLatestPrediction] = useState('Đang tải...');
@@ -78,6 +81,7 @@ export const MonitoringProvider = ({ children }) => {
   // (đặc biệt StrictMode) làm log trùng anomaly. Dùng ref đọc/ghi trực tiếp, gọi setYData với
   // giá trị đã tính sẵn (không phải updater function) - không còn side effect nào bên trong.
   const yDataRef = useRef([]);
+  const yData2Ref = useRef([]);
   const xDataRef = useRef([]);
 
   // Backend gửi 36 gói tin/giây (đúng tốc độ gốc MIT-BIH 360Hz) - setXData/setYData trước đây
@@ -89,6 +93,7 @@ export const MonitoringProvider = ({ children }) => {
     const flushInterval = setInterval(() => {
       setXData(xDataRef.current);
       setYData(yDataRef.current);
+      setYData2(yData2Ref.current);
     }, 66);
     return () => clearInterval(flushInterval);
   }, []);
@@ -108,7 +113,11 @@ export const MonitoringProvider = ({ children }) => {
     setIsInitialLoading(true);
     setXData([]);
     setYData([]);
+    setYData2([]);
+    setLead1Name(null);
+    setLead2Name(null);
     yDataRef.current = [];
+    yData2Ref.current = [];
     xDataRef.current = [];
     setCurrentHeatmap(null);
     setLatestPrediction('Đang tải...');
@@ -143,8 +152,10 @@ export const MonitoringProvider = ({ children }) => {
     }
 
     const handleNewData = (data) => {
-      const { chunk, prediction, latency_ms, latency_e2e_ms, heatmap, anomaly_id, bpm, hrv_sdnn, hrv_rmssd, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
+      const { chunk, chunk2, lead1_name, lead2_name, prediction, latency_ms, latency_e2e_ms, heatmap, anomaly_id, bpm, hrv_sdnn, hrv_rmssd, confidence, afib_suspected, afib_score, tachycardia_suspected, is_new_beat } = data;
 
+      if (lead1_name !== undefined) setLead1Name(lead1_name);
+      if (lead2_name !== undefined) setLead2Name(lead2_name);
       setLatency(latency_ms);
       if (latency_e2e_ms !== undefined) setLatencyE2e(latency_e2e_ms);
       setLatestPrediction(prediction);
@@ -174,6 +185,13 @@ export const MonitoringProvider = ({ children }) => {
       const rawY = [...yDataRef.current, ...chunk];
       const nextY = rawY.length > MAX_POINTS ? rawY.slice(rawY.length - MAX_POINTS) : rawY;
       yDataRef.current = nextY;
+
+      // chunk2 chỉ có khi bản ghi PhysioNet có kênh thứ 2 (vd MLII + V1/V5) - xem data_streamer.py.
+      // Không dùng cho AI, chỉ hiển thị thêm 1 dải sóng tham chiếu như máy Holter 2 kênh thật.
+      if (chunk2) {
+        const rawY2 = [...yData2Ref.current, ...chunk2];
+        yData2Ref.current = rawY2.length > MAX_POINTS ? rawY2.slice(rawY2.length - MAX_POINTS) : rawY2;
+      }
 
       if (heatmap) {
         setCurrentHeatmap(heatmap);
@@ -248,8 +266,10 @@ export const MonitoringProvider = ({ children }) => {
         setConnectionStatus(event?.code === 4401 ? 'Phiên đăng nhập hết hạn, đang thử lại...' : 'Đang kết nối lại...');
         xDataRef.current = [];
         yDataRef.current = [];
+        yData2Ref.current = [];
         setXData([]);
         setYData([]);
+        setYData2([]);
         setCurrentHeatmap(null);
 
         reconnectTimeout = setTimeout(connect, 3000);
@@ -275,6 +295,9 @@ export const MonitoringProvider = ({ children }) => {
     isInitialLoading,
     xData,
     yData,
+    yData2,
+    lead1Name,
+    lead2Name,
     currentHeatmap,
     latestPrediction,
     latency,

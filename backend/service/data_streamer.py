@@ -28,11 +28,16 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
     khoảng RR thực tế) và resample về đúng `window_size` điểm để khớp miền dữ liệu
     đã dùng lúc train (xem plan.md mục 3.0).
 
-    Mỗi lần lặp trả về (chunk, beat_info):
-    - chunk: list `chunk_size` giá trị (đã lọc nhiễu) để vẽ biểu đồ liên tục.
+    Mỗi lần lặp trả về (chunk, chunk2, beat_info, lead1_name, lead2_name):
+    - chunk: list `chunk_size` giá trị (đã lọc nhiễu) của kênh 0 - kênh DUY NHẤT dùng để phát
+      hiện đỉnh R và chạy AI (không đổi hành vi chẩn đoán so với trước).
+    - chunk2: list `chunk_size` giá trị của kênh 1 nếu bản ghi có ≥2 kênh (đa số MIT-BIH), chỉ
+      dùng để hiển thị thêm dải sóng tham chiếu trên Dashboard; None nếu bản ghi chỉ có 1 kênh.
     - beat_info: None nếu gói tin này không chứa đỉnh R nào; ngược lại là dict
       {'window': ndarray(window_size,), 'bpm': float, 'hrv_sdnn': float, 'hrv_rmssd': float}
       — chỉ được tạo đúng 1 lần mỗi nhịp tim thật (không chạy AI liên tục trên mọi gói tin).
+    - lead1_name/lead2_name: tên kênh theo header PhysioNet (vd 'MLII', 'V1'), lead2_name=None
+      nếu bản ghi chỉ có 1 kênh.
     """
     delay_s = 1.0 / fps
 
@@ -41,13 +46,22 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
     if not os.path.exists(abs_filepath + ".dat"):
         print(f"[!] Không tìm thấy file gốc {abs_filepath}.dat. Vui lòng tải data MIT-BIH trước.")
         while True:
-            yield [0.0] * chunk_size, None
+            yield [0.0] * chunk_size, None, None, 'Lead 1', None
             await asyncio.sleep(delay_s)
         return
 
     try:
-        signals, fields = wfdb.rdsamp(abs_filepath, channels=[0])
-        signals = signals.flatten()
+        # Đọc TẤT CẢ kênh có sẵn (đa số bản ghi MIT-BIH có 2 kênh, vd MLII + V1/V5) thay vì chỉ
+        # channels=[0] như trước - kênh 0 vẫn là kênh DUY NHẤT dùng để phát hiện đỉnh R/chạy AI
+        # (không đổi hành vi chẩn đoán), kênh 1 (nếu có) chỉ dùng để hiển thị thêm 1 dải sóng
+        # tham chiếu trên Dashboard, giống quy ước máy Holter 2 kênh thật - xem ECGChart.jsx.
+        signals_all, fields = wfdb.rdsamp(abs_filepath)
+        sig_names = fields.get('sig_name') or []
+        signals = signals_all[:, 0]
+        has_lead2 = signals_all.shape[1] > 1
+        signals2 = signals_all[:, 1] if has_lead2 else None
+        lead1_name = sig_names[0] if len(sig_names) > 0 else 'Lead 1'
+        lead2_name = sig_names[1] if has_lead2 and len(sig_names) > 1 else None
         fs = fields.get('fs', 360)
     except Exception as e:
         print(f"[!] Lỗi đọc wfdb: {e}")
@@ -55,6 +69,7 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
 
     # Lọc nhiễu (bandpass 0.5-45Hz + notch 50Hz) 1 lần cho toàn bộ tín hiệu
     clean_signal = notch_filter(bandpass_filter(signals, fs=fs), fs=fs)
+    clean_signal2 = notch_filter(bandpass_filter(signals2, fs=fs), fs=fs) if has_lead2 else None
 
     # Phát hiện toàn bộ đỉnh R 1 lần cho cả bản ghi, trên tín hiệu GỐC (fs, thường 360Hz —
     # nơi thuật toán Pan-Tompkins đã được kiểm chứng ~97% F1 so với nhãn bác sĩ)
@@ -81,6 +96,7 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
 
     while True:
         chunk = []
+        chunk2 = [] if has_lead2 else None
         beat_info = None
 
         for _ in range(chunk_size):
@@ -92,6 +108,8 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
 
             val = float(clean_signal[idx])
             chunk.append(val)
+            if has_lead2:
+                chunk2.append(float(clean_signal2[idx]))
 
             if beat_cursor < len(r_peaks) and idx == r_peaks[beat_cursor]:
                 window = extract_beat_window(model_signal, r_peaks_model, beat_cursor, window_size=window_size, fs=MODEL_FS)
@@ -107,6 +125,6 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
 
             idx += 1
 
-        yield chunk, beat_info
+        yield chunk, chunk2, beat_info, lead1_name, lead2_name
 
         await asyncio.sleep(delay_s)

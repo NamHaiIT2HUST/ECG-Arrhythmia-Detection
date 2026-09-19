@@ -14,6 +14,9 @@ const DashboardPage = () => {
     isInitialLoading,
     xData,
     yData,
+    yData2,
+    lead1Name,
+    lead2Name,
     currentHeatmap,
     latestPrediction,
     latency,
@@ -165,7 +168,7 @@ const DashboardPage = () => {
             tachycardiaSuspected={tachycardiaSuspected}
           />
           <div ref={chartRef} style={{ display: 'flex', flex: 1, minHeight: '0', position: 'relative' }}>
-            <ECGChart xData={xData} yData={yData} heatmap={currentHeatmap} />
+            <ECGChart xData={xData} yData={yData} yData2={yData2} lead1Name={lead1Name} lead2Name={lead2Name} heatmap={currentHeatmap} />
           </div>
         </>
       )}

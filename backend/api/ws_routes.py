@@ -68,7 +68,7 @@ async def ecg_stream_endpoint(
         last_tachycardia = False
         last_afib = {"afib_suspected": False, "afib_score": 0.0}
 
-        async for chunk_values, beat_info in ecg_stream:
+        async for chunk_values, chunk2_values, beat_info, lead1_name, lead2_name in ecg_stream:
             heatmap = None
             anomaly_id = None
 
@@ -109,6 +109,9 @@ async def ecg_stream_endpoint(
             # 2. Đóng gói dữ liệu gửi về Frontend
             payload = {
                 "chunk": chunk_values,         # Mảng 10 điểm (đã lọc nhiễu) để vẽ biểu đồ line liên tục
+                "chunk2": chunk2_values,       # Mảng 10 điểm của kênh tham chiếu thứ 2 (vd V1/V5), None nếu bản ghi chỉ có 1 kênh
+                "lead1_name": lead1_name,      # Tên kênh 0 theo header PhysioNet (vd 'MLII') - kênh dùng để chẩn đoán AI
+                "lead2_name": lead2_name,      # Tên kênh 1 (vd 'V1'), None nếu không có kênh thứ 2
                 "prediction": last_prediction, # Nhãn kết quả nhịp gần nhất (giữ nguyên tới khi có nhịp mới)
                 "heatmap": heatmap,            # Mảng 187 màu CHỈ có ở đúng gói tin phát hiện nhịp mới, còn lại None
                 "anomaly_id": anomaly_id,       # id AnomalyEvent thật trong DB (CHỈ có khi heatmap khác None), dùng để verify
