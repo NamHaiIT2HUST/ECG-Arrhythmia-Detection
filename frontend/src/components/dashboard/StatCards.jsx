@@ -40,13 +40,13 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibS
         )}
       </div>
 
-      <div className="card" style={{ 
-        padding: '15px 20px', 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div className="card" style={{
+        padding: '15px 20px',
+        display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #f59e0b'
+        borderLeft: '4px solid #22c55e'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           💓 Nhịp tim (BPM)
@@ -64,7 +64,7 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibS
         flexDirection: 'column', 
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #10b981'
+        borderLeft: '4px solid #06b6d4'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           📈 HRV (SDNN)
@@ -83,7 +83,7 @@ const StatCards = ({ latestPrediction, latency, bpm, hrv_sdnn, confidence, afibS
         flexDirection: 'column', 
         justifyContent: 'center',
         gap: '8px',
-        borderLeft: '4px solid #8b5cf6'
+        borderLeft: '4px solid #f59e0b'
       }}>
         <h3 style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
           🎯 Độ tin cậy AI

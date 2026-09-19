@@ -182,9 +182,11 @@ const PatientPage = () => {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gridAutoRows: 'max-content',
               gap: '16px',
               overflowY: 'auto',
               flex: 1,
+              minHeight: 0,
             }}>
               {filteredPatients.map(patient => (
                 <PatientCard

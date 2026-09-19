@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Plot from 'react-plotly.js';
 
+// Nền đen + sóng xanh lá là quy ước màn hình theo dõi bệnh nhân chuyên nghiệp (GE/Philips/
+// Mindray...) - tương phản cao, dễ đọc kể cả phòng thiếu sáng, và bác sĩ đã quen mắt với màu
+// này hơn hẳn so với nền xanh navy/vàng "app tiêu dùng" trước đây. Cố định luôn màu này bất
+// kể theme sáng/tối của toàn app, vì đây là quy ước ngành riêng, không nên đổi theo theme UI.
+const MONITOR_BG = '#04140a';
+const MONITOR_TRACE = '#22ff88';
+const MONITOR_GRID = 'rgba(34, 255, 136, 0.12)';
+const MONITOR_TEXT = 'rgba(226, 253, 238, 0.55)';
+
 const ECGChart = ({ xData, yData, heatmap = null }) => {
-  const [isDarkMode, setIsDarkMode] = useState(() => 
-    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e) => setIsDarkMode(e.matches);
-    // Support for older Safari versions which use addListener instead of addEventListener
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
-    } else if (mediaQuery.addListener) {
-      mediaQuery.addListener(handler);
-      return () => mediaQuery.removeListener(handler);
-    }
-  }, []);
-
   const shapes = [];
   
   if (heatmap && xData.length >= 187) {
@@ -64,7 +55,7 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
         </div>
       </div>
 
-      <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%', minHeight: '0' }}>
+      <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%', minHeight: '0', borderRadius: '8px', overflow: 'hidden', backgroundColor: MONITOR_BG }}>
         <Plot
           data={[{
             x: xData,
@@ -72,28 +63,28 @@ const ECGChart = ({ xData, yData, heatmap = null }) => {
             type: 'scatter',
             mode: 'lines',
             line: {
-              color: isDarkMode ? '#eab308' : '#2563eb', // Vàng ở chế độ tối, Xanh dương classic ở chế độ sáng
+              color: MONITOR_TRACE,
               width: 1.5,
             }
           }]}
           layout={{
             autosize: true,
-            plot_bgcolor: 'transparent', 
+            plot_bgcolor: 'transparent',
             paper_bgcolor: 'transparent',
-            font: { color: '#64748b', family: 'Inter, sans-serif' },
+            font: { color: MONITOR_TEXT, family: 'Inter, sans-serif' },
             shapes: shapes,
             xaxis: {
               showgrid: true,
-              gridcolor: isDarkMode ? '#000000' : '#f1f5f9',
+              gridcolor: MONITOR_GRID,
               zeroline: false,
               showticklabels: false,
-              title: { text: `Thời gian trôi (${(xData.length / 360).toFixed(1)}s)`, font: { size: 11, color: '#94a3b8' } }
+              title: { text: `Thời gian trôi (${(xData.length / 360).toFixed(1)}s)`, font: { size: 11, color: MONITOR_TEXT } }
             },
             yaxis: {
               showgrid: true,
-              gridcolor: isDarkMode ? '#000000' : '#f1f5f9',
+              gridcolor: MONITOR_GRID,
               zeroline: true,
-              zerolinecolor: isDarkMode ? '#000000' : '#e2e8f0',
+              zerolinecolor: MONITOR_GRID,
               range: [-2.0, 4.0]
             },
             margin: { l: 30, r: 10, t: 10, b: 30 },
