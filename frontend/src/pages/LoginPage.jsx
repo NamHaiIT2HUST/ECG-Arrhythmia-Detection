@@ -263,10 +263,16 @@ const LoginPage = () => {
             </div>
 
             <div className="hero-copy fade-in-up" style={{ animationDelay: '0.05s' }}>
-              <div className="eyebrow">
-                <span className="eyebrow-dot" />
-                GIÁM SÁT NHỊP TIM AI · THỜI GIAN THỰC
-              </div>
+                <div className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                    <path d="M20 3v4" />
+                    <path d="M22 5h-4" />
+                    <path d="M4 17v2" />
+                    <path d="M5 18H3" />
+                  </svg>
+                  GIÁM SÁT NHỊP TIM AI - THỜI GIAN THỰC
+                </div>
               <h1>
                 Giám sát ECG theo thời gian thực
                 <span> và cảnh báo sớm bất thường</span>
@@ -285,10 +291,6 @@ const LoginPage = () => {
               <div className="pulse-panel large-pulse">
                 <div className="pulse-header">
                   <span className="pulse-title">Tín hiệu ECG trực tiếp</span>
-                  <span className="live-badge">
-                    <span className="live-dot" />
-                    TRỰC TIẾP
-                  </span>
                 </div>
                 <div className="pulse-line" style={{ background: 'transparent', boxShadow: 'none', height: '80px', overflow: 'hidden' }}>
                   <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="ecg-line-svg" style={{ width: '200%', height: '100%', stroke: 'var(--primary)', filter: 'drop-shadow(0 2px 4px rgba(47,109,246,0.3))', animation: 'ecg-scroll 4s linear infinite' }}>
