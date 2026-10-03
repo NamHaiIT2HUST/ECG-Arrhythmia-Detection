@@ -218,6 +218,7 @@ ax2.legend(loc='lower left', frameon=True)
 bars_lat = ax3.bar(df_results['Model'], df_results['Latency (ms)'], color=['#2ecc71', '#3498db', '#e74c3c', '#9b59b6', '#f39c12'], edgecolor='black', alpha=0.85)
 ax3.set_ylabel("Thời gian suy luận 1 nhịp (ms/sample)", fontsize=11)
 ax3.set_title("Thời Gian Suy Luận CPU (ms) — Càng thấp càng tốt", fontsize=12, fontweight='bold')
+ax3.set_xticks(range(len(df_results)))
 ax3.set_xticklabels(df_results['Model'], rotation=15, fontweight='bold')
 for b in bars_lat:
     h = b.get_height()
@@ -228,6 +229,7 @@ ax3.set_ylim(0, max(df_results['Latency (ms)']) * 1.25)
 bars_params = ax4.bar(df_results['Model'], df_results['Parameters'] / 1e3, color='#34495e', edgecolor='black', alpha=0.85)
 ax4.set_ylabel("Số lượng tham số (Nghìn / x1,000)", fontsize=11)
 ax4.set_title("Độ Phức Tạp Mô Hình (Số Lượng Tham Số)", fontsize=12, fontweight='bold')
+ax4.set_xticks(range(len(df_results)))
 ax4.set_xticklabels(df_results['Model'], rotation=15, fontweight='bold')
 for b in bars_params:
     h = b.get_height()
@@ -312,7 +314,10 @@ resnet_model.eval()
 gradcam = GradCAM1D(resnet_model, resnet_model.layer3)
 saliency = Saliency1D(resnet_model)
 
-fig, axes = plt.subplots(5, 1, figsize=(11, 12), sharex=True)
+fig = plt.figure(figsize=(11, 13))
+gs = fig.add_gridspec(6, 1, height_ratios=[1, 1, 1, 1, 1, 0.08], hspace=0.35)
+axes = [fig.add_subplot(gs[i]) for i in range(5)]
+cax = fig.add_subplot(gs[5])
 
 heatmaps_stored = {}
 beats_stored = {}
@@ -338,9 +343,11 @@ for c in range(5):
     ax.set_ylabel("Biên độ [0,1]", fontsize=10)
     ax.set_ylim(-0.08, 1.1)
     ax.legend(loc="upper right", frameon=True, fontsize=9)
+    if c < 4:
+        ax.set_xticklabels([])
 
 axes[4].set_xlabel("Chỉ số mẫu thời gian (187 điểm)", fontsize=11)
-cbar = fig.colorbar(scatter, ax=axes.ravel().tolist(), orientation='horizontal', fraction=0.03, pad=0.07)
+cbar = fig.colorbar(scatter, cax=cax, orientation='horizontal')
 cbar.set_label("Trọng số đóng góp quyết định (Grad-CAM Attribution Score: 0 = Không quan trọng, 1 = Tối quan trọng)", fontsize=11)
 
 fig.suptitle("Giải Thích Quyết Định Chẩn Đoán Của AI Bằng 1D Grad-CAM\n(Bôi đỏ vùng sóng quyết định phân loại)", fontsize=14, fontweight='bold', y=0.99)

@@ -7,8 +7,8 @@
             "Recall (Macro)": 91.99,
             "F1-Score (Macro)": 91.7,
             "F1-Score (Weighted)": 98.43,
-            "Latency (ms)": 0.132,
-            "Throughput (samples/s)": 7549,
+            "Latency (ms)": 0.133,
+            "Throughput (samples/s)": 7546,
             "Parameters": 692389
         },
         {
@@ -18,8 +18,8 @@
             "Recall (Macro)": 93.58,
             "F1-Score (Macro)": 85.79,
             "F1-Score (Weighted)": 97.49,
-            "Latency (ms)": 0.106,
-            "Throughput (samples/s)": 9409,
+            "Latency (ms)": 0.122,
+            "Throughput (samples/s)": 8164,
             "Parameters": 242885
         },
         {
@@ -29,8 +29,8 @@
             "Recall (Macro)": 94.69,
             "F1-Score (Macro)": 82.81,
             "F1-Score (Weighted)": 96.62,
-            "Latency (ms)": 0.662,
-            "Throughput (samples/s)": 1509,
+            "Latency (ms)": 0.601,
+            "Throughput (samples/s)": 1663,
             "Parameters": 171365
         },
         {
@@ -40,8 +40,8 @@
             "Recall (Macro)": 91.98,
             "F1-Score (Macro)": 83.11,
             "F1-Score (Weighted)": 95.79,
-            "Latency (ms)": 0.942,
-            "Throughput (samples/s)": 1061,
+            "Latency (ms)": 0.592,
+            "Throughput (samples/s)": 1687,
             "Parameters": 69317
         },
         {
@@ -51,8 +51,8 @@
             "Recall (Macro)": 87.92,
             "F1-Score (Macro)": 79.28,
             "F1-Score (Weighted)": 94.92,
-            "Latency (ms)": 0.535,
-            "Throughput (samples/s)": 1870,
+            "Latency (ms)": 0.49,
+            "Throughput (samples/s)": 2038,
             "Parameters": 59877
         }
     ],
