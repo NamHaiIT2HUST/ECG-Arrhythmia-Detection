@@ -25,7 +25,7 @@ def add_code(code):
 # =========================================================================
 # PHẦN 1: TIÊU ĐỀ & ĐẶT VẤN ĐỀ
 # =========================================================================
-add_md("""# NGHIÊN CỨU ĐỐI SÁNH HIỆU NĂNG 5 KIẾN TRÚC DEEP LEARNING 1D & GIẢI THÍCH MÔ HÌNH VỚI 1D GRAD-CAM CHO CHẨN ĐOÁN RỐI LOẠN NHỊP TIM (ECG)
+add_md(r"""# NGHIÊN CỨU ĐỐI SÁNH HIỆU NĂNG 5 KIẾN TRÚC DEEP LEARNING 1D & GIẢI THÍCH MÔ HÌNH VỚI 1D GRAD-CAM CHO CHẨN ĐOÁN RỐI LOẠN NHỊP TIM (ECG)
 
 > **Đề tài**: Hệ thống Giám sát Điện tâm đồ Thời gian thực & Phát hiện Rối loạn Nhịp tim ứng dụng Học sâu và Trí tuệ Nhân tạo Giải thích được (XAI).  
 > **Tiêu chuẩn Y tế**: Tiêu chuẩn 5 lớp AAMI EC57 (Normal, Supraventricular, Ventricular, Fusion, Unknown).  
@@ -41,7 +41,7 @@ add_md("""# NGHIÊN CỨU ĐỐI SÁNH HIỆU NĂNG 5 KIẾN TRÚC DEEP LEARNING
 # =========================================================================
 # PHẦN 2: CƠ SỞ TOÁN HỌC & CÔNG THỨC ĐÁNH GIÁ (MATHEMATICAL FORMULATIONS)
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 1. Cơ Sở Toán Học & Công Thức Tính Các Chỉ Số Đánh Giá (Evaluation Metrics)
 
 Trong phân loại tín hiệu y sinh, đặc biệt là điện tâm đồ (ECG), tập dữ liệu luôn bị **mất cân bằng cực kỳ nghiêm trọng** (lớp nhịp bình thường $N$ chiếm $>80\%$, các lớp bệnh lý nguy hiểm $S, V, F$ chỉ chiếm từ $0.7\%$ đến $6\%$). 
@@ -87,7 +87,7 @@ Với $C = 5$ lớp AAMI:
 # =========================================================================
 # PHẦN 3: NẠP DỮ LIỆU & EDA
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 2. Nạp Dữ Liệu & Khảo Sát Hình Thái Tín Hiệu (Exploratory Data Analysis)
 
 Dữ liệu đầu vào chuẩn hóa được nạp từ `data/processed/X_test_kaggle.npy` và `y_test_kaggle.npy`:
@@ -101,7 +101,7 @@ Dữ liệu đầu vào chuẩn hóa được nạp từ `data/processed/X_test_
   * **3 - F**: Nhịp hợp nhất (*Fusion*)
   * **4 - Q**: Nhịp chưa phân loại / Có máy tạo nhịp (*Unknown / Paced*)""")
 
-add_code("""import os
+add_code(r"""import os
 import sys
 import numpy as np
 import pandas as pd
@@ -131,10 +131,10 @@ class_labels = ['N (Normal)', 'S (Supraventricular)', 'V (Ventricular)', 'F (Fus
 for c, cnt in enumerate(counts):
     print(f"      • Lớp {c} [{class_labels[c]:22s}]: {cnt:6,d} mẫu ({cnt/len(y_test)*100:5.2f}%)")""")
 
-add_md("""### Trực Quan Hóa Hình Thái Sóng ECG Của 5 Lớp & Tác Động Của SMOTE
+add_md(r"""### Trực Quan Hóa Hình Thái Sóng ECG Của 5 Lớp & Tác Động Của SMOTE
 Đồ thị dưới đây minh họa sự khác biệt hình thái giữa các dạng sóng và biểu đồ phân phối mẫu trước/sau khi cân bằng bằng kỹ thuật SMOTE:""")
 
-add_code("""from IPython.display import Image, display
+add_code(r"""from IPython.display import Image, display
 
 # Hiển thị Figure 1: Hình thái học 5 lớp ECG
 fig1_path = os.path.join(BASE_DIR, "figures", "01_ecg_class_waveforms.png")
@@ -143,7 +143,7 @@ if os.path.exists(fig1_path):
 else:
     print("[!] Chưa tìm thấy hình ảnh tại figures/01_ecg_class_waveforms.png")""")
 
-add_code("""# Hiển thị Figure 2: Phân bố dữ liệu và giải quyết mất cân bằng bằng SMOTE
+add_code(r"""# Hiển thị Figure 2: Phân bố dữ liệu và giải quyết mất cân bằng bằng SMOTE
 fig2_path = os.path.join(BASE_DIR, "figures", "02_class_distribution_imbalance.png")
 if os.path.exists(fig2_path):
     display(Image(filename=fig2_path))
@@ -153,7 +153,7 @@ else:
 # =========================================================================
 # PHẦN 4: BENCHMARK ĐỐI SÁNH 5 KIẾN TRÚC DEEP LEARNING 1D
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 3. Đối Sánh Thực Nghiệm 5 Kiến Trúc Deep Learning 1D
 
 Để tìm ra kiến trúc tối ưu nhất cho bài toán giám sát thời gian thực, chúng tôi tiến hành đánh giá trên **5 mô hình đại diện cho 5 họ mạng khác nhau**:
@@ -165,7 +165,7 @@ add_md("""---
 
 Chạy suy luận trực tiếp trên toàn bộ **$21,892$ nhịp tim** của tập kiểm thử để đo lường độ chính xác và thời gian xử lý:""")
 
-add_code("""# Khởi tạo DataLoader cho tập kiểm thử
+add_code(r"""# Khởi tạo DataLoader cho tập kiểm thử
 test_dataset = TensorDataset(torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.long))
 test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
 
@@ -218,10 +218,10 @@ for name, (model, weight_path) in models_dict.items():
 df_benchmark = pd.DataFrame(benchmark_data)
 display(df_benchmark.style.highlight_max(subset=['Accuracy (%)', 'Precision Macro (%)', 'Recall Macro (%)', 'F1-Score Macro (%)', 'Throughput (nhịp/s)'], color='#d4efdf'))""")
 
-add_md("""### Chi Tiết Chỉ Số Precision, Recall, F1 Theo Từng Lớp AAMI
+add_md(r"""### Chi Tiết Chỉ Số Precision, Recall, F1 Theo Từng Lớp AAMI
 Bảng chi tiết chứng minh sự vượt trội toàn diện của **ResNet1D**, đặc biệt ở các lớp khó như **Lớp F (Hợp nhất)** và **Lớp S (Trên thất)**:""")
 
-add_code("""# Xây dựng bảng chi tiết từng lớp cho ResNet1D và CNN-LSTM
+add_code(r"""# Xây dựng bảng chi tiết từng lớp cho ResNet1D và CNN-LSTM
 cm_res = confusion_matrix(y_test, all_predictions['ResNet1D'])
 p_res, r_res, f_res, _ = precision_recall_fscore_support(y_test, all_predictions['ResNet1D'], average=None, zero_division=0)
 
@@ -244,22 +244,22 @@ df_per_class = pd.DataFrame({
 print("=== CHI TIẾT ĐỘ ĐO LÂM SÀNG CỦA MÔ HÌNH RESNET1D (PRODUCTION) ===")
 display(df_per_class)""")
 
-add_code("""# Hiển thị Figure 3: Biểu đồ đối sánh 5 mô hình
+add_code(r"""# Hiển thị Figure 3: Biểu đồ đối sánh 5 mô hình
 fig3_path = os.path.join(BASE_DIR, "figures", "03_model_benchmark_comparison.png")
 if os.path.exists(fig3_path):
     display(Image(filename=fig3_path))""")
 
-add_code("""# Hiển thị Figure 4: Ma trận nhầm lẫn của ResNet1D
+add_code(r"""# Hiển thị Figure 4: Ma trận nhầm lẫn của ResNet1D
 fig4_path = os.path.join(BASE_DIR, "figures", "04_resnet1d_confusion_matrix.png")
 if os.path.exists(fig4_path):
     display(Image(filename=fig4_path))""")
 
-add_code("""# Hiển thị Figure 5: Chi tiết Precision, Recall, F1 giữa các mô hình theo từng lớp
+add_code(r"""# Hiển thị Figure 5: Chi tiết Precision, Recall, F1 giữa các mô hình theo từng lớp
 fig5_path = os.path.join(BASE_DIR, "figures", "05_per_class_metrics_breakdown.png")
 if os.path.exists(fig5_path):
     display(Image(filename=fig5_path))""")
 
-add_md("""### Phân Tích Kỹ Thuật: Vì Sao Chọn ResNet1D?
+add_md(r"""### Phân Tích Kỹ Thuật: Vì Sao Chọn ResNet1D?
 1. **Khả năng khái quát hóa lớp hiếm vượt bậc**:
    * Ở lớp **F (Fusion beat - 162 mẫu)**: Các mạng CNN-LSTM, TCN, Transformer đều có Recall cao ($83\\% - 88\\%$) nhưng Precision cực thấp ($38\\% - 45\\%$) $\\rightarrow$ Báo động giả tràn lan. Điểm F1 của chúng chỉ đạt $53\\% - 60\\%$.
    * Trong khi đó, **ResNet1D đạt Precision $77.71\\%$, Recall $83.95\\%$, F1 $80.71\\%$** (Cao hơn mô hình đứng nhì hơn $20$ điểm phần trăm!).
@@ -271,7 +271,7 @@ add_md("""### Phân Tích Kỹ Thuật: Vì Sao Chọn ResNet1D?
 # =========================================================================
 # PHẦN 5: EXPLAINABLE AI (1D GRAD-CAM & ĐỊNH LƯỢNG HEATMAP)
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 4. Trí Tuệ Nhân Tạo Giải Thích Được (Explainable AI - 1D Grad-CAM)
 
 Trong y tế, mô hình AI không thể là một "hộp đen" (*black-box*). Bác sĩ tim mạch cần biết **chính xác đoạn sóng nào (P, QRS, hay T)** đã kích hoạt cảnh báo nguy hiểm.
@@ -297,7 +297,7 @@ Khi đưa một nhịp tim $\\mathbf{x} \\in \\mathbb{R}^{1 \\times 187}$ vào R
 $$\\text{Energy Ratio}_{\\text{QRS}} = \\frac{\\sum_{i \\in \\text{QRS}} h_i}{\\sum_{j=0}^{186} h_j} \\times 100\\%$$
 Nếu $\\text{Energy Ratio}_{\\text{QRS}} > 80\\%$ trên nhịp thất $V$, điều đó chứng minh toán học rằng mô hình đã hội tụ đúng vào phức bộ QRS dị dạng chứ không phải học vẹt các yếu tố phụ trợ.""")
 
-add_code("""# Thực thi 1D Grad-CAM trên các mẫu nhịp tim điển hình
+add_code(r"""# Thực thi 1D Grad-CAM trên các mẫu nhịp tim điển hình
 resnet_model = ResNet1D()
 resnet_model.load_state_dict(torch.load(os.path.join(BASE_DIR, "saved_models", "resnet1d.pth"), map_location='cpu'))
 resnet_model.eval()
@@ -316,17 +316,17 @@ print(f"    - Độ dài Heatmap: {len(cam_heatmap)} điểm")
 print(f"    - Giá trị Min: {cam_heatmap.min():.4f}, Max: {cam_heatmap.max():.4f}, Mean: {cam_heatmap.mean():.4f}")
 print(f"    - Tỷ lệ năng lượng tập trung tại vùng QRS (mẫu 0-45): {(np.sum(cam_heatmap[0:45]) / np.sum(cam_heatmap))*100:.2f}%")""")
 
-add_code("""# Hiển thị Figure 6: Bản đồ nhiệt 1D Grad-CAM cho cả 5 lớp AAMI
+add_code(r"""# Hiển thị Figure 6: Bản đồ nhiệt 1D Grad-CAM cho cả 5 lớp AAMI
 fig6_path = os.path.join(BASE_DIR, "figures", "06_gradcam_heatmaps_5_classes.png")
 if os.path.exists(fig6_path):
     display(Image(filename=fig6_path))""")
 
-add_code("""# Hiển thị Figure 7: So sánh 1D Grad-CAM vs Saliency Map
+add_code(r"""# Hiển thị Figure 7: So sánh 1D Grad-CAM vs Saliency Map
 fig7_path = os.path.join(BASE_DIR, "figures", "07_gradcam_vs_saliency_comparison.png")
 if os.path.exists(fig7_path):
     display(Image(filename=fig7_path))""")
 
-add_code("""# Hiển thị Figure 8: Đánh giá định lượng mức độ tập trung năng lượng của Heatmap
+add_code(r"""# Hiển thị Figure 8: Đánh giá định lượng mức độ tập trung năng lượng của Heatmap
 fig8_path = os.path.join(BASE_DIR, "figures", "08_xai_energy_attribution_analysis.png")
 if os.path.exists(fig8_path):
     display(Image(filename=fig8_path))""")
@@ -334,7 +334,7 @@ if os.path.exists(fig8_path):
 # =========================================================================
 # PHẦN 6: BÍ ẨN LỚP S & KIỂM CHỨNG TỔNG QUÁT HÓA (CROSS-DATABASE GENERALIZATION)
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 5. Bí Ẩn Lớp S & Kiểm Chứng Khả Năng Tổng Quát Hóa (Generalization)
 
 Một trong những đóng góp học thuật quan trọng nhất của dự án là việc kiểm chứng mô hình trên **3 bộ dữ liệu độc lập hoàn toàn** (khác bệnh viện, thiết bị đo, và đạo trình):
@@ -366,7 +366,7 @@ Một trong những đóng góp học thuật quan trọng nhất của dự án
 * **Tại SVDB (`Recall F: —`)**: Trong bảng nhãn y khoa gốc PhysioNet của bộ SVDB, **hoàn toàn không có ca bệnh nào được gán nhãn F (Fusion beat)**. Mẫu số bằng $0$ nên không thể tính toán giá trị này.
 * **Tại INCART (`Recall S: —`, `Recall F: —`)**: Trong thực nghiệm Replay Fine-tuning lần 3, nhóm nghiên cứu phát hiện việc ép mô hình học lớp $S$ của INCART làm méo ranh giới phân loại và giảm chất lượng trên MIT-BIH. Vì vậy, ta đã **chủ động loại bỏ lớp S và F khỏi tập dữ liệu fine-tune** để bảo toàn chất lượng nhận diện 2 lớp cốt lõi là $N$ và $V$.""")
 
-add_code("""# Hiển thị Figure 9: Biểu đồ kiểm chứng tổng quát hóa đa tập dữ liệu
+add_code(r"""# Hiển thị Figure 9: Biểu đồ kiểm chứng tổng quát hóa đa tập dữ liệu
 fig9_path = os.path.join(BASE_DIR, "figures", "09_cross_database_generalization.png")
 if os.path.exists(fig9_path):
     display(Image(filename=fig9_path))""")
@@ -374,7 +374,7 @@ if os.path.exists(fig9_path):
 # =========================================================================
 # PHẦN 7: LƯỢNG HÓA MÔ HÌNH ONNX & TRIỂN KHAI VI ĐIỀU KHIỂN ESP32
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 6. Lượng Hóa Mô Hình (ONNX Quantization) & Hướng Triển Khai Edge / ESP32
 
 Nhằm hướng tới mục tiêu triển khai hệ thống trên các thiết bị giám sát đầu giường hoặc thiết bị đeo cá nhân, chúng tôi đã tiến hành xuất mô hình sang định dạng **ONNX FP32** và lượng hóa số nguyên **ONNX INT8**:
@@ -404,7 +404,7 @@ Việc đề xuất *"lưu dữ liệu định kỳ, ví dụ 1 giờ gửi kế
   * Ngoại tâm thu thất/nhĩ rải rác (nhịp $S, V$ đơn lẻ), Rung nhĩ từng cơn (*Paroxysmal AFib*), Thống kê biến thiên nhịp tim ($HRV - SDNN, RMSSD$).
   * **Giải pháp Hybrid Alert**: ESP32 chạy thuật toán lọc nhẹ tại chỗ. Nếu phát hiện biến cố ác tính $\\rightarrow$ Báo động tức thì. Nếu chỉ là nhịp lẻ tẻ $\\rightarrow$ Lưu bộ đệm Flash, gửi báo cáo tổng hợp sau mỗi $15 - 60$ phút để tiết kiệm $95\\%$ dung lượng Pin và băng thông truyền thông.""")
 
-add_code("""# Hiển thị Figure 10: Đánh giá lượng hóa ONNX và tính khả thi trên Edge / ESP32
+add_code(r"""# Hiển thị Figure 10: Đánh giá lượng hóa ONNX và tính khả thi trên Edge / ESP32
 fig10_path = os.path.join(BASE_DIR, "figures", "10_onnx_quantization_comparison.png")
 if os.path.exists(fig10_path):
     display(Image(filename=fig10_path))""")
@@ -412,7 +412,7 @@ if os.path.exists(fig10_path):
 # =========================================================================
 # PHẦN 8: TỔNG KẾT & ĐÓNG GÓI NOTEBOOK
 # =========================================================================
-add_md("""---
+add_md(r"""---
 ## 7. Kết Luận Chung
 
 1. **Hiệu năng mô hình cốt lõi**:
