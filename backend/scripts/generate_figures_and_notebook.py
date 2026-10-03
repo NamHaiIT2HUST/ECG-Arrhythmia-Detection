@@ -2,16 +2,13 @@ import os
 import sys
 import json
 import time
-import shutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import seaborn as sns
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
 
 # Thiết lập đường dẫn
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
