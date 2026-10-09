@@ -118,6 +118,7 @@ def test_admin_can_create_user_with_chosen_role(client, auth_headers):
     login = client.post("/api/auth/login", json={"username": "new_doctor_001", "password": "Doctor@456"})
     assert login.status_code == 200
     assert login.json()["role"] == "doctor"
+    client.cookies.clear()
 
 
 def test_admin_create_user_rejects_duplicate_username(client, auth_headers, seeded_users):

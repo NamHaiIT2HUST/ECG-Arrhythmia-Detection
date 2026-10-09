@@ -111,6 +111,9 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
             if has_lead2:
                 chunk2.append(float(clean_signal2[idx]))
 
+            while beat_cursor < len(r_peaks) and idx > r_peaks[beat_cursor]:
+                beat_cursor += 1
+
             if beat_cursor < len(r_peaks) and idx == r_peaks[beat_cursor]:
                 window = extract_beat_window(model_signal, r_peaks_model, beat_cursor, window_size=window_size, fs=MODEL_FS)
                 if window is not None:

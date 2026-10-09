@@ -60,12 +60,12 @@ class WsTicketResponse(BaseModel):
     ticket: str
 
 
-def set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None):
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None, secure: bool = False):
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True, # Require HTTPS in production
+        secure=secure,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -74,10 +74,14 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str |
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=True,
+            secure=secure,
             samesite="lax",
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         )
+
+
+def _is_secure_cookie(request: Request) -> bool:
+    return settings.COOKIE_SECURE or request.url.scheme == "https"
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -97,7 +101,7 @@ def login(request: Request, response: Response, payload: LoginRequest, db: Sessi
 
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(user)
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, secure=_is_secure_cookie(request))
 
     return LoginResponse(role=user.role.value)
 
@@ -127,15 +131,16 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         raise unauthorized
 
     new_access_token = create_access_token(user)
-    set_auth_cookies(response, new_access_token)
+    set_auth_cookies(response, new_access_token, secure=_is_secure_cookie(request))
 
     return {"ok": True}
 
 
 @router.post("/logout")
-def logout(response: Response):
-    response.delete_cookie(key="access_token", httponly=True, secure=True, samesite="lax")
-    response.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="lax")
+def logout(request: Request, response: Response):
+    is_secure = _is_secure_cookie(request)
+    response.delete_cookie(key="access_token", httponly=True, secure=is_secure, samesite="lax")
+    response.delete_cookie(key="refresh_token", httponly=True, secure=is_secure, samesite="lax")
     return {"ok": True}
 
 

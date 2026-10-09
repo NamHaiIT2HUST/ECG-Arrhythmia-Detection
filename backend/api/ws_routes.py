@@ -91,20 +91,24 @@ async def ecg_stream_endpoint(
                 # CP5.3: chỉ ghi vào DB đúng lúc phát hiện bất thường (heatmap khác None),
                 # giữ đúng ngữ nghĩa cũ "heatmap khác null = có sự kiện mới cần log"
                 if heatmap is not None:
-                    event = log_anomaly(
-                        db,
-                        patient_id=patient.id,
-                        record_id=ecg_record.id,
-                        prediction_label=last_prediction,
-                        confidence=last_confidence,
-                        heatmap=heatmap,
-                        r_peak_sample=beat_info.get("r_peak_sample"),
-                        timestamp_ms=int(time.time() * 1000),
-                    )
-                    # CP5.4: gửi kèm id thật của AnomalyEvent vừa ghi - frontend cần id này để
-                    # gọi POST /api/anomalies/{id}/verify (trước đây payload không mang id nên
-                    # nút "bác sĩ xác nhận" chưa thể nào gọi đúng được sự kiện tương ứng).
-                    anomaly_id = event.id
+                    try:
+                        event = log_anomaly(
+                            db,
+                            patient_id=patient.id,
+                            record_id=ecg_record.id,
+                            prediction_label=last_prediction,
+                            confidence=last_confidence,
+                            heatmap=heatmap,
+                            r_peak_sample=beat_info.get("r_peak_sample"),
+                            timestamp_ms=int(time.time() * 1000),
+                        )
+                        # CP5.4: gửi kèm id thật của AnomalyEvent vừa ghi - frontend cần id này để
+                        # gọi POST /api/anomalies/{id}/verify (trước đây payload không mang id nên
+                        # nút "bác sĩ xác nhận" chưa thể nào gọi đúng được sự kiện tương ứng).
+                        anomaly_id = event.id
+                    except Exception as db_err:
+                        db.rollback()
+                        print(f"[WebSocket] Cảnh báo lỗi ghi AnomalyEvent vào DB: {db_err}")
 
             # 2. Đóng gói dữ liệu gửi về Frontend
             payload = {
@@ -139,4 +143,8 @@ async def ecg_stream_endpoint(
         active_connections -= 1
         print(f"[WebSocket] Còn lại: {active_connections}")
         if ecg_record is not None:
-            end_ecg_record(db, ecg_record)
+            try:
+                end_ecg_record(db, ecg_record)
+            except Exception as end_err:
+                db.rollback()
+                print(f"[WebSocket] Lỗi kết thúc ecg_record: {end_err}")

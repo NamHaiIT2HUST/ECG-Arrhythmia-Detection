@@ -43,9 +43,10 @@ def create_refresh_token(user: User) -> str:
 
 
 def create_ws_ticket(user: User) -> str:
+    # 60s để tránh việc rớt vé do chênh lệch giờ hệ thống hoặc độ trễ mạng lúc reconnect
     return _create_token(
         {"sub": str(user.id)},
-        timedelta(seconds=10),
+        timedelta(seconds=60),
         token_type="ws_ticket",
     )
 
@@ -58,11 +59,11 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db),
 ) -> User:
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    else:
+        token = request.cookies.get("access_token")
 
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

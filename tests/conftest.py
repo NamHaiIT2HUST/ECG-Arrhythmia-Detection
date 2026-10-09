@@ -102,4 +102,5 @@ def auth_headers(client, seeded_users):
         assert res.status_code == 200, f"Seed login thất bại cho {username}: {res.text}"
         access_token = res.cookies.get("access_token")
         headers[role_name] = {"Authorization": f"Bearer {access_token}"}
+    client.cookies.clear()
     return headers
