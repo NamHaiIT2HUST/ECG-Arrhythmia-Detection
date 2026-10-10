@@ -36,8 +36,19 @@ def check_rate_limit(request: Request):
     
     if len(login_attempts[client_ip]) >= MAX_LOGIN_ATTEMPTS:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Quá nhiều lần đăng nhập sai. Vui lòng thử lại sau.")
-        
+
+
+def record_failed_attempt(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    if client_ip not in login_attempts:
+        login_attempts[client_ip] = []
     login_attempts[client_ip].append(now)
+
+
+def clear_failed_attempts(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    login_attempts.pop(client_ip, None)
 
 
 class LoginRequest(BaseModel):
@@ -91,14 +102,18 @@ def login(request: Request, response: Response, payload: LoginRequest, db: Sessi
     user = db.query(User).filter_by(username=payload.username).one_or_none()
     unauthorized = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai tài khoản hoặc mật khẩu")
     if user is None:
+        record_failed_attempt(request)
         raise unauthorized
     try:
         password_ok = verify_password(payload.password, user.hashed_password)
     except ValueError:
+        record_failed_attempt(request)
         raise unauthorized
     if not password_ok:
+        record_failed_attempt(request)
         raise unauthorized
 
+    clear_failed_attempts(request)
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(user)
     set_auth_cookies(response, access_token, refresh_token, secure=_is_secure_cookie(request))

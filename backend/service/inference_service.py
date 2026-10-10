@@ -80,14 +80,18 @@ class ECGInferenceService:
         
         # Bước 2: XAI (Grad-CAM) CHỈ chạy nếu phát hiện bất thường (class > 0)
         # Lần này KHÔNG dùng no_grad vì Grad-CAM cần backprop
-        if pred_class > 0:
+        if pred_class > 0 and self.gradcam is not None:
             t1 = time.time()
-            # Tạo tensor mới (không dùng lại tensor cũ đã qua no_grad)
-            input_tensor_xai = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
-            cam, _ = self.gradcam.generate_heatmap(input_tensor_xai, target_class=pred_class)
-            # Chuyển numpy array thành list chuẩn float để serialize sang JSON
-            heatmap_list = [round(float(val), 4) for val in cam]
-            latency_ms += (time.time() - t1) * 1000
+            try:
+                # Tạo tensor mới (không dùng lại tensor cũ đã qua no_grad)
+                input_tensor_xai = torch.tensor(input_np).unsqueeze(0).unsqueeze(0).to(self.device)
+                cam, _ = self.gradcam.generate_heatmap(input_tensor_xai, target_class=pred_class)
+                # Chuyển numpy array thành list chuẩn float để serialize sang JSON
+                heatmap_list = [round(float(val), 4) for val in cam]
+                latency_ms += (time.time() - t1) * 1000
+            except Exception as cam_err:
+                print(f"[!] Cảnh báo lỗi Grad-CAM: {cam_err}")
+                heatmap_list = None
             
         label_text = AAMI_CLASSES.get(pred_class, "KHÔNG XÁC ĐỊNH")
 
