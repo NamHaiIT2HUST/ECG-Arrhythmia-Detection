@@ -115,16 +115,20 @@ async def ecg_file_reader(filepath="data/raw/physionet_mitdb/208", chunk_size=10
                 beat_cursor += 1
 
             if beat_cursor < len(r_peaks) and idx == r_peaks[beat_cursor]:
-                window = extract_beat_window(model_signal, r_peaks_model, beat_cursor, window_size=window_size, fs=MODEL_FS)
-                if window is not None:
-                    hrv = tracker.update(int(r_peaks[beat_cursor]))
-                    afib = afib_screener.update(int(r_peaks[beat_cursor]))
-                    # 'detected_at': moc thoi gian ngay luc phat hien nhip nay - dung de do
-                    # End-to-End Latency (xem ws_routes.py va benchmark_e2e_latency.py).
-                    beat_info = {'window': window, 'r_peak_sample': int(r_peaks[beat_cursor]),
-                                 'detected_at': time.time(), **hrv,
-                                 'afib_suspected': afib['afib_suspected'], 'afib_score': afib['afib_score']}
-                beat_cursor += 1
+                try:
+                    window = extract_beat_window(model_signal, r_peaks_model, beat_cursor, window_size=window_size, fs=MODEL_FS)
+                    if window is not None:
+                        hrv = tracker.update(int(r_peaks[beat_cursor]))
+                        afib = afib_screener.update(int(r_peaks[beat_cursor]))
+                        # 'detected_at': moc thoi gian ngay luc phat hien nhip nay - dung de do
+                        # End-to-End Latency (xem ws_routes.py va benchmark_e2e_latency.py).
+                        beat_info = {'window': window, 'r_peak_sample': int(r_peaks[beat_cursor]),
+                                     'detected_at': time.time(), **hrv,
+                                     'afib_suspected': afib['afib_suspected'], 'afib_score': afib['afib_score']}
+                except Exception as b_err:
+                    print(f"[!] Loi xu ly nhip tai sample {idx}: {b_err}")
+                finally:
+                    beat_cursor += 1
 
             idx += 1
 

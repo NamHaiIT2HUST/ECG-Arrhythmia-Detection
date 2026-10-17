@@ -25,7 +25,8 @@ async def lifespan(app: FastAPI):
               "bất kỳ quyền nào. Đặt biến môi trường JWT_SECRET_KEY thật trước khi triển khai "
               "ngoài máy cá nhân, xem docs/deployment_guide.md.")
 
-    model_path = os.path.join("saved_models", "resnet1d.pth")
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    model_path = os.path.join(base_dir, "saved_models", "resnet1d.pth")
     ai_service.load_model(model_path)
 
     yield
