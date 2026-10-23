@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAnomaly } from '../context/AnomalyContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -135,18 +135,46 @@ const VerifyPanel = ({ anomaly, onVerified }) => {
 };
 
 const XAIPage = () => {
-  const { anomalyHistory, selectedAnomaly, setSelectedAnomaly, updateAnomaly } = useAnomaly();
+  const { anomalyHistory, selectedAnomaly, setSelectedAnomaly, updateAnomaly, addAnomaly } = useAnomaly();
   const { isDarkActive } = useTheme();
   const { selectedPatient } = usePatient();
+
+  // Nạp lịch sử từ DB nếu state bộ nhớ rỗng
+  useEffect(() => {
+    let cancelled = false;
+    if (anomalyHistory.length === 0) {
+      (async () => {
+        try {
+          const res = await api.get('/api/anomalies?page_size=20');
+          if (cancelled) return;
+          const items = res.data?.items || [];
+          for (const item of items) {
+            addAnomaly({
+              prediction: item.prediction_label,
+              latency: 0,
+              heatmap: item.heatmap || null,
+              confidence: item.confidence,
+              signal: null,
+              anomalyId: item.id,
+              reviewStatus: item.review_status,
+              correctedLabel: item.corrected_label,
+              time: new Date(item.timestamp_ms).toLocaleTimeString('vi-VN'),
+            });
+          }
+        } catch {
+          // ignore
+        }
+      })();
+    }
+    return () => { cancelled = true; };
+  }, [anomalyHistory.length, addAnomaly]);
 
   const insight = useMemo(() => computeHeatmapInsight(selectedAnomaly?.heatmap), [selectedAnomaly]);
 
   return (
     <div style={{ padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
 
-      {/* Gộp tiêu đề + hướng dẫn luồng 3 bước vào 1 card duy nhất (trước đây 2 card riêng, đoạn
-          mô tả cũng dài dòng hơn mức cần) - bác sĩ chỉ cần biết NGAY: chọn 1 nhịp lỗi → xem AI
-          tập trung đâu → xác nhận, không cần đọc hết 1 đoạn văn giới thiệu tính năng. */}
+      {/* Gộp tiêu đề + hướng dẫn luồng 3 bước vào 1 card duy nhất */}
       <div className="card" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ margin: '0 0 4px 0', color: 'var(--text-main)', fontSize: '18px' }}>🧠 Trạm Phân Tích XAI</h2>
@@ -209,14 +237,7 @@ const XAIPage = () => {
           </div>
         </div>
 
-        {/* Khung phân tích chi tiết.
-            minHeight:0 + overflowY:auto: TRƯỚC ĐÂY card này không có 2 thuộc tính này, nên khi
-            nội dung bên dưới (kết luận XAI + panel xác nhận) đủ dài, ô biểu đồ Grad-CAM (flex:1,
-            position:relative) bị flexbox ép co xuống gần 0px, còn Plotly (chỉ tự vẽ lại theo
-            window resize, không theo container resize) vẫn giữ nguyên kích thước cũ nó đo lúc
-            mount -> chart nhìn như "đè" lên chữ bên dưới thay vì nằm gọn trong khung của nó.
-            Giờ card tự cuộn dọc khi không đủ chỗ, và khung chart có minHeight cố định nên luôn
-            có không gian thật để Plotly vẽ đúng, không bao giờ co về gần 0 nữa. */}
+        {/* Khung phân tích chi tiết */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px', minHeight: 0, overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-main)' }}>
@@ -240,15 +261,15 @@ const XAIPage = () => {
           </p>
 
           <div style={{ flex: '1 1 320px', minHeight: '320px', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', position: 'relative' }}>
-            {!selectedAnomaly || !selectedAnomaly.signal ? (
+            {!selectedAnomaly ? (
               <p style={{ color: 'var(--text-muted)' }}>Vui lòng chọn một nhịp tim lỗi ở danh sách bên trái.</p>
             ) : (
               <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
                 <Plot
                   data={[
                     // Vẽ Heatmap dạng Bar (đổ bóng màu từ dưới lên)
-                    {
-                      x: Array.from({length: 187}, (_, i) => i),
+                    selectedAnomaly.heatmap && {
+                      x: Array.from({length: selectedAnomaly.heatmap.length || 187}, (_, i) => i),
                       y: selectedAnomaly.heatmap,
                       type: 'bar',
                       marker: {
@@ -260,16 +281,16 @@ const XAIPage = () => {
                       opacity: 0.7,
                       name: 'Grad-CAM'
                     },
-                    // Vẽ Sóng ECG đè lên trên
-                    {
-                      x: Array.from({length: 187}, (_, i) => i),
+                    // Vẽ Sóng ECG đè lên trên (nếu có)
+                    selectedAnomaly.signal && {
+                      x: Array.from({length: selectedAnomaly.signal.length || 187}, (_, i) => i),
                       y: selectedAnomaly.signal,
                       type: 'scatter',
                       mode: 'lines',
                       line: { color: isDarkActive ? '#f8fafc' : '#0f172a', width: 2 },
                       name: 'Tín hiệu ECG'
                     }
-                  ]}
+                  ].filter(Boolean)}
                   layout={{
                     autosize: true,
                     plot_bgcolor: 'transparent',
@@ -288,8 +309,6 @@ const XAIPage = () => {
                     displayModeBar: true,
                     displaylogo: false,
                     scrollZoom: true,
-                    // Chỉ giữ đúng bộ nút phóng to/thu nhỏ/khôi phục - bỏ các nút Plotly mặc định
-                    // không cần cho bác sĩ (chọn vùng lasso, box select, xuất ảnh...).
                     modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d', 'toImage'],
                   }}
                 />
@@ -304,8 +323,6 @@ const XAIPage = () => {
                   Chẩn đoán AI: {selectedAnomaly.prediction}
                   {selectedAnomaly.confidence != null && ` · ${(selectedAnomaly.confidence * 100).toFixed(1)}%`}
                 </p>
-                {/* Chip số liệu ngắn thay cho 1 đoạn văn dài - đọc lướt nhanh hơn, chỉ thêm 1 câu
-                    cảnh báo ngắn đúng lúc cần (đỉnh chú ý lệch khỏi QRS), không luôn giải thích dài dòng. */}
                 {insight && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                     <InsightChip label={`Vùng chú ý cao: ${insight.highAttentionPct}%`} />

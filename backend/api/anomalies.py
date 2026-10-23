@@ -28,8 +28,7 @@ class AnomalyEventOut(BaseModel):
     review_status: str
     reviewed_by: Optional[int]
     corrected_label: Optional[str]
-    # Không trả `heatmap` (mảng 187 float) trong danh sách để tránh payload phình to khi
-    # phân trang nhiều mục — muốn xem XAI chi tiết 1 sự kiện thì dùng luồng real-time hiện có.
+    heatmap: Optional[list] = None
 
 
 class VerifyRequest(BaseModel):
@@ -68,12 +67,13 @@ def list_anomalies(
     date_to: Optional[datetime] = Query(default=None, alias="to", description="ISO 8601"),
     label: Optional[str] = Query(default=None, description="Lọc đúng 1 nhãn AAMI, vd 'CẢNH BÁO: NHỊP THẤT (V)'"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=200),
-    current_user: User = Depends(get_current_user),  # mọi role đã đăng nhập đều xem được (chỉ cần hợp lệ)
+    page_size: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """CP5.3: Lịch sử sự kiện bất thường AI đã phát hiện, có lọc + phân trang.
-    Sắp xếp mới nhất trước (`timestamp_ms` giảm dần)."""
+    """CP5.3: Tra cứu lịch sử sự kiện bất thường đã lưu, hỗ trợ lọc theo bệnh nhân, khoảng
+    thời gian (timestamp_ms lưu epoch UTC) và nhãn AAMI. Phân trang 20 mục/trang theo thứ tự
+    mới nhất trước."""
     query = db.query(AnomalyEvent)
 
     if patient_id is not None:
@@ -94,6 +94,18 @@ def list_anomalies(
     )
 
     return AnomalyListResponse(total=total, page=page, page_size=page_size, items=items)
+
+
+@router.get("/{anomaly_id}", response_model=AnomalyEventOut)
+def get_anomaly_detail(
+    anomaly_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = db.get(AnomalyEvent, anomaly_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy sự kiện bất thường")
+    return event
 
 
 @router.post("/{anomaly_id}/verify", response_model=AnomalyEventOut)

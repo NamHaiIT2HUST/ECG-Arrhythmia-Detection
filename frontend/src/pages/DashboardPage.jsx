@@ -201,6 +201,7 @@ const AlarmStatus = ({ connectionStatus }) => {
   const color = isDanger ? 'var(--danger)' : isWarning ? 'var(--warning)' : 'var(--success)';
   const levelText = isDanger ? 'Cấp 3 · Khẩn cấp' : isWarning ? 'Cấp 2 · Cảnh báo' : 'Bình thường';
   const isConnected = connectionStatus === 'Đã kết nối';
+  const isConnecting = connectionStatus === 'Đang kết nối...';
 
   return (
     <div
@@ -214,8 +215,8 @@ const AlarmStatus = ({ connectionStatus }) => {
       <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
       <span style={{ fontSize: 13, color, fontWeight: 700 }}>{levelText}</span>
       <span style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
-      <span style={{ fontSize: 12, color: isConnected ? 'var(--text-muted)' : 'var(--danger)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-        {isConnected ? '● Đã kết nối' : `⚠ ${connectionStatus}`}
+      <span style={{ fontSize: 12, color: isConnected ? 'var(--text-muted)' : isConnecting ? 'var(--warning)' : 'var(--danger)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+        {isConnected ? '● Đã kết nối' : isConnecting ? '⏳ Đang kết nối...' : `⚠ ${connectionStatus}`}
       </span>
     </div>
   );

@@ -56,6 +56,7 @@ export const MonitoringProvider = ({ children }) => {
   // dependency array của effect (thêm vào sẽ làm WS bị đóng/mở lại mỗi lần trạng thái mute đổi).
   const triggerAlarmRef = useRef(triggerAlarm);
   const addAnomalyRef = useRef(addAnomaly);
+  const prevPatientKeyRef = useRef(null);
   useEffect(() => {
     triggerAlarmRef.current = triggerAlarm;
     addAnomalyRef.current = addAnomaly;
@@ -136,11 +137,13 @@ export const MonitoringProvider = ({ children }) => {
     setSessionStartedAt(selectedPatient ? Date.now() : null);
     setTotalBeats(0);
     triggerAlarmRef.current('BÌNH THƯỜNG', 0, 1); // tắt còi/badge cảnh báo của bản ghi cũ ngay lập tức
-    // Đổi bệnh nhân/bản ghi = phiên theo dõi mới - xoá luôn lịch sử cảnh báo của bệnh nhân cũ,
-    // nếu không trang XAI/Báo cáo sẽ lẫn cảnh báo của nhiều bệnh nhân khác nhau trong cùng 1
-    // phiên trình duyệt (trước đây không có bước này vì state stream còn nằm trong
-    // DashboardPage, chưa cần phân biệt "phiên theo dõi của ai" rõ ràng như bây giờ).
-    clearHistory();
+    // Chỉ xoá lịch sử cảnh báo khi THỰC SỰ chuyển sang bệnh nhân khác hoặc bản ghi khác,
+    // không xoá khi F5 hoặc reconnect lại cùng bệnh nhân để trang XAI không bị mất dữ liệu.
+    const patientKey = selectedPatient ? `${selectedPatient.id}_${selectedRecord}` : null;
+    if (prevPatientKeyRef.current !== null && prevPatientKeyRef.current !== patientKey) {
+      clearHistory();
+    }
+    prevPatientKeyRef.current = patientKey;
 
     // Chưa đăng nhập - đừng cố mở WS (sẽ luôn 401/retry vô ích). MonitoringProvider nằm phía
     // trên cả kiểm tra isAuthenticated trong App.jsx để sống sót qua mọi lần đổi tab, nên phải
@@ -198,14 +201,25 @@ export const MonitoringProvider = ({ children }) => {
         setCurrentHeatmap(heatmap);
 
         if (prediction && prediction.includes('CẢNH BÁO')) {
-          // Lưu lại chính xác 187 điểm cuối cùng (trước khi cắt bớt theo MAX_POINTS) để XAI phân tích
-          const recent187 = rawY.slice(-187);
+          // Ưu tiên mảng 187 mẫu sóng ECG chuẩn hóa từ backend (125Hz khớp 1:1 với heatmap),
+          // fallback cắt từ buffer yData hoặc pad cho đủ 187 điểm (không bao giờ null).
+          let beatSignal = (Array.isArray(data.beat_window) && data.beat_window.length === 187)
+            ? data.beat_window
+            : null;
+
+          if (!beatSignal && rawY.length >= 187) {
+            beatSignal = rawY.slice(-187);
+          } else if (!beatSignal && rawY.length > 0) {
+            const padCount = 187 - rawY.length;
+            beatSignal = new Array(padCount).fill(rawY[0] || 0).concat(rawY);
+          }
+
           addAnomalyRef.current({
             prediction,
             latency: latency_ms,
             heatmap: heatmap,
             confidence: confidence, // Lưu thêm confidence
-            signal: recent187.length === 187 ? recent187 : null, // Chỉ lấy khi đủ 187
+            signal: beatSignal,
             anomalyId: anomaly_id, // id AnomalyEvent thật trong DB - dùng để bác sĩ xác nhận/sửa nhãn (XAIPage)
             reviewStatus: 'pending',
           });

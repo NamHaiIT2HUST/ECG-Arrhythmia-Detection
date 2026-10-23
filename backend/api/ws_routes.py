@@ -71,6 +71,7 @@ async def ecg_stream_endpoint(
         async for chunk_values, chunk2_values, beat_info, lead1_name, lead2_name in ecg_stream:
             heatmap = None
             anomaly_id = None
+            beat_window = None
 
             if beat_info is not None:
                 # 1 nhịp tim mới vừa được cắt theo đỉnh R -> chạy AI đúng 1 lần cho nhịp này
@@ -91,6 +92,10 @@ async def ecg_stream_endpoint(
                 # CP5.3: chỉ ghi vào DB đúng lúc phát hiện bất thường (heatmap khác None),
                 # giữ đúng ngữ nghĩa cũ "heatmap khác null = có sự kiện mới cần log"
                 if heatmap is not None:
+                    # Gửi kèm mảng 187 mẫu sóng ECG của đúng nhịp này để XAI frontend vẽ chuẩn xác 100%
+                    if "window" in beat_info and beat_info["window"] is not None:
+                        beat_window = beat_info["window"].tolist()
+
                     try:
                         event = log_anomaly(
                             db,
@@ -119,6 +124,7 @@ async def ecg_stream_endpoint(
                 "prediction": last_prediction, # Nhãn kết quả nhịp gần nhất (giữ nguyên tới khi có nhịp mới)
                 "heatmap": heatmap,            # Mảng 187 màu CHỈ có ở đúng gói tin phát hiện nhịp mới, còn lại None
                 "anomaly_id": anomaly_id,       # id AnomalyEvent thật trong DB (CHỈ có khi heatmap khác None), dùng để verify
+                "beat_window": beat_window,    # Mảng 187 điểm mẫu ECG chuẩn hóa của đúng nhịp bất thường này
                 "latency_ms": last_latency_ms, # Độ trễ AI của lần chẩn đoán gần nhất
                 "confidence": last_confidence, # Xác suất softmax của nhãn dự đoán gần nhất (0-1)
                 "bpm": last_bpm,                # Nhịp tim tức thời (BPM) theo khoảng RR thực tế
